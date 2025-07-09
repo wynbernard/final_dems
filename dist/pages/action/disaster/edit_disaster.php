@@ -1,5 +1,5 @@
 <?php
-include '../../../database/session.php';
+include '../../../../database/session.php';
 
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -19,10 +19,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	mysqli_stmt_bind_param($stmt, "sssi", $disaster_type, $disaster_level, $disaster_date, $disaster_id);
 
 	if (mysqli_stmt_execute($stmt)) {
-		$_SESSION['success'] = "<span style='color: white;'><i class='bi bi-check-circle-fill'></i></span> Disaster updated successfully!";
+		$_SESSION['success'] = "<span style='color: green;'><i class='bi bi-check-circle-fill'></i></span> Disaster updated successfully!";
 	} else {
-		$_SESSION['error'] = "<span style='color:white;'><i class='bi bi-exclamation-circle-fill'></i></span> Update failed: " . mysqli_error($conn);
+		$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Update failed: " . mysqli_error($conn);
 	}
 
-	header("Location: ../admin_page/disaster.php");
+	header("Location: ../../admin_page/disaster.php");
 }
