@@ -62,8 +62,8 @@ if (!$result) {
 						<div class="card">
 							<div class="card-header d-flex align-items-center">
 								<input type="text" id="searchBox" class="form-control me-2" placeholder="Search distributions..." style="max-width: 300px;">
-								<button type="button" class="btn btn-primary btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#addDistributionModal">
-									<i class="fas fa-plus-circle"></i> New Distribution
+								<button type="button" class="btn btn-success btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#scanQRModal">
+									<i class="fas fa-qrcode"></i> Scan QR Code
 								</button>
 							</div>
 
@@ -118,7 +118,9 @@ if (!$result) {
 			</div>
 		</main>
 
-		<?php include '../layout/footer.php'; ?>
+		<?php include '../layout/footer.php';
+		include '../modal/resources_distribution.php';
+		?>
 	</div>
 
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
