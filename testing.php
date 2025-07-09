@@ -8,6 +8,7 @@ include '../layout/head_links.php';
 
 ?>
 <!--end::Head-->
+	this is my pull data
 <!--begin::Body-->
 
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
