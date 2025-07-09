@@ -1,0 +1,52 @@
+@media (max-width: 768px) {
+		.container {
+			padding: 20px;
+		}
+
+		.col-md-6 {
+			margin-bottom: 15px;
+		}
+
+		.btn {
+			font-size: 16px;
+			padding: 12px;
+		}
+
+		h3 {
+			font-size: 22px;
+			margin-bottom: 20px;
+			text-align: center;
+		}
+	}
+
+	html,
+	body {
+		/* height: 100%; */
+		margin: 0;
+		padding: 0;
+		/* overflow-y: auto; */
+		/* Ensure vertical scrolling is allowed */
+		background-color: #f8f9fa;
+	}
+
+	.container {
+		max-width: 1200px;
+		margin: auto;
+		padding: 2rem;
+	}
+
+	@media (max-width: 767px) {
+		.btn-sm-mobile {
+			padding: 6px 12px;
+			font-size: 14px;
+		}
+	}
+
+	@media (max-width: 767px) {
+
+		/* Mobile screens */
+		.logo-img {
+			max-width: 70px !important;
+			/* Smaller size for mobile */
+		}
+	}

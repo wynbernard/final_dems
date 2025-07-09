@@ -1,0 +1,57 @@
+.login-container {
+			max-width: 900px;
+			margin: auto;
+			border-radius: 10px;
+			overflow: hidden;
+			box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+		}
+
+		.bg-image {
+			background: url('../../../../src/images/logo/logo.jpg') no-repeat center center;
+			background-size: cover;
+		}
+
+		.form-group {
+			position: relative;
+			margin-bottom: 1.5rem;
+		}
+		.form-group .form-label {
+			position: absolute;
+			top: 10px;
+			left: 12px;
+			font-size: 14px;
+			color: #6c757d;
+			background: white;
+			padding: 0 5px;
+			transition: all 0.2s ease-out;
+			pointer-events: none;
+			opacity: 0;
+			transform: translateY(0);
+			z-index: 1;
+		}
+
+		.form-group input:focus+.form-label,
+		.form-group input:not(:placeholder-shown)+.form-label {
+			top: 0;
+			left: 10px;
+			font-size: 12px;
+			opacity: 1;
+			transform: translateY(-50%);
+		}
+
+		/* Make sure empty inputs show placeholder */
+		.form-control::placeholder {
+			opacity: 1;
+			transition: opacity 0.2s ease;
+			color: #adb5bd;
+		}
+
+		/* Hide placeholder when focused or when has value */
+		.form-control:focus::placeholder,
+		.form-control:not(:placeholder-shown)::placeholder {
+			opacity: 0;
+		}
+
+.swal2-icon.swal2-info {
+	color: red !important;
+		}	
