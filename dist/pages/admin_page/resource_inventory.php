@@ -103,12 +103,26 @@ if (!$result) {
 															$status_class = 'out-of-stock';
 														}
 
-														$exp_date = $row['expiration_date'] ? date('M d, Y', strtotime($row['expiration_date'])) : 'N/A';
+														// $exp_date = $row['expiration_date'] ? date('M d, Y', strtotime($row['expiration_date'])) : 'N/A';
 												?>
 														<tr>
 															<td><?= $counter++ ?></td>
 															<td><?= htmlspecialchars($row['resource_name']) ?></td>
 															<td><?= htmlspecialchars($row['quantity']) ?></td>
+															<td>
+																<a href="#" class="btn btn-outline-primary btn-sm edit-btn"
+																	data-resource="<?= htmlspecialchars($row['resource_name']) ?>"
+																	data-quantity="<?= htmlspecialchars($row['quantity']) ?>"
+																	data-bs-toggle="modal" data-bs-target="#editInventoryModal">
+																	<i class="bi bi-pencil-square"></i> Edit
+																</a>
+
+																<a href="#" class="btn btn-outline-danger btn-sm delete-btn"
+																	data-resource="<?= htmlspecialchars($row['resource_name']) ?>"
+																	data-bs-toggle="modal" data-bs-target="#deleteInventoryModal">
+																	<i class="bi bi-trash"></i> Delete
+																</a>
+															</td>
 														</tr>
 												<?php }
 												} else {
@@ -126,7 +140,9 @@ if (!$result) {
 			</div>
 		</main>
 
-		<?php include '../layout/footer.php'; ?>
+		<?php include '../layout/footer.php';
+		include '../modal/inventory_modal.php';
+		?>
 	</div>
 
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

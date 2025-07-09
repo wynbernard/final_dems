@@ -8,9 +8,15 @@ include '../layout/head_links.php';
 
 ?>
 <!--end::Head-->
+<<<<<<< HEAD
 	
 <!--begin::Body-->
 	father
+=======
+
+<!--begin::Body-->
+father
+>>>>>>> 6ca5e5e (create edit delete and add of the inventory)
 
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
 
