@@ -33,5 +33,6 @@ $_SESSION['f_name'] = $user['f_name'];
 $_SESSION['l_name'] = $user['l_name'];
 $_SESSION['gender'] = $user['gender'];
 $_SESSION['registered_as'] = $user['registered_as'];
+$_SESSION['pre_reg_id'] = $user['pre_reg_id'];
 
 ob_end_flush(); // Send output to browser
