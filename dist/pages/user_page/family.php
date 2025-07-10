@@ -191,81 +191,117 @@
 			const mapElement = document.getElementById("locationMap");
 			const coordinatesDisplay = document.getElementById("coordinatesDisplay");
 
+			// Define bounds for Negros Occidental
+			const negrosBounds = L.latLngBounds(
+				[9.4, 122.2], // Southwest
+				[11.0, 123.2] // Northeast
+			);
+
 			if (!locationName || locationName.trim() === "") {
 				mapElement.innerHTML = `
-				<div class="location-placeholder">
-					<div class="text-center">
-						<i class="fas fa-map-marked-alt"></i>
-						<p class="mt-2 mb-0">No address provided</p>
-					</div>
-				</div>
-			`;
+				<div class="location-placeholder text-center py-4">
+					<i class="fas fa-map-marked-alt fa-2x"></i>
+					<p class="mt-2 mb-0">No address provided</p>
+				</div>`;
 				return;
 			}
 
 			mapElement.innerHTML = `
-			<div class="location-placeholder">
-				<div class="text-center">
-					<div class="spinner-border text-primary" role="status">
-						<span class="visually-hidden">Loading...</span>
-					</div>
-					<p class="mt-2 mb-0">Loading map...</p>
+			<div class="location-placeholder text-center py-4">
+				<div class="spinner-border text-primary" role="status">
+					<span class="visually-hidden">Loading...</span>
 				</div>
-			</div>
-		`;
+				<p class="mt-2 mb-0">Loading map...</p>
+			</div>`;
 
-			fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationName)}`)
+			// Try forward geocoding
+			fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationName)}`, {
+					headers: {
+						"User-Agent": "MyApp/1.0 (email@example.com)"
+					}
+				})
 				.then(response => {
-					if (!response.ok) throw new Error("Network response was not ok");
+					if (!response.ok) throw new Error("Network error");
 					return response.json();
 				})
 				.then(data => {
-					if (data.length === 0) {
-						throw new Error("Location not found");
-					}
+					if (data.length === 0) throw new Error("Location not found");
 
 					const lat = parseFloat(data[0].lat);
 					const lon = parseFloat(data[0].lon);
-
-					// Display coordinates
-					coordinatesDisplay.innerHTML = `<strong>Coordinates:</strong> ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
-
-					// Initialize map
-					mapElement.innerHTML = ""; // Clear loader
-					const map = L.map('locationMap').setView([lat, lon], 15);
-
-					L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-						attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-					}).addTo(map);
-
-					const customIcon = L.icon({
-						iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-						iconSize: [25, 41],
-						iconAnchor: [12, 41],
-						popupAnchor: [1, -34]
-					});
-
-					L.marker([lat, lon], {
-							icon: customIcon
-						}).addTo(map)
-						.bindPopup(`<strong>Family Location</strong><br>${locationName}`)
-						.openPopup();
+					displayMap(lat, lon, locationName);
 				})
 				.catch(error => {
-					console.error("Error:", error);
-					mapElement.innerHTML = `
-					<div class="location-placeholder">
-						<div class="text-center">
-							<i class="fas fa-map-marked-alt"></i>
-							<p class="mt-2 mb-0">Map unavailable</p>
-							<small class="text-muted">${locationName}</small>
-						</div>
-					</div>
-				`;
-					coordinatesDisplay.textContent = "";
+					console.warn("Forward geocoding failed:", error.message);
+
+					mapElement.innerHTML = "";
+
+					// Default to center of Negros Occidental
+					const fallbackLat = 10.4;
+					const fallbackLon = 122.95;
+
+					const map = L.map('locationMap', {
+						maxBounds: negrosBounds,
+						maxBoundsViscosity: 1.0,
+						minZoom: 7,
+						maxZoom: 18
+					}).setView([fallbackLat, fallbackLon], 9);
+
+					L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+						attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
+					}).addTo(map);
+
+					let marker;
+
+					map.on('click', function(e) {
+						const lat = e.latlng.lat.toFixed(6);
+						const lon = e.latlng.lng.toFixed(6);
+
+						if (marker) map.removeLayer(marker);
+						marker = L.marker(e.latlng).addTo(map)
+							.bindPopup(`Pinned location:<br><strong>${lat}, ${lon}</strong>`)
+							.openPopup();
+
+						coordinatesDisplay.innerHTML = `<strong>Coordinates (manual):</strong> ${lat}, ${lon}`;
+					});
+
+					coordinatesDisplay.innerHTML = `
+					<strong>Note:</strong> Address "<em>${locationName}</em>" not found. Click the map to pin the location.`;
 				});
+
+			function displayMap(lat, lon, label) {
+				coordinatesDisplay.innerHTML = `<strong>Coordinates:</strong> ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+				mapElement.innerHTML = "";
+
+				const map = L.map('locationMap', {
+					maxBounds: negrosBounds,
+					maxBoundsViscosity: 1.0,
+					minZoom: 7,
+					maxZoom: 18
+				}).setView([lat, lon], 15);
+
+				L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+					attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
+					maxZoom: 19
+				}).addTo(map);
+
+				const customIcon = L.icon({
+					iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+					iconSize: [25, 41],
+					iconAnchor: [12, 41],
+					popupAnchor: [1, -34],
+				});
+
+				L.marker([lat, lon], {
+						icon: customIcon
+					})
+					.addTo(map)
+					.bindPopup(`<strong>Family Location</strong><br>${label}`)
+					.openPopup();
+			}
 		});
 	</script>
+
 	<!-- <?php include '../scripts/scripts.php'; ?> -->
 </body>
 

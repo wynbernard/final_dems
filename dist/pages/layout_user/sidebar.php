@@ -32,13 +32,6 @@
         <?php else: ?>
           <!-- solo -->
         <?php endif; ?>
-
-        <li class="nav-item">
-          <a href="./room_reservation.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'room_reservation.php' ? 'active' : ''; ?>">
-            <i class="nav-icon bi bi-calendar-check"></i>
-            <p>Room Reservation</p>
-          </a>
-        </li>
       </ul>
     </nav>
   </div>
