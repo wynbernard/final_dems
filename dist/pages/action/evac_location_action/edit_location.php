@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$getBrgy->close();
 
 	if (empty($barangay_id)) {
-		$_SESSION['error'] = "<span style='color:white;'><i class='bi bi-exclamation-circle-fill'></i> Barangay not found.</span>";
+		$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i> Barangay not found.</span>";
 		header("Location: ../../admin_page/loc_management.php");
 		exit();
 	}
@@ -62,9 +62,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	);
 
 	if ($stmt->execute()) {
-		$_SESSION['success'] = "<span style='color:black;'><i class='bi bi-check-circle-fill'></i> Location updated successfully!</span>";
+		$_SESSION['success'] = "<span style='color:green;'><i class='bi bi-check-circle-fill'></i> Location updated successfully!</span>";
 	} else {
-		$_SESSION['error'] = "<span style='color:white;'><i class='bi bi-exclamation-circle-fill'></i> Failed to update location.</span>";
+		$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i> Failed to update location.</span>";
 	}
 
 	$stmt->close();

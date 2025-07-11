@@ -20,9 +20,7 @@
 							<!-- City -->
 							<div class="mb-3">
 								<label class="form-label fw-medium">🏙️ City</label>
-								<select name="city" id="city" class="form-select rounded-3 shadow-sm" required>
-									<option value="">Select City</option>
-								</select>
+								<input type="text" class="form-control rounded-3 shadow-sm" name="city" value ="Bago City" readonly>
 							</div>
 
 							<!-- Barangay -->

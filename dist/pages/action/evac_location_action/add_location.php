@@ -53,7 +53,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	mysqli_stmt_store_result($check_stmt);
 
 	if (mysqli_stmt_num_rows($check_stmt) > 0) {
-		$_SESSION['error'] = "<span style='color:white;'><i class='bi bi-exclamation-circle-fill'></i> Location name already exists.</span>";
+		$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i> Location name already exists.</span>";
 		header("Location: ../../admin_page/loc_management.php");
 		exit();
 	}
@@ -69,9 +69,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		$execute = mysqli_stmt_execute($stmt);
 
 		if ($execute) {
-			$_SESSION['success'] = "<span style='color:black;'><i class='bi bi-check-circle-fill'></i> Location added successfully!</span>";
+			$_SESSION['success'] = "<span style='color:green;'><i class='bi bi-check-circle-fill'></i> Location added successfully!</span>";
 		} else {
-			$_SESSION['error'] = "<span style='color:white;'><i class='bi bi-exclamation-circle-fill'></i> Failed to add location.</span>";
+			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i> Failed to add location.</span>";
 		}
 
 		mysqli_stmt_close($stmt);
