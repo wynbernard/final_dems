@@ -27,52 +27,35 @@
     <!--begin::Row-->
     <div class="row">
       <!--begin::Col-->
-      <div class="col-lg-3 col-md-6 col-12 mb-4">
-        <!-- Reservation Box -->
-        <div class="small-box text-bg-success shadow-lg rounded">
-          <div class="inner" style="padding: 20px; word-wrap: break-word;">
+     <div class="col-lg-3 col-6">
+        <!--begin::Small Box Widget 3-->
+        <div class="small-box text-bg-warning">
+          <div class="inner">
             <?php
-            $user_reservation_query = "
-                SELECT 
-                    r.room_id,
-                    r.room_name,
-                    l.name AS location_name,
-                    e.status
-                FROM room_reservation_table e
-                JOIN room_table r ON e.room_id = r.room_id
-                JOIN evac_loc_table l ON r.evac_loc_id = l.evac_loc_id
-                WHERE e.pre_reg_id = ?
-                LIMIT 1
-            ";
-            $user_stmt = $conn->prepare($user_reservation_query);
-            $user_stmt->bind_param("i", $_SESSION['pre_reg_id']);
-            $user_stmt->execute();
-            $user_result = $user_stmt->get_result();
-            $user_reservation = $user_result->fetch_assoc();
-
-            if ($user_reservation) { // Check if a reservation exists
+             $query = "SELECT COUNT(*) AS evac_reg FROM evac_reg_table";
+            $result = mysqli_query($conn, $query);
+            $row = mysqli_fetch_assoc($result);
+            $total_evac_reg = $row['evac_reg'];
             ?>
-              <h4 class="font-weight-bold" style="color: #fff;">Reservation: <?= htmlspecialchars($user_reservation['room_name']) ?></h4>
-              <p class="text-light" style="font-size: 16px;">Location: <?= htmlspecialchars($user_reservation['location_name']) ?></p>
-              <p class="text-light" style="font-size: 16px;">Status: <?= htmlspecialchars($user_reservation['status']) ?></p>
-            <?php
-            } else {
-            ?>
-              <h4 class="font-weight-bold" style="color: #fff;">No Reservation</h4>
-              <p class="text-light" style="font-size: 16px;">You have not made a reservation yet.</p>
-            <?php
-            }
-            ?>
+            <h3><?php echo htmlspecialchars($total_evac_reg)?></h3>
+            <p>Evacuation Registration</p>
           </div>
-          <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" style="opacity: 0.7; width: 30px; height: 30px;">
+          <svg
+            class="small-box-icon"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true">
             <path
-              d="M3 5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm2 0v14h14V5H5zm3 4h8v2H8V9zm0 4h5v2H8v-2z">
-            </path>
+              d="M6.25 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM3.25 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM19.75 7.5a.75.75 0 00-1.5 0v2.25H16a.75.75 0 000 1.5h2.25v2.25a.75.75 0 001.5 0v-2.25H22a.75.75 0 000-1.5h-2.25V7.5z"></path>
           </svg>
-          <a href="./room_reservation.php" class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover" style="background-color: #28a745; color: #fff; border-radius: 0 0 8px 8px; padding: 10px 20px; text-align: center; display: block;">
-            View Details <i class="bi bi-arrow-right"></i>
+          <a
+            href="#"
+            class="small-box-footer link-dark link-underline-opacity-0 link-underline-opacity-50-hover">
+            More info <i class="bi bi-link-45deg"></i>
           </a>
         </div>
+        <!--end::Small Box Widget 3-->
       </div>
 
       <!--end::Col-->

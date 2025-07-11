@@ -71,13 +71,13 @@
         <div class="small-box text-bg-success">
           <div class="inner">
             <?php
-            $query = "SELECT COUNT(*) AS total_reservation FROM room_reservation_table";
+            $query = "SELECT COUNT(*) AS pre_reg FROM pre_reg_table";
             $result = mysqli_query($conn, $query);
             $row = mysqli_fetch_assoc($result);
-            $total_reservation = $row['total_reservation'];
+            $total_pre_reg = $row['pre_reg'];
             ?>
-            <h3><?php echo htmlspecialchars($total_reservation) ?><sup class="fs-5"></sup></h3>
-            <p>Reservation</p>
+            <h3><?php echo htmlspecialchars($total_pre_reg) ?><sup class="fs-5"></sup></h3>
+            <p>Pre-Registration</p>
           </div>
           <svg
             class="small-box-icon"
@@ -101,8 +101,14 @@
         <!--begin::Small Box Widget 3-->
         <div class="small-box text-bg-warning">
           <div class="inner">
-            <h3>44</h3>
-            <p>User Registrations</p>
+            <?php
+             $query = "SELECT COUNT(*) AS evac_reg FROM evac_reg_table";
+            $result = mysqli_query($conn, $query);
+            $row = mysqli_fetch_assoc($result);
+            $total_evac_reg = $row['evac_reg'];
+            ?>
+            <h3><?php echo htmlspecialchars($total_evac_reg)?></h3>
+            <p>Evacuation Registration</p>
           </div>
           <svg
             class="small-box-icon"

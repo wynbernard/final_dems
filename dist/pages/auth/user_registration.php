@@ -496,33 +496,25 @@
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">Region</label>
-								<select name="region" id="region" class="form-control" required>
-									<option value="">Select Region</option>
-								</select>
+								<input type="text" name="region" id="region" class="form-control" value="Region VI (Western Visayas)" readonly>
 							</div>
 						</div>
-						<div class="col-md-4">
+						<div class="col-md-4">	
 							<div class="mb-3">
 								<label class="form-label">Province</label>
-								<select name="province" id="province" class="form-control" required>
-									<option value="">Select Province</option>
-								</select>
+								<input type="text" name="province" id="province" class="form-control" value="Negros Occidental" readonly>
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">City</label>
-								<select name="city" id="city" class="form-control" required>
-									<option value="">Select City</option>
-								</select>
+								<input type="text" name="city" id="city" class="form-control" value="Bago City" readonly>
 						</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">District</label>
-								<select name="district" id="district" class="form-control">
-									<option value="">Select District</option>
-								</select>
+								<input type="text" name="district" id="district" class="form-control" value="4th district" readonly>
 							</div>
 						</div>
 						<div class="col-md-4">
