@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 24, 2025 at 09:17 AM
+-- Generation Time: Jul 11, 2025 at 09:50 AM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `dems`
+-- Database: `f_dems`
 --
 
 -- --------------------------------------------------------
@@ -38,6 +38,23 @@ CREATE TABLE `account_information_table` (
   `shelter_damage_classification` varchar(200) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `account_information_table`
+--
+
+INSERT INTO `account_information_table` (`account_information_id`, `pre_reg_id`, `bank_Ewallet`, `account_name`, `account_type`, `account_number`, `house_ownership`, `shelter_damage_classification`) VALUES
+(1, 0, '123', '123', '123', 213, '', ''),
+(2, 0, '123', '123', '123', 123, '', ''),
+(3, 0, '123', '123', '123', 123, '', ''),
+(4, 0, '123', '123', '123', 123, '', ''),
+(5, 0, '123', '123', '123', 23123, '', ''),
+(6, 0, 'qwe', 'qwe', 'qweqwe', 12312, '', ''),
+(7, 0, '123', '123', '123', 123, '', ''),
+(8, 0, '123', '123', '123', 123, '', ''),
+(9, 0, '123', '123', '123', 123, '', ''),
+(10, 0, '123123123123', '123', '123', 123, '', ''),
+(11, 0, '123', '123', '123', 123, '', '');
+
 -- --------------------------------------------------------
 
 --
@@ -54,6 +71,14 @@ CREATE TABLE `admin_table` (
   `role` varchar(200) NOT NULL,
   `evac_loc_id` int(200) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `admin_table`
+--
+
+INSERT INTO `admin_table` (`admin_id`, `f_name`, `l_name`, `username`, `password`, `session_token`, `role`, `evac_loc_id`) VALUES
+(12, 'admnin', 'qewqeew', 'admin', 'admin', '2f5647e5551cf383054d91379df9ffdb4b49a36dccfe1dbb2dd3eca1dd79136b', 'Admin', 0),
+(13, 'wynbernard', 'deysolong', 'wynbernard', '123', '', 'Staff', 0);
 
 -- --------------------------------------------------------
 
@@ -85,8 +110,40 @@ CREATE TABLE `barangay_manegement_table` (
   `barangay_id` int(200) NOT NULL,
   `barangay_name` varchar(200) NOT NULL,
   `barangay_captain_name` varchar(200) NOT NULL,
-  `signature_brgy_captain` varchar(200) NOT NULL
+  `signature_brgy_captain` varchar(200) NOT NULL,
+  `latitude` varchar(200) NOT NULL,
+  `longitude` varchar(200) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `barangay_manegement_table`
+--
+
+INSERT INTO `barangay_manegement_table` (`barangay_id`, `barangay_name`, `barangay_captain_name`, `signature_brgy_captain`, `latitude`, `longitude`) VALUES
+(12, 'Abuanan', 'cj campanil', 'signature_brgy_captain/signature_1752218536.png', '10.525303', '122.992405'),
+(13, 'Alianza', 'cj campanil', 'signature_brgy_captain/signature_1752218572.png', '10.47312649567524', '122.93030619621277'),
+(14, 'Atipuluan', 'cj campanil', 'signature_brgy_captain/signature_1752218692.png', '10.510957', '122.956613'),
+(15, 'Bacong-Montilla', 'cj campanil', 'signature_brgy_captain/signature_1752218775.png', '10.518911', '123.034413'),
+(16, 'Bagroy', 'cj campanil', 'signature_brgy_captain/signature_1752218825.png', '10.476903', '122.872344'),
+(17, 'Balingasag', 'cj campanil', 'signature_brgy_captain/signature_1752218891.png', '10.531358', '122.845902'),
+(18, 'Binubuhan', 'cj campanil', 'signature_brgy_captain/signature_1752218943.png', '10.457217', '123.007414'),
+(19, 'Busay', 'cj campanil', 'signature_brgy_captain/signature_1752218988.png', '10.53699', '122.888389'),
+(20, 'Calumangan', 'cj campanil', 'signature_brgy_captain/signature_1752219057.png', '10.559815', '122.876952'),
+(21, 'Caridad', 'cj campanil', 'signature_brgy_captain/signature_1752219094.png', '10.481566', '122.905834'),
+(22, 'Dulao', 'cj campanil', 'signature_brgy_captain/signature_1752219180.png', '10.548635', '122.951539'),
+(23, 'Ilijan', 'cj campanil', 'signature_brgy_captain/signature_1752219262.png', '10.452595', '123.055093'),
+(24, 'Lag-asan', 'cj campanil', 'signature_brgy_captain/signature_1752219316.png', '10.530229', '122.838639'),
+(25, 'Ma-ao Barrio', 'cj campanil', 'signature_brgy_captain/signature_1752219414.png', '10.48912', '122.990152'),
+(26, 'Jorge L. Araneta (Ma-ao Central)', 'cj campanil', 'signature_brgy_captain/signature_1752219482.png', '10.476017', '122.94597'),
+(27, 'Mailum', 'cj campanil', 'signature_brgy_captain/signature_1752219585.png', '10.461574', '123.049332'),
+(28, 'Malingin', 'cj campanil', 'signature_brgy_captain/signature_1752219613.png', '10.493851', '122.917868'),
+(29, 'Napoles', 'cj campanil', 'signature_brgy_captain/signature_1752219641.png', '10.512539', '122.898055'),
+(30, 'Pacol', 'cj campanil', 'signature_brgy_captain/signature_1752219664.png', '10.494838', '122.867339'),
+(31, 'Poblacion', 'cj campanil', 'signature_brgy_captain/signature_1752219693.png', '10.5393', '122.836686'),
+(32, 'Sagasa', 'cj campanil', 'signature_brgy_captain/signature_1752219733.png', '10.469413', '122.892895'),
+(33, 'Tabunan', 'cj campanil', 'signature_brgy_captain/signature_1752219758.png', '10.576331', '122.93699'),
+(34, 'Taloc', 'cj campanil', 'signature_brgy_captain/signature_1752219786.png', '10.586604', '122.909675'),
+(35, 'Sampinit', 'cj campanil', 'signature_brgy_captain/signature_1752219819.png', '10.544057', '122.853456');
 
 -- --------------------------------------------------------
 
@@ -117,25 +174,13 @@ INSERT INTO `disaster_table` (`disaster_id`, `disaster_name`, `date`, `level`) V
 CREATE TABLE `evac_loc_table` (
   `evac_loc_id` int(11) NOT NULL,
   `city` varchar(200) NOT NULL,
-  `barangay` int(200) NOT NULL,
+  `barangay_id` int(200) NOT NULL,
   `purok` varchar(200) NOT NULL,
   `name` varchar(200) NOT NULL,
   `total_capacity` int(200) NOT NULL,
   `longitude` int(200) NOT NULL,
   `latitude` int(200) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `evac_loc_table`
---
-
-INSERT INTO `evac_loc_table` (`evac_loc_id`, `city`, `barangay`, `purok`, `name`, `total_capacity`, `longitude`, `latitude`) VALUES
-(1, '', 0, '', 'Bago City College', 100, 0, 0),
-(2, '', 0, '', 'Ramon Torres National High School', 242, 0, 0),
-(4, '', 0, '', 'Sum ag National High School', 30, 0, 0),
-(5, '', 0, '', 'Lag-asan Elementary School', 0, 0, 0),
-(6, '', 0, '', 'Sum ag Elementary School', 20, 0, 0),
-(10, '', 0, '', 'Valladolid Elementary School , Negros Occidental', 40, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -151,19 +196,6 @@ CREATE TABLE `evac_reg_table` (
   `date_reg` date NOT NULL,
   `disaster_id` int(200) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `evac_reg_table`
---
-
-INSERT INTO `evac_reg_table` (`evac_reg_id`, `pre_reg_id`, `evac_loc_id`, `room_id`, `date_reg`, `disaster_id`) VALUES
-(43, 41, 1, 1, '2025-04-09', 1),
-(44, 42, 1, 3, '2025-04-09', 1),
-(45, 43, 1, 1, '2025-04-10', 1),
-(46, 54, 2, 11, '2025-04-21', 1),
-(47, 46, 2, 9, '2025-04-21', 1),
-(48, 49, 2, 9, '2025-04-21', 1),
-(49, 51, 2, 11, '2025-04-21', 1);
 
 -- --------------------------------------------------------
 
@@ -200,7 +232,16 @@ INSERT INTO `family_table` (`family_id`, `region`, `province`, `city_municipalit
 (18, '', '', '', '', 0, '', '', '', 0, 0, 0),
 (19, '', '', '', '', 0, '', '', '', 0, 0, 0),
 (20, '', '', '', '', 0, '', '', '', 0, 0, 0),
-(21, '', '', '', '', 0, '', '', '', 0, 0, 0);
+(21, '', '', '', '', 0, '', '', '', 0, 0, 0),
+(22, 'Region VI (Western Visayas)', 'Capiz', 'Dumalag', '', 3, 'wer', 'wer', '123', 123, 0, 0),
+(23, 'National Capital Region (NCR)', 'City Of Manila', 'Port Area', '', 4, '123', '123', '123', 123, 0, 0),
+(24, 'Region VI (Western Visayas)', 'Iloilo', 'Dumangas', '', 5, '123', '123', '123', 123, 0, 0),
+(25, 'Region VI (Western Visayas)', 'Iloilo', 'Dumangas', '', 5, '123', '123', '123', 123, 0, 0),
+(26, 'Region IX (Zamboanga Peninzula)', 'Zamboanga Del Norte', 'Siayan', '', 6, '123', '213', '123', 123, 0, 0),
+(27, 'Region I (Ilocos Region)', 'Ilocos Sur', 'Cabugao', '', 7, 'qwe', 'qwe', 'qwe', 0, 0, 0),
+(28, 'Region VI (Western Visayas)', 'Iloilo', 'Dumangas', '', 5, 'qwe', '123', '123', 123, 0, 0),
+(29, 'Region X (Northern Mindanao)', 'Bukidnon', 'Quezon', '', 9, '123', '123', '123', 123, 0, 0),
+(30, 'Region I (Ilocos Region)', 'Ilocos Sur', 'Banayoyo', '', 10, 'qwe', '123', '123', 123, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -265,8 +306,19 @@ CREATE TABLE `pre_reg_table` (
   `id_card_presented` varchar(200) NOT NULL,
   `id_card_number` int(200) NOT NULL,
   `account_information_id` int(200) NOT NULL,
-  `signature` varchar(200) NOT NULL
+  `signature` varchar(200) NOT NULL,
+  `id_card_image` varchar(200) NOT NULL,
+  `indigenous_people` varchar(200) NOT NULL,
+  `4ps_beneficiary` varchar(200) NOT NULL,
+  `ethnicity` varchar(200) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `pre_reg_table`
+--
+
+INSERT INTO `pre_reg_table` (`pre_reg_id`, `f_name`, `m_name`, `l_name`, `name_ext`, `contact_no`, `email_address`, `password`, `gender`, `registered_as`, `civil_status`, `solo_address_id`, `family_id`, `relation_to_family`, `highest_education_attainment`, `type_vulnerability`, `age_class_id`, `qr_id`, `registered_date`, `date_of_birth`, `place_of_birth`, `user_session_token`, `profile_pic`, `mother_maiden_name`, `religion`, `occupation`, `monthly_income`, `id_card_presented`, `id_card_number`, `account_information_id`, `signature`, `id_card_image`, `indigenous_people`, `4ps_beneficiary`, `ethnicity`) VALUES
+(85, 'renato', 'wqe', 'tulmo', 'jr', 9032328623, 'renato@gmail.com', '$2y$10$d9E/zL8lBiv8sKBxBO6D3.X4sZvFjzCQhdUupyJkw65HGZO5Nxjym', 'Female', 'Solo', 'separated', 2, 0, 'Head of Family', 'Some High School', '', 3, 30, '2025-07-11', '2025-07-10', '123', '', '../profile_images/profile_6870a420567e93.65110219.jpg', '123123', '123', '123', 123, '123', 123, 11, '../../signature_image/signature_draw_1752212512.png', '../../id_card_image/natoy.jpg', 'on', 'on', '321');
 
 -- --------------------------------------------------------
 
@@ -313,7 +365,8 @@ INSERT INTO `qr_table` (`qr_id`, `pre_reg_id`, `code`) VALUES
 (26, 76, '../../../qrcodes/1745760006_76.png'),
 (27, 80, '../../../qrcodes/1745928192_80.png'),
 (28, 81, '../../../qrcodes/1745929354_81.png'),
-(29, 82, '../../../qrcodes/1745932956_82.png');
+(29, 82, '../../../qrcodes/1745932956_82.png'),
+(30, 85, 'uploads/qr_codes/1752212512_85.png');
 
 -- --------------------------------------------------------
 
@@ -434,6 +487,14 @@ CREATE TABLE `solo_address_table` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
+-- Dumping data for table `solo_address_table`
+--
+
+INSERT INTO `solo_address_table` (`solo_address_id`, `pre_reg_id`, `region`, `province`, `city_municipality`, `district`, `barangay_id`, `house_block_number`, `street`, `sub_village`, `zip_code`, `longitude`, `latitude`) VALUES
+(1, 0, 'Region XI (Davao Region)', 'Compostela Valley', 'New Bataan', '', 8, '123', 'Prk. Camingawan Proper', '123', 6101, 0, 0),
+(2, 0, 'Cordillera Administrative Region (CAR)', 'Benguet', 'Tuba', '', 11, 'eqwe', '123', '123', 123, 0, 0);
+
+--
 -- Indexes for dumped tables
 --
 
@@ -541,13 +602,13 @@ ALTER TABLE `solo_address_table`
 -- AUTO_INCREMENT for table `account_information_table`
 --
 ALTER TABLE `account_information_table`
-  MODIFY `account_information_id` int(200) NOT NULL AUTO_INCREMENT;
+  MODIFY `account_information_id` int(200) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `admin_table`
 --
 ALTER TABLE `admin_table`
-  MODIFY `admin_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `admin_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `age_class_table`
@@ -559,7 +620,7 @@ ALTER TABLE `age_class_table`
 -- AUTO_INCREMENT for table `barangay_manegement_table`
 --
 ALTER TABLE `barangay_manegement_table`
-  MODIFY `barangay_id` int(200) NOT NULL AUTO_INCREMENT;
+  MODIFY `barangay_id` int(200) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- AUTO_INCREMENT for table `disaster_table`
@@ -571,7 +632,7 @@ ALTER TABLE `disaster_table`
 -- AUTO_INCREMENT for table `evac_loc_table`
 --
 ALTER TABLE `evac_loc_table`
-  MODIFY `evac_loc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `evac_loc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `evac_reg_table`
@@ -583,7 +644,7 @@ ALTER TABLE `evac_reg_table`
 -- AUTO_INCREMENT for table `family_table`
 --
 ALTER TABLE `family_table`
-  MODIFY `family_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `family_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT for table `logs_table`
@@ -595,13 +656,13 @@ ALTER TABLE `logs_table`
 -- AUTO_INCREMENT for table `pre_reg_table`
 --
 ALTER TABLE `pre_reg_table`
-  MODIFY `pre_reg_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=85;
+  MODIFY `pre_reg_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=86;
 
 --
 -- AUTO_INCREMENT for table `qr_table`
 --
 ALTER TABLE `qr_table`
-  MODIFY `qr_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `qr_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT for table `resource_allocation_table`
@@ -631,7 +692,7 @@ ALTER TABLE `room_table`
 -- AUTO_INCREMENT for table `solo_address_table`
 --
 ALTER TABLE `solo_address_table`
-  MODIFY `solo_address_id` int(200) NOT NULL AUTO_INCREMENT;
+  MODIFY `solo_address_id` int(200) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
