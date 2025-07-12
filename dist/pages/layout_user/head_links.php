@@ -90,4 +90,12 @@
 	<script src="../../../plugins/jquery/jquery.min.js"></script>
 	<script src="../../../plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 	<script src="../../../dist/js/adminlte.min.js"></script>
+
+	<!-- Leaflet Maps -->
+	<link
+		rel="stylesheet"
+		href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+	<script
+		src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+	</script>
 </head>

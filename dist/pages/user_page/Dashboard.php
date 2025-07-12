@@ -63,31 +63,7 @@ include '../layout_user/head_links.php';
     <!-- Footer -->
     <?php include '../layout_user/footer.php'; ?>
   </div>
-
-  <!-- Scripts -->
-  <?php include '../scripts/scripts.php';
-  include '../css/user_dashboard.php';
-  ?>
-
-  <script>
-    // Add smooth page transitions
-    document.addEventListener('DOMContentLoaded', function() {
-      // Enable tooltips everywhere
-      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-      tooltipTriggerList.map(function(tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-      });
-
-      // Add active class to current nav item
-      const currentPath = window.location.pathname.split('/').pop();
-      document.querySelectorAll('.nav-link').forEach(link => {
-        if (link.getAttribute('href') === currentPath) {
-          link.classList.add('active');
-        }
-      });
-    });
-  </script>
 </body>
-<!--end::Body-->
+<!-- end::Body -->
 
 </html>

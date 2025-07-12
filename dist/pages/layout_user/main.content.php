@@ -27,17 +27,17 @@
     <!--begin::Row-->
     <div class="row">
       <!--begin::Col-->
-     <div class="col-lg-3 col-6">
+      <div class="col-lg-3 col-6">
         <!--begin::Small Box Widget 3-->
         <div class="small-box text-bg-warning">
           <div class="inner">
             <?php
-             $query = "SELECT COUNT(*) AS evac_reg FROM evac_reg_table";
+            $query = "SELECT COUNT(*) AS evac_reg FROM evac_reg_table";
             $result = mysqli_query($conn, $query);
             $row = mysqli_fetch_assoc($result);
             $total_evac_reg = $row['evac_reg'];
             ?>
-            <h3><?php echo htmlspecialchars($total_evac_reg)?></h3>
+            <h3><?php echo htmlspecialchars($total_evac_reg) ?></h3>
             <p>Evacuation Registration</p>
           </div>
           <svg
@@ -59,33 +59,29 @@
       </div>
 
       <!--end::Col-->
-
-      <!--begin::Col-->
-      <div class="col-lg-5 col-md-6 col-12 mb-4">
-        <div class="card text-white bg-danger bg-gradient border-danger mb-4 shadow-lg rounded">
-          <div class="card-header border-0">
-            <h3 class="card-title" id="report-title" style="font-size: 1.25rem; font-weight: bold; color: #fff;">Phenomenal Report</h3>
-            <div class="card-tools">
-              <button type="button" class="btn btn-light btn-sm" data-lte-toggle="card-collapse" style="border-radius: 5px;">
-                <i data-lte-icon="expand" class="bi bi-plus-lg"></i>
-                <i data-lte-icon="collapse" class="bi bi-dash-lg"></i>
-              </button>
-            </div>
-          </div>
-          <div class="card-body" id="typhoon-info" style="padding: 20px; font-size: 16px; line-height: 1.5; color: #f0f0f0;">
-            <p>Loading Phenomenal Report...</p>
-          </div>
-          <div class="card-footer border-0 text-center" style="background-color: #c62828; padding: 12px; border-radius: 0 0 8px 8px;">
-            <small id="typhoon-updated" style="color: #fff;">Loading...</small>
-          </div>
-        </div>
-      </div>
     </div>
     <!-- /.row (main row) -->
+  </div>
+
+
+  <!--begin::Col Map Box-->
+  <div class="col-sm-10 col-md-12 col-10 mb-12">
+    <div class="card shadow-lg rounded border-success">
+      <div class="card-header bg-success text-white">
+        <h3 class="card-title mb-0" style="font-size: 1.25rem;">Disaster Map</h3>
+      </div>
+      <div class="card-body" style="height: 300px; padding: 0;">
+        <div id="map" style="height: 100%; width: 100%;"></div>
+      </div>
+      <div class="card-footer text-muted text-center small">
+        Powered by OpenStreetMap & Leaflet
+      </div>
+    </div>
   </div>
   <!--end::Container-->
 </div>
 <!--end::App Content-->
+<?php include '../fetch_data/location_evacuation.php'; ?>
 
 <script>
   async function loadTyphoonData() {
@@ -116,4 +112,41 @@
   }
   loadTyphoonData();
   setInterval(loadTyphoonData, 300000); // refresh every 5 minutes
+</script>
+<script>
+  const barangayLat = <?php echo $barangayCoords['latitude']; ?>;
+  const barangayLng = <?php echo $barangayCoords['longitude']; ?>;
+  // Initialize Leaflet map
+  const map = L.map("map").setView([barangayLat, barangayLng], 12);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  // Data from PHP (name, latitude, longitude, barangay)
+  const evacuationCenters = <?php echo json_encode($locations, JSON_NUMERIC_CHECK); ?>;
+
+  if (evacuationCenters.length === 0) {
+    console.warn("No evacuation center data available.");
+  }
+
+  evacuationCenters.forEach(center => {
+    const lat = parseFloat(center.latitude);
+    const lng = parseFloat(center.longitude);
+
+    if (!isNaN(lat) && !isNaN(lng)) {
+      const popupContent = `
+        <strong>${center.name}</strong><br>
+        <small>Barangay: ${center.barangay_name}</small>
+      `;
+
+      L.marker([lat, lng])
+        .addTo(map)
+        .bindPopup(popupContent);
+    } else {
+      console.warn("Invalid coordinates for center:", center);
+    }
+
+    console.log("Evacuation Center:", center.name, "Barangay:", center.barangay, "at", lat, lng);
+  });
 </script>
