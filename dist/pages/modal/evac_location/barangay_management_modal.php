@@ -23,7 +23,84 @@
 							<div class="mb-3">
 								<label for="add_barangay_name" class="form-label">Barangay Name</label>
 								<input type="text" class="form-control" id="add_barangay_name" name="barangay_name" required>
+								<small id="barangayFeedback1" class="text-danger"></small>
 							</div>
+							<!-- Include jQuery -->
+							<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+							<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+							<script>
+								$(document).ready(function() {
+									let typingTimer;
+									let doneTypingInterval = 500; // 0.5 second delay
+
+									$('#add_barangay_name').on('input', function() {
+										clearTimeout(typingTimer);
+										let barangay = $(this).val().trim();
+
+										if (barangay === "") {
+											$('#barangayFeedback1').html('').css('color', '');
+											$('#add_barangay_name').removeClass('is-valid is-invalid');
+											$('#addAdminBtn').prop('disabled', true);
+											return;
+										}
+
+										typingTimer = setTimeout(function() {
+											checkBarangayName(barangay);
+										}, doneTypingInterval);
+									});
+
+									function checkBarangayName(barangay) {
+										$.ajax({
+											url: '../check_validation/barangay_name.php', // Make sure this exists
+											type: 'POST',
+											data: {
+												barangay_name: barangay
+											},
+											success: function(response) {
+												console.log("Barangay Server Response:", response);
+												response = response.trim();
+
+												if (response === 'taken') {
+													$('#barangayFeedback1').html('<i class="fas fa-exclamation-circle"></i> Barangay already exists.')
+														.css({
+															'color': 'red',
+															'font-weight': 'bold'
+														});
+													$('#add_barangay_name').addClass('is-invalid').removeClass('is-valid');
+													$('#addAdminBtn').prop('disabled', true);
+												} else if (response === 'available') {
+													$('#barangayFeedback1').html('<i class="fas fa-check-circle" style="color: green;"></i> Barangay name available.')
+														.css({
+															'color': 'green',
+															'font-weight': 'bold'
+														});
+													$('#add_barangay_name').addClass('is-valid').removeClass('is-invalid');
+													$('#addAdminBtn').prop('disabled', false);
+												} else {
+													$('#barangayFeedback1').html('<i class="fas fa-exclamation-triangle"></i> Server returned unknown response.')
+														.css({
+															'color': 'orange',
+															'font-weight': 'bold'
+														});
+													$('#add_barangay_name').addClass('is-invalid').removeClass('is-valid');
+													$('#addAdminBtn').prop('disabled', true);
+												}
+											},
+											error: function(xhr, status, error) {
+												console.error("AJAX Error:", status, error);
+												$('#barangayFeedback1').html('<i class="fas fa-exclamation-triangle"></i> Server error.')
+													.css({
+														'color': 'orange',
+														'font-weight': 'bold'
+													});
+												$('#add_barangay_name').addClass('is-invalid').removeClass('is-valid');
+												$('#addAdminBtn').prop('disabled', true);
+											}
+										});
+									}
+								});
+							</script>
+
 
 							<div class="mb-3">
 								<label for="add_barangay_captain" class="form-label">Captain Name</label>
