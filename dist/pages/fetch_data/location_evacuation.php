@@ -3,16 +3,24 @@ include '../../../database/conn.php';
 
 $user = $_SESSION['pre_reg_id'];
 
-$query = "SELECT barangay_manegement_table.barangay_name AS barangay_name FROM pre_reg_table
+$query = "SELECT 
+    brg.barangay_name AS barangay_name,
+	brg_fam.barangay_name AS family_barangay_name
+FROM 
+    pre_reg_table
 LEFT JOIN solo_address_table ON pre_reg_table.solo_address_id = solo_address_table.solo_address_id
-LEFT JOIN barangay_manegement_table ON solo_address_table.barangay_id = barangay_manegement_table.barangay_id
-WHERE pre_reg_table.pre_reg_id = ?";
+LEFT JOIN family_table ON pre_reg_table.family_id = family_table.family_id
+LEFT JOIN barangay_manegement_table AS brg_fam ON family_table.barangay_id = brg_fam.barangay_id
+LEFT JOIN barangay_manegement_table AS brg ON solo_address_table.barangay_id = brg.barangay_id
+WHERE 
+    pre_reg_table.pre_reg_id = ?
+";
 $stmt = $conn->prepare($query);
 $stmt->bind_param("s", $user);
 $stmt->execute();
 $result = $stmt->get_result();
 $row = $result->fetch_assoc();
-$user_barangay = $row['barangay_name'] ?? 'Taloc'; // fallback if not set
+$user_barangay = $row['barangay_name'] ?? $row['family_barangay_name']; // fallback if not set
 
 $barangayQuery = "SELECT latitude, longitude FROM barangay_manegement_table WHERE barangay_name = ?";
 $stmt = $conn->prepare($barangayQuery);

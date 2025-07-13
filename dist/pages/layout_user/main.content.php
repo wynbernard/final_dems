@@ -29,7 +29,7 @@
       <!--begin::Col-->
       <div class="col-lg-3 col-6">
         <!--begin::Small Box Widget 3-->
-        <div class="small-box text-bg-warning">
+        <!-- <div class="small-box text-bg-warning">
           <div class="inner">
             <?php
             $query = "SELECT COUNT(*) AS evac_reg FROM evac_reg_table";
@@ -54,7 +54,7 @@
             class="small-box-footer link-dark link-underline-opacity-0 link-underline-opacity-50-hover">
             More info <i class="bi bi-link-45deg"></i>
           </a>
-        </div>
+        </div> -->
         <!--end::Small Box Widget 3-->
       </div>
 
@@ -65,19 +65,20 @@
 
 
   <!--begin::Col Map Box-->
-  <div class="col-sm-10 col-md-12 col-10 mb-12">
-    <div class="card shadow-lg rounded border-success">
+  <div class="col-12 col-sm-12 col-md-12 mb-4">
+    <div class="card shadow-lg rounded border-success h-100">
       <div class="card-header bg-success text-white">
         <h3 class="card-title mb-0" style="font-size: 1.25rem;">Disaster Map</h3>
       </div>
-      <div class="card-body" style="height: 300px; padding: 0;">
-        <div id="map" style="height: 100%; width: 100%;"></div>
+      <div class="card-body p-0" style="min-height: 300px;">
+        <div id="map" style="height: 100%; width: 100%; min-height: 300px;"></div>
       </div>
       <div class="card-footer text-muted text-center small">
         Powered by OpenStreetMap & Leaflet
       </div>
     </div>
   </div>
+
   <!--end::Container-->
 </div>
 <!--end::App Content-->

@@ -158,7 +158,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		exit();
 	}
 
-	if ($age <= 2) {
+	if ($age <= 1) {
 		$age_class = 'Infant';
 	} elseif ($age <= 12) {
 		$age_class = 'Child';
@@ -322,10 +322,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		}
 		$qr_stmt->close();
 
-		$_SESSION['success'] = "✅ Registration Successful! Your QR Code has been generated.";
+		$_SESSION['success'] = "<span style='color: green;'><i class='bi bi-check-circle-fill'></i></span> Registered Successfull!!!";
 		header("Location: ../../auth/log_in.php");
 	} else {
-		$_SESSION['error'] = "Something went wrong!";
+		$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Something went wrong!";
 		header("Location: ../../auth/user_registration.php");
 	}
 	$conn->close();

@@ -74,52 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 		$stmt = $conn->prepare($query);
 		$stmt->bind_param("si", $params[0], $params[1]);
 		if ($stmt->execute()) {
-			$_SESSION['success'] = "Profile updated successfully.";
-
-			if ($update_qr) {
-				// Fetch updated data
-				$stmt = $conn->prepare("
-					SELECT pre_reg_table.*, qr_table.code 
-					FROM pre_reg_table 
-					LEFT JOIN qr_table ON pre_reg_table.pre_reg_id = qr_table.pre_reg_id 
-					WHERE pre_reg_table.pre_reg_id = ?
-				");
-				$stmt->bind_param("i", $pre_reg_id);
-				$stmt->execute();
-				$result = $stmt->get_result();
-				$user = $result->fetch_assoc();
-				$stmt->close();
-
-				if ($user) {
-					$qrData = "Name: {$user['f_name']} {$user['l_name']}\nEmail: {$user['email_address']}\nPhone: 0{$user['contact_no']}\nGender: {$user['gender']}\nDOB: {$user['date_of_birth']}";
-					if (!empty($user['code']) && file_exists($user['code'])) {
-						unlink($user['code']);
-					}
-
-					$qr_dir = "../../../qrcodes/";
-					if (!file_exists($qr_dir)) {
-						mkdir($qr_dir, 0777, true);
-					}
-
-					$qrFilePath = $qr_dir . time() . "_$pre_reg_id.png";
-					QRcode::png($qrData, $qrFilePath, QR_ECLEVEL_L, 6);
-
-					if (!empty($user['code'])) {
-						$qrStmt = $conn->prepare("UPDATE qr_table SET code = ? WHERE pre_reg_id = ?");
-					} else {
-						$qrStmt = $conn->prepare("INSERT INTO qr_table (code, pre_reg_id) VALUES (?, ?)");
-					}
-					$qrStmt->bind_param("si", $qrFilePath, $pre_reg_id);
-					$qrStmt->execute();
-					$qrStmt->close();
-
-					$_SESSION['success'] = "✅ Profile updated & QR regenerated!";
-				} else {
-					$_SESSION['error'] = "QR regeneration failed.";
-				}
-			}
+			$_SESSION['success'] = "<span style='color: green;'><i class='bi bi-check-circle-fill'></i></span> Profile updated successfully.";
 		} else {
-			$_SESSION['error'] = "Error updating profile.";
+			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Profile update failed: " . $stmt->error;
 		}
 		header("Location: ../user_page/profile_user.php");
 		exit();

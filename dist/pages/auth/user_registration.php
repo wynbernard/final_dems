@@ -329,47 +329,45 @@
 							}
 						</style>
 
-						<!-- Tesseract.js and Script -->
-						<script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script>
+						<!-- <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script> -->
+						<!-- SweetAlert2 CSS -->
+						<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+						<!-- SweetAlert2 JS -->
+						<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+						<script src="tesseract.js"></script>
 						<script>
 							document.getElementById('ic_image').addEventListener('change', function() {
 								const file = this.files[0];
 								const fname = document.getElementById('f_name').value.trim().toLowerCase();
 								const lname = document.getElementById('l_name').value.trim().toLowerCase();
 
-								const msgBox = document.getElementById('image-validation-msg');
-								const progressCircle = document.getElementById('circularProgress');
-								const spinner = document.getElementById('loadingSpinner');
-								const successIcon = document.getElementById('successIcon');
-								const errorIcon = document.getElementById('errorIcon');
-
-								const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
-								imageModal.show();
-
-								// Reset UI state
-								spinner.style.display = "block";
-								successIcon.classList.add("d-none");
-								errorIcon.classList.add("d-none");
-								msgBox.textContent = "🔍 Scanning ID for text...";
-								msgBox.style.color = "black";
-								msgBox.classList.remove("success");
-								progressCircle.style.stroke = "#0d6efd";
-								progressCircle.style.strokeDashoffset = 283;
-
 								if (!file || !fname || !lname) {
-									msgBox.textContent = "❗ Please enter first and last name before uploading the ID.";
-									msgBox.style.color = "red";
+									Swal.fire({
+										icon: 'warning',
+										title: 'Missing Input',
+										text: 'Please enter both first and last name before uploading the ID.'
+									});
 									this.value = "";
-									spinner.style.display = "none";
 									return;
 								}
+
+								// Show loading modal
+								Swal.fire({
+									title: 'Scanning ID...',
+									html: 'Please wait while we extract text from the image.<br><b>This may take a few seconds.</b>',
+									allowOutsideClick: false,
+									didOpen: () => {
+										Swal.showLoading();
+									}
+								});
 
 								Tesseract.recognize(file, 'eng', {
 									logger: m => {
 										if (m.status === "recognizing text") {
-											msgBox.textContent = "📖 Recognizing text...";
-											const progress = Math.round(m.progress * 100);
-											progressCircle.style.strokeDashoffset = 283 - (progress / 100 * 283);
+											Swal.update({
+												html: `Recognizing text... <b>${Math.round(m.progress * 100)}%</b>`
+											});
 										}
 									}
 								}).then(({
@@ -381,36 +379,34 @@
 									const fnameMatch = lowerText.includes(fname);
 									const lnameMatch = lowerText.includes(lname);
 
-									spinner.style.display = "none";
-
 									if (fnameMatch && lnameMatch) {
-										msgBox.textContent = "✅ Name matched successfully!";
-										msgBox.style.color = "green";
-										msgBox.classList.add("success");
-										progressCircle.style.stroke = "green";
-										progressCircle.style.strokeDashoffset = 0;
-										successIcon.classList.remove('d-none');
-										errorIcon.classList.add('d-none');
+										Swal.fire({
+											icon: 'success',
+											title: 'Match Found',
+											text: '✅ Name matched successfully!',
+											confirmButtonColor: '#198754'
+										});
 									} else {
-										msgBox.textContent = "❌ Name on the ID does not match the input.";
-										msgBox.style.color = "red";
-										progressCircle.style.stroke = "red";
-										errorIcon.classList.remove('d-none');
-										successIcon.classList.add('d-none');
+										Swal.fire({
+											icon: 'error',
+											title: 'Name Mismatch',
+											text: '❌ Name on the ID does not match the input.',
+											confirmButtonColor: '#dc3545'
+										});
 										document.getElementById('ic_image').value = "";
 									}
-
 								}).catch(err => {
 									console.error(err);
-									msgBox.textContent = "⚠️ Error processing the image. Please try again.";
-									msgBox.style.color = "red";
-									progressCircle.style.stroke = "red";
-									spinner.style.display = "none";
-									successIcon.classList.add('d-none');
-									errorIcon.classList.remove('d-none');
+									Swal.fire({
+										icon: 'error',
+										title: 'OCR Error',
+										text: '⚠️ Error processing the image. Please try again.',
+										confirmButtonColor: '#dc3545'
+									});
 								});
 							});
 						</script>
+
 
 						<div class="col-md-2">
 							<div class="mb-3">
@@ -499,7 +495,7 @@
 								<input type="text" name="region" id="region" class="form-control" value="Region VI (Western Visayas)" readonly>
 							</div>
 						</div>
-						<div class="col-md-4">	
+						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">Province</label>
 								<input type="text" name="province" id="province" class="form-control" value="Negros Occidental" readonly>
@@ -509,7 +505,7 @@
 							<div class="mb-3">
 								<label class="form-label">City</label>
 								<input type="text" name="city" id="city" class="form-control" value="Bago City" readonly>
-						</div>
+							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
@@ -525,6 +521,14 @@
 								</select>
 							</div>
 						</div>
+						<script>
+							document.getElementById("barangay").addEventListener("change", function() {
+								const selected = this.value;
+								if (selected) {
+									alert("You selected: " + selected);
+								}
+							});
+						</script>
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">House Block Number</label>

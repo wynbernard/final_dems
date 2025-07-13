@@ -130,12 +130,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		$updateToken = $conn->prepare("UPDATE pre_reg_table SET user_session_token = ? WHERE pre_reg_id = ?");
 		$updateToken->bind_param("si", $session_token, $preRegUser['pre_reg_id']);
 		$updateToken->execute();
-
 		header("Location: ../user_page/dashboard.php");
 		exit();
 	}
 	// If login fails for both
-	$_SESSION['notification'] = "<span style='color:white'><i class='bi bi-exclamation-circle-fill'></i></span> Incorrect username or password!";
+	$_SESSION['notification'] = "<span style='color:red'><i class='bi bi-exclamation-circle-fill'></i></span> Incorrect username or password!";
 	header("Location: log_in.php");
 	exit();
 }

@@ -1,27 +1,28 @@
 
 
 
-  const targetCityCode = "064502"; // City code to match
-  const barangaySelect = document.getElementById('barangay');
+const targetCityCode = "064502"; // City code to match
+const barangaySelect = document.getElementById('barangay');
 
-  // Load barangays JSON
-  fetch('../../../address_json/barangays.json') // adjust path if needed
-    .then(response => response.json())
-    .then(barangayList => {
-      // Filter barangays with matching city_code
-      const filteredBarangays = barangayList.filter(b => b.city_code === targetCityCode);
+// Load barangays JSON
+fetch('../../../address_json/barangays.json') // adjust path if needed
+  .then(response => response.json())
+  .then(barangayList => {
+    // Filter barangays with matching city_code
+    const filteredBarangays = barangayList.filter(b => b.city_code === targetCityCode);
 
-      // Populate the select dropdown
-      filteredBarangays.forEach(barangay => {
-        const option = document.createElement('option');
-        option.value = barangay.brgy_code;
-        option.textContent = barangay.brgy_name;
-        barangaySelect.appendChild(option);
-      });
-    })
-    .catch(error => {
-      console.error('Failed to load barangays:', error);
+    // Populate the select dropdown
+    filteredBarangays.forEach(barangay => {
+      const option = document.createElement('option');
+      option.value = barangay.brgy_name;       // <-- changed from brgy_code
+      option.textContent = barangay.brgy_name;
+      barangaySelect.appendChild(option);
     });
+  })
+  .catch(error => {
+    console.error('Failed to load barangays:', error);
+  });
+
 
 // document.addEventListener('DOMContentLoaded', function () {
 // 	const regionSelect = document.getElementById('region');
