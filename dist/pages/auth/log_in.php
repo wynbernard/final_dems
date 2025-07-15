@@ -108,7 +108,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		$updateToken->bind_param("si", $session_token, $admin['admin_id']);
 		$updateToken->execute();
 
-		header("Location: ../admin_page/dashboard.php");
+		header("Location: ../admin_page/Dashboard.php");
 		exit();
 	}
 
@@ -130,7 +130,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		$updateToken = $conn->prepare("UPDATE pre_reg_table SET user_session_token = ? WHERE pre_reg_id = ?");
 		$updateToken->bind_param("si", $session_token, $preRegUser['pre_reg_id']);
 		$updateToken->execute();
-		header("Location: ../user_page/dashboard.php");
+		header("Location: ../user_page/Dashboard.php");
 		exit();
 	}
 	// If login fails for both

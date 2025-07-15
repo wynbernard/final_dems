@@ -114,11 +114,11 @@
 								<label class="form-label">Password</label>
 								<div class="input-group">
 									<input type="password" name="password" id="password" class="form-control" placeholder="Enter Password" required onkeyup="validatePassword()">
-									<!-- <span class="input-group-text" onclick="toggleVisibility('password', this)" style="cursor: pointer;">
+									<span class="input-group-text" onclick="toggleVisibility('password', this)" style="cursor: pointer;">
 										<i class="fa fa-eye-slash"></i>
-									</span> -->
+									</span>
 								</div>
-								<!-- <small id="passwordHelp" class="form-text text-danger mt-1 d-block"></small> -->
+								<small id="passwordHelp" class="form-text text-danger mt-1 d-block"></small>
 							</div>
 						</div>
 						<div class="col-md-4">
@@ -126,11 +126,11 @@
 								<label class="form-label">Confirm Password</label>
 								<div class="input-group">
 									<input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Confirm Password" required onkeyup="validatePassword()">
-									<!-- <span class="input-group-text border-0" onclick="toggleVisibility('confirm_password', this)" style="cursor: pointer;">
+									<span class="input-group-text border-0" onclick="toggleVisibility('confirm_password', this)" style="cursor: pointer;">
 										<i class="fa fa-eye-slash"></i>
-									</span> -->
+									</span>
 								</div>
-								<!-- <small id="passwordMatchMessage" class="text-danger mt-1 d-block"></small> -->
+								<small id="passwordMatchMessage" class="text-danger mt-1 d-block"></small>
 							</div>
 						</div>
 						<div class="col-md-4">
