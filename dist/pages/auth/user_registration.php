@@ -41,7 +41,7 @@
 					<div class="row">
 						<div class="col-md-3">
 							<div class="mb-3">
-								<label class="form-label">First Name</label>
+								<label class="form-label">First Name <span class="text-danger">*</span></label>
 								<input type="text" name="f_name" id="f_name" class="form-control" placeholder="Enter First Name" required>
 							</div>
 						</div>
@@ -76,7 +76,7 @@
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">Contact No.</label>
-								<input type="tel" name="contact_no" id="contact_no" class="form-control" placeholder="Enter Contact No." required pattern="[0-9]{10,15}">
+								<input type="number" name="contact_no" id="contact_no" class="form-control" placeholder="Enter Contact No." required pattern="[0-9]{10,15}">
 								<small id="contactError" class="text-danger"></small>
 							</div>
 						</div>
@@ -110,42 +110,51 @@
 							</div>
 						</div>
 						<div class="col-md-4">
-							<div class="mb-3">
+							<div class="mb-3 position-relative">
 								<label class="form-label">Password</label>
-								<input type="password" name="password" id="password" class="form-control" placeholder="Enter Password" required onkeyup="validatePassword()">
+								<div class="input-group">
+									<input type="password" name="password" id="password" class="form-control" placeholder="Enter Password" required onkeyup="validatePassword()">
+									<!-- <span class="input-group-text" onclick="toggleVisibility('password', this)" style="cursor: pointer;">
+										<i class="fa fa-eye-slash"></i>
+									</span> -->
+								</div>
+								<!-- <small id="passwordHelp" class="form-text text-danger mt-1 d-block"></small> -->
 							</div>
 						</div>
 						<div class="col-md-4">
-							<div class="mb-3">
+							<div class="mb-3 position-relative">
 								<label class="form-label">Confirm Password</label>
-								<input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Confirm Password" required onkeyup="validatePassword()">
-								<small id="passwordMatchMessage" class="text-danger"></small>
+								<div class="input-group">
+									<input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Confirm Password" required onkeyup="validatePassword()">
+									<!-- <span class="input-group-text border-0" onclick="toggleVisibility('confirm_password', this)" style="cursor: pointer;">
+										<i class="fa fa-eye-slash"></i>
+									</span> -->
+								</div>
+								<!-- <small id="passwordMatchMessage" class="text-danger mt-1 d-block"></small> -->
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">Signature</label>
 								<!-- Signature Option Selector -->
-								<div class="form-check">
+								<!-- <div class="form-check">
 									<input class="form-check-input" type="radio" name="signature_option" id="option_draw" value="draw" checked onchange="toggleSignatureInput()">
 									<label class="form-check-label" for="option_draw">Draw Signature</label>
-								</div>
-								<div class="form-check">
+								</div> -->
+								<!-- <div class="form-check">
 									<input class="form-check-input" type="radio" name="signature_option" id="option_upload" value="upload" onchange="toggleSignatureInput()">
 									<label class="form-check-label" for="option_upload">Upload Signature</label>
-								</div>
-
+								</div> -->
 								<!-- Draw Signature Canvas -->
-								<div id="signature-draw" class="mt-2">
+								<!-- <div id="signature-draw" class="mt-2">
 									<canvas id="signature-pad" style="width: 100%; height: 150px; border: 1px solid #ccc;"></canvas>
 									<input type="hidden" name="signature_data" id="signature_data">
 									<div class="mt-2">
 										<button type="button" class="btn btn-sm btn-secondary" onclick="clearSignature()">Clear Signature</button>
 									</div>
-								</div>
-
+								</div> -->
 								<!-- Upload Signature File -->
-								<div id="signature-upload" class="mt-2" style="display: none;">
+								<div id="signature-upload" class="mt-0">
 									<input type="file" name="signature_file" id="signature_file" class="form-control" accept="image/*">
 								</div>
 							</div>
@@ -171,8 +180,23 @@
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">Religion</label>
-								<input type="text" name="religion" id="religion" class="form-control" placeholder="Enter Religion" required>
+								<label for="religion" class="form-label">Religion</label>
+								<select class="form-select" id="religion" name="religion" required>
+									<option value="" disabled selected>Select your religion</option>
+									<option value="Roman Catholic">Roman Catholic</option>
+									<option value="Iglesia ni Cristo">Iglesia ni Cristo</option>
+									<option value="Evangelical">Evangelical (Born Again)</option>
+									<option value="Seventh-day Adventist">Seventh-day Adventist</option>
+									<option value="Other Christian">Other Christian (e.g., Baptist, Methodist, Pentecostal)</option>
+									<option value="Islam">Islam</option>
+									<option value="Aglipayan">Aglipayan (Philippine Independent Church)</option>
+									<option value="Jehovah's Witnesses">Jehovah's Witnesses</option>
+									<option value="Buddhism">Buddhism</option>
+									<option value="Hinduism">Hinduism</option>
+									<option value="Indigenous Beliefs">Indigenous / Ethnic Beliefs</option>
+									<option value="None">None / No Religion</option>
+									<option value="Other">Other (please specify)</option>
+								</select>
 							</div>
 						</div>
 						<div class="col-md-4">
@@ -184,62 +208,75 @@
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">Monthly Income</label>
-								<input type="number" name="monthly_income" id="monthly_income" class="form-control" placeholder="Enter Monthly Income" required>
-							</div>
-						</div>
-						<div class="row">
-							<div class="col-md-4">
-								<div class="mb-3">
-									<label class="form-label">Gender</label>
-									<select name="gender" id="gender" class="form-control" required>
-										<option value="" disabled selected>-- Select Gender --</option>
-										<option value="Male">Male</option>
-										<option value="Female">Female</option>
-									</select>
-								</div>
-							</div>
-							<div class="col-md-4">
-								<div class="mb-3">
-									<label class="form-label">Registration Type</label>
-									<select name="registration_type" id="registration_type" class="form-control" required>
-										<option value="" disabled selected>-- Select Registration Type --</option>
-										<option value="Solo">Solo</option>
-										<option value="Family">Family</option>
-									</select>
-								</div>
-							</div>
-							<div class="col-md-4">
-								<div class="mb-3">
-									<label class="form-label">Civil Status</label>
-									<select name="civil_status" id="civil_status" class="form-control" required>
-										<option value="" disabled selected>-- Select Civil Status --</option>
-										<option value="single">Single</option>
-										<option value="married">Married</option>
-										<option value="widowed">Widowed</option>
-										<option value="divorced">Divorced</option>
-										<option value="separated">Separated</option>
-										<option value="annulled">Annulled</option>
-										<option value="others">Others</option>
-									</select>
-								</div>
+								<!-- Visible input with commas -->
+								<input type="text" id="monthly_income_display" class="form-control" placeholder="₱0.00" oninput="formatWithCommas()" required>
+								<!-- Hidden number input for form submission -->
+								<input type="number" name="monthly_income" id="monthly_income" hidden>
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">ID Card Presented</label>
-								<input type="text" name="icp" id="icp" class="form-control" placeholder="Enter ID Card Presented" required>
+								<label class="form-label">Gender</label>
+								<select name="gender" id="gender" class="form-control" required>
+									<option value="" disabled selected>-- Select Gender --</option>
+									<option value="Male">Male</option>
+									<option value="Female">Female</option>
+								</select>
 							</div>
 						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Registration Type</label>
+								<select name="registration_type" id="registration_type" class="form-control" required>
+									<option value="" disabled selected>-- Select Registration Type --</option>
+									<option value="Solo">Solo</option>
+									<option value="Family">Family</option>
+								</select>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Civil Status</label>
+								<select name="civil_status" id="civil_status" class="form-control" required>
+									<option value="" disabled selected>-- Select Civil Status --</option>
+									<option value="single">Single</option>
+									<option value="married">Married</option>
+									<option value="widowed">Widowed</option>
+									<option value="divorced">Divorced</option>
+									<option value="separated">Separated</option>
+									<option value="annulled">Annulled</option>
+									<option value="others">Others</option>
+								</select>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label for="icp" class="form-label">ID Card Presented</label>
+								<select name="icp" id="icp" class="form-select" required onchange="updateIDCardFormat()">
+									<option value="" disabled selected>Select ID Card</option>
+									<option value="Philippine National ID">Philippine National ID (PhilSys)</option>
+									<option value="Passport">Passport</option>
+									<option value="Driver's License">Driver’s License (LTO)</option>
+									<option value="UMID">UMID (Unified Multi-Purpose ID)</option>
+									<option value="SSS ID">SSS ID</option>
+									<option value="PRC ID">PRC (Professional Regulation Commission) ID</option>
+									<option value="Voter's ID">Voter’s ID / Certificate</option>
+									<option value="TIN ID">TIN ID (BIR)</option>
+									<option value="PhilHealth ID">PhilHealth ID</option>
+								</select>
+							</div>
+						</div>
+
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">ID Card Number</label>
-								<input type="number" name="icn" id="icn" class="form-control" placeholder="Enter ID Card Number" required>
+								<input type="text" name="icn" id="icn" class="form-control" placeholder="Enter ID Card Number" required>
 							</div>
 						</div>
 						<!-- ID Upload Input -->
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label fw-semibold">Upload Image of ID Card</label>
+								<label class="form-label fw-semibold">Upload Image of ID Card Presented</label>
 								<input type="file" name="ic_image" id="ic_image" class="form-control" accept="image/*" required>
 							</div>
 						</div>
@@ -274,60 +311,6 @@
 								</div>
 							</div>
 						</div>
-
-						<!-- Styles -->
-						<style>
-							#image-validation-msg {
-								transition: color 0.3s ease, transform 0.3s ease;
-							}
-
-							#image-validation-msg.success {
-								transform: scale(1.05);
-							}
-
-							.circular-progress-container {
-								position: relative;
-								width: 100px;
-								height: 100px;
-								margin: auto;
-							}
-
-							.circular-progress {
-								width: 100px;
-								height: 100px;
-								transform: rotate(-90deg);
-							}
-
-							.circular-progress circle {
-								fill: none;
-								stroke-width: 10;
-							}
-
-							.circular-progress .bg {
-								stroke: #e6e6e6;
-							}
-
-							.circular-progress .progress {
-								stroke: #0d6efd;
-								stroke-dasharray: 283;
-								stroke-dashoffset: 283;
-								transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
-							}
-
-							.center-spinner {
-								position: absolute;
-								top: 50%;
-								left: 50%;
-								transform: translate(-50%, -50%);
-							}
-
-							.center-spinner .fs-1 {
-								position: absolute;
-								top: 50%;
-								left: 50%;
-								transform: translate(-50%, -50%);
-							}
-						</style>
 
 						<!-- <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script> -->
 						<!-- SweetAlert2 CSS -->
@@ -521,14 +504,6 @@
 								</select>
 							</div>
 						</div>
-						<script>
-							document.getElementById("barangay").addEventListener("change", function() {
-								const selected = this.value;
-								if (selected) {
-									alert("You selected: " + selected);
-								}
-							});
-						</script>
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">House Block Number</label>
@@ -607,3 +582,27 @@
 </body>
 
 </html>
+
+<style>
+	.input-group {
+		position: relative;
+	}
+
+	.input-group input {
+		padding-right: 2.5rem;
+		/* space for the icon */
+	}
+
+	.input-group .input-group-text {
+		position: absolute;
+		top: 50%;
+		right: 10px;
+		transform: translateY(-50%);
+		cursor: pointer;
+		color: #6c757d;
+		background: none;
+		border: none;
+		z-index: 10;
+		/* ensure it's above the input */
+	}
+</style>
