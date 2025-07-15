@@ -59,7 +59,7 @@ function validatePassword() {
 document.addEventListener("DOMContentLoaded", function() {
 		let emailInput = document.getElementById("email");
 		let feedback = document.getElementById("emailFeedback");
-		let submitBtn = document.getElementById("submitBtn"); // Make sure your submit button has this ID
+		// let submitBtn = document.getElementById("submitBtn"); // Make sure your submit button has this ID
 
 		emailInput.addEventListener("input", function() {
 			let email_address = emailInput.value.trim();
@@ -67,7 +67,7 @@ document.addEventListener("DOMContentLoaded", function() {
 			if (email_address === "") {
 				feedback.innerHTML = "";
 				emailInput.classList.remove("is-valid", "is-invalid");
-				submitBtn.disabled = true;
+				// submitBtn.disabled = true;
 				return;
 			}
 
@@ -76,7 +76,7 @@ document.addEventListener("DOMContentLoaded", function() {
 				feedback.style.color = "red";
 				emailInput.classList.add("is-invalid");
 				emailInput.classList.remove("is-valid");
-				submitBtn.disabled = true;
+				// submitBtn.disabled = true;
 				return;
 			}
 
@@ -103,19 +103,19 @@ document.addEventListener("DOMContentLoaded", function() {
 						feedback.style.color = "red";
 						emailInput.classList.add("is-invalid");
 						emailInput.classList.remove("is-valid");
-						submitBtn.disabled = true;
+						// submitBtn.disabled = true;
 					} else if (data.trim() === "available") {
 						feedback.innerHTML = "Email available.";
 						feedback.style.color = "green";
 						emailInput.classList.add("is-valid");
 						emailInput.classList.remove("is-invalid");
-						submitBtn.disabled = false;
+						// submitBtn.disabled = false;
 					} else {
 						feedback.innerHTML = "Error checking email.";
 						feedback.style.color = "orange";
 						emailInput.classList.add("is-invalid");
 						emailInput.classList.remove("is-valid");
-						submitBtn.disabled = true;
+						// submitBtn.disabled = true;
 					}
 				})
 				.catch(error => {
@@ -124,7 +124,7 @@ document.addEventListener("DOMContentLoaded", function() {
 					feedback.style.color = "orange";
 					emailInput.classList.add("is-invalid");
 					emailInput.classList.remove("is-valid");
-					submitBtn.disabled = true;
+					// submitBtn.disabled = true;
 				});
 		}
 	});

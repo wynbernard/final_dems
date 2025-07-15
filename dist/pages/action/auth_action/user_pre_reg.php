@@ -48,11 +48,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	$today = new DateTime();
 	$age = $birthDate->diff($today)->y;
 
-	if (empty($f_name) || empty($l_name) || empty($contact_no) || empty($email) || empty($password) || empty($gender) || empty($registration_type) || empty($dob)) {
-		$_SESSION['error'] = "⚠️ All fields are required. Please complete the form.";
-		header("Location: ../auth/user_registration.php");
-		exit();
-	}
+	// if (empty($f_name) || empty($l_name) || empty($contact_no) || empty($email) || empty($password) || empty($gender) || empty($registration_type) || empty($dob)) {
+	// 	$_SESSION['error'] = "⚠️ All fields are required. Please complete the form.";
+	// 	header("Location: ../auth/user_registration.php");
+	// 	exit();
+	// }
 
 	if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === UPLOAD_ERR_OK) {
 		$uploadDir = '../../profile_images/'; // Make sure this folder exists and is writable
