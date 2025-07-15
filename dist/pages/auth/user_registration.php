@@ -41,19 +41,22 @@
 					<div class="row">
 						<div class="col-md-3">
 							<div class="mb-3">
-								<label class="form-label">First Name <span class="text-danger">*</span></label>
+								<label for="f_name" class="form-label">
+									First Name <span class="text-danger">*</span>
+								</label>
 								<input type="text" name="f_name" id="f_name" class="form-control" placeholder="Enter First Name" required>
 							</div>
 						</div>
+
 						<div class="col-md-3">
 							<div class="mb-3">
-								<label class="form-label">Middle Name</label>
+								<label class="form-label">Middle Name <span class="text-danger">*</span></label>
 								<input type="text" name="m_name" id="m_name" class="form-control" placeholder="Enter Middle Name" required>
 							</div>
 						</div>
 						<div class="col-md-3">
 							<div class="mb-3">
-								<label class="form-label">Last Name</label>
+								<label class="form-label">Last Name <span class="text-danger">*</span></label>
 								<input type="text" name="l_name" id="l_name" class="form-control" placeholder="Enter Last Name" required>
 							</div>
 						</div>
@@ -75,21 +78,21 @@
 					<div class="row">
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">Contact No.</label>
+								<label class="form-label">Contact No. <span class="text-danger">*</span></label>
 								<input type="number" name="contact_no" id="contact_no" class="form-control" placeholder="Enter Contact No." required pattern="[0-9]{10,15}">
 								<small id="contactError" class="text-danger"></small>
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">Email Address</label>
+								<label class="form-label">Email Address <span class="text-danger">*</span></label>
 								<input type="email" name="email" id="email" class="form-control" placeholder="Enter Email" required>
 								<small id="emailFeedback"></small>
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">Highest Education Attainment</label>
+								<label class="form-label">Highest Education Attainment <span class="text-danger">*</span></label>
 								<select name="education_attainment" id="education_attainment" class="form-control">
 									<option value="" selected disabled>Select Education Attainment</option>
 									<option value="No Formal Education">No Formal Education</option>
@@ -111,7 +114,7 @@
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3 position-relative">
-								<label class="form-label">Password</label>
+								<label class="form-label">Password <span class="text-danger">*</span></label>
 								<div class="input-group">
 									<input type="password" name="password" id="password" class="form-control" placeholder="Enter Password" required onkeyup="validatePassword()">
 									<span class="input-group-text" onclick="toggleVisibility('password', this)" style="cursor: pointer;">
@@ -123,7 +126,7 @@
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3 position-relative">
-								<label class="form-label">Confirm Password</label>
+								<label class="form-label">Confirm Password <span class="text-danger">*</span></label>
 								<div class="input-group">
 									<input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Confirm Password" required onkeyup="validatePassword()">
 									<span class="input-group-text border-0" onclick="toggleVisibility('confirm_password', this)" style="cursor: pointer;">
@@ -135,7 +138,7 @@
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">Signature</label>
+								<label class="form-label">Signature <span class="text-danger">*</span></label>
 								<!-- Signature Option Selector -->
 								<!-- <div class="form-check">
 									<input class="form-check-input" type="radio" name="signature_option" id="option_draw" value="draw" checked onchange="toggleSignatureInput()">
@@ -155,32 +158,32 @@
 								</div> -->
 								<!-- Upload Signature File -->
 								<div id="signature-upload" class="mt-0">
-									<input type="file" name="signature_file" id="signature_file" class="form-control" accept="image/*">
+									<input type="file" name="signature_file" id="signature_file" class="form-control" accept="image/*" required>
 								</div>
 							</div>
 						</div>
 
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">Date of Birth</label>
+								<label class="form-label">Date of Birth <span class="text-danger">*</span></label>
 								<input type="date" name="dob" id="dob" class="form-control" required>
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">Place Of Birth</label>
+								<label class="form-label">Place Of Birth <span class="text-danger">*</span></label>
 								<input type="text" name="pob" id="pob" class="form-control" placeholder="Enter Place of Birth" required>
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">Mother Maiden Name</label>
+								<label class="form-label">Mother Maiden Name <span class="text-danger">*</span></label>
 								<input type="text" name="mmn" id="mmn" class="form-control" placeholder="Enter Mother Maiden Name" required>
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label for="religion" class="form-label">Religion</label>
+								<label for="religion" class="form-label">Religion <span class="text-danger">*</span></label>
 								<select class="form-select" id="religion" name="religion" required>
 									<option value="" disabled selected>Select your religion</option>
 									<option value="Roman Catholic">Roman Catholic</option>
@@ -202,7 +205,7 @@
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">Occupation</label>
-								<input type="text" name="occupation" id="occupation" class="form-control" placeholder="Enter Occupation" required>
+								<input type="text" name="occupation" id="occupation" class="form-control" placeholder="Enter Occupation">
 							</div>
 						</div>
 						<div class="col-md-4">
@@ -216,7 +219,7 @@
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">Gender</label>
+								<label class="form-label">Gender <span class="text-danger">*</span></label>
 								<select name="gender" id="gender" class="form-control" required>
 									<option value="" disabled selected>-- Select Gender --</option>
 									<option value="Male">Male</option>
@@ -226,7 +229,7 @@
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">Registration Type</label>
+								<label class="form-label">Registration Type <span class="text-danger">*</span></label>
 								<select name="registration_type" id="registration_type" class="form-control" required>
 									<option value="" disabled selected>-- Select Registration Type --</option>
 									<option value="Solo">Solo</option>
@@ -236,7 +239,7 @@
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">Civil Status</label>
+								<label class="form-label">Civil Status <span class="text-danger">*</span></label>
 								<select name="civil_status" id="civil_status" class="form-control" required>
 									<option value="" disabled selected>-- Select Civil Status --</option>
 									<option value="single">Single</option>
@@ -251,7 +254,7 @@
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label for="icp" class="form-label">ID Card Presented</label>
+								<label for="icp" class="form-label">ID Card Presented <span class="text-danger">*</span></label>
 								<select name="icp" id="icp" class="form-select" required onchange="updateIDCardFormat()">
 									<option value="" disabled selected>Select ID Card</option>
 									<option value="Philippine National ID">Philippine National ID (PhilSys)</option>
@@ -269,14 +272,14 @@
 
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">ID Card Number</label>
+								<label class="form-label">ID Card Number <span class="text-danger">*</span></label>
 								<input type="text" name="icn" id="icn" class="form-control" placeholder="Enter ID Card Number" required>
 							</div>
 						</div>
 						<!-- ID Upload Input -->
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label fw-semibold">Upload Image of ID Card Presented</label>
+								<label class="form-label fw-semibold">Upload Image of ID Card Presented <span class="text-danger">*</span></label>
 								<input type="file" name="ic_image" id="ic_image" class="form-control" accept="image/*" required>
 							</div>
 						</div>
@@ -474,31 +477,31 @@
 						<!-- Address Fields -->
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">Region</label>
+								<label class="form-label">Region <span class="text-danger">*</span></label>
 								<input type="text" name="region" id="region" class="form-control" value="Region VI (Western Visayas)" readonly>
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">Province</label>
+								<label class="form-label">Province <span class="text-danger">*</span></label>
 								<input type="text" name="province" id="province" class="form-control" value="Negros Occidental" readonly>
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">City</label>
+								<label class="form-label">City <span class="text-danger">*</span></label>
 								<input type="text" name="city" id="city" class="form-control" value="Bago City" readonly>
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">District</label>
+								<label class="form-label">District <span class="text-danger">*</span></label>
 								<input type="text" name="district" id="district" class="form-control" value="4th district" readonly>
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">Barangay</label>
+								<label class="form-label">Barangay <span class="text-danger">*</span></label>
 								<select name="barangay" id="barangay" class="form-control" required>
 									<option value="">Select Barangay</option>
 								</select>
@@ -507,30 +510,30 @@
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">House Block Number</label>
-								<input type="text" name="block_number" id="block_number" class="form-control" placeholder="Enter Block Number" required>
+								<input type="text" name="block_number" id="block_number" class="form-control" placeholder="Enter Block Number">
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">Street</label>
-								<input type="text" name="street" id="street" class="form-control" placeholder="Enter street" required>
+								<input type="text" name="street" id="street" class="form-control" placeholder="Enter street">
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">Subdivision Village</label>
-								<input type="text" name="sub_div" id="sub_div" class="form-control" placeholder="Enter Subdivision Village" required>
+								<input type="text" name="sub_div" id="sub_div" class="form-control" placeholder="Enter Subdivision Village">
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">Zip Code</label>
-								<input type="text" name="zip_code" id="zip_code" class="form-control" placeholder="Enter Zip Code" required>
+								<input type="text" name="zip_code" id="zip_code" value="6101" class="form-control" readonly>
 							</div>
 						</div>
 						<div class="col-md-6">
 							<div class="mb-3">
-								<label class="form-label">Purok</label>
+								<label class="form-label">Purok <span class="text-danger">*</span></label>
 								<input type="text" name="purok" id="purok" class="form-control" placeholder="Enter Purok" required>
 							</div>
 						</div>
@@ -570,14 +573,21 @@
 					</div>
 					<!-- Responsive Button Layout -->
 					<div class="d-grid gap-2">
-						<button type="submit" id="submitBtn" class="btn btn-success" disabled>Submit</button>
-						<button type="button" class="btn btn-secondary btn-lg btn-sm-mobile" onclick="window.location.href='../auth/log_in.php'">Back</button>
+						<button type="submit" id="submitBtn" class="btn btn-success">Submit</button>
+						<div class="text-center mt-3">
+							<small class="text-muted">
+								Already have an account?
+								<a href="../auth/log_in.php" class="text-decoration-none">Sign In</a>
+							</small>
+						</div>
 					</div>
+
 				</form>
 			</div>
 		</div>
 	</div>
 	<script src="../scripts/auth_script/user_registration.js"></script>
+	<script src="../scripts/auth_script/required.js"></script>
 	<script src="../scripts/auth_script/address_api.js"></script>
 </body>
 

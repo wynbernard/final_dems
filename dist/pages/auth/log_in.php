@@ -59,9 +59,14 @@
 						<label class="form-label">Username or Email</label>
 						<input type="text" name="username" class="form-control" placeholder="Username or Email" required>
 					</div>
-					<div class="mb-3 form-group">
+					<div class="mb-3 form-group position-relative">
 						<label class="form-label">Password</label>
-						<input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+						<div class="input-group">
+							<input type="password" name="password" id="password" class="form-control" placeholder="Enter your password" required>
+							<span class="input-group-text bg-white border-start-0" style="cursor: pointer;" onclick="togglePasswordVisibility()">
+								<i id="toggleIcon" class="fa fa-eye-slash"></i>
+							</span>
+						</div>
 					</div>
 					<div class="d-flex justify-content-between mb-3">
 						<div class="form-check">
@@ -139,3 +144,44 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	exit();
 }
 ?>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<script>
+	function togglePasswordVisibility() {
+		const input = document.getElementById('password');
+		const icon = document.getElementById('toggleIcon');
+		if (input.type === "password") {
+			input.type = "text";
+			icon.classList.remove("fa-eye-slash");
+			icon.classList.add("fa-eye");
+		} else {
+			input.type = "password";
+			icon.classList.remove("fa-eye");
+			icon.classList.add("fa-eye-slash");
+		}
+	}
+</script>
+
+<style>
+	.input-group {
+		position: relative;
+	}
+
+	.input-group input {
+		padding-right: 2.5rem;
+		/* space for the icon */
+	}
+
+	.input-group .input-group-text {
+		position: absolute;
+		top: 50%;
+		right: 1px;
+		transform: translateY(-50%);
+		cursor: pointer;
+		color: #6c757d;
+		background: none;
+		border: none;
+		z-index: 10;
+		/* ensure it's above the input */
+	}
+</style>
