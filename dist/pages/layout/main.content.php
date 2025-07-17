@@ -193,17 +193,17 @@
                 return;
               }
 
-              fetch('../fetch_data/get_room_info.php?evac_loc_id=' + encodeURIComponent(evacLocId))
-                .then(res => res.json())
-                .then(data => {
-                  if (data.success) {
-                    roomInfo.innerHTML = `
-          <strong>Location:</strong> ${data.location}<br>
-          <strong>Total Rooms:</strong> ${data.total_rooms}<br>
-          <strong>Available Rooms:</strong> ${data.available_rooms}<br>
-          <strong>Occupied Rooms:</strong> ${data.total_rooms - data.available_rooms}<br>
-          <strong>Capacity per Room:</strong> ${data.capacity_per_room} people
-        `;
+fetch('../fetch_data/get_room_info.php?evac_loc_id=' + encodeURIComponent(evacLocId))
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      const roomBoxes = data.rooms.map(room =>
+        `<div class="room-box">${room.name}</div>`
+      ).join('');
+
+      roomInfo.innerHTML = `
+        <div class="room-box-container">${roomBoxes}</div>
+      `;
                   } else {
                     roomInfo.innerHTML = `<em>${data.message}</em>`;
                   }
@@ -214,7 +214,6 @@
             }
           </script>
           <div class="card-footer text-muted text-center small">
-            Disaster Management System
           </div>
         </div>
       </div>
@@ -223,3 +222,27 @@
   </div>
   <!--end::Container-->
 </div>
+<style>
+  .room-box-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.room-box {
+  padding: 10px;
+  background-color: #e8f4ff;
+  border: 2px solid #007bff;
+  border-radius: 8px;
+  width: 100px;
+  height: 60px;
+  text-align: center;
+  font-weight: bold;
+  color: #007bff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+</style>

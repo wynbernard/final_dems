@@ -115,22 +115,27 @@
   setInterval(loadTyphoonData, 300000); // refresh every 5 minutes
 </script>
 <script>
+  // Coordinates for center of map (e.g., barangay center)
   const barangayLat = <?php echo $barangayCoords['latitude']; ?>;
   const barangayLng = <?php echo $barangayCoords['longitude']; ?>;
-  // Initialize Leaflet map
+
+  // Initialize the Leaflet map
   const map = L.map("map").setView([barangayLat, barangayLng], 12);
 
+  // Add OpenStreetMap tile layer
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
-  // Data from PHP (name, latitude, longitude, barangay)
+  // PHP to JS: Evacuation center data
   const evacuationCenters = <?php echo json_encode($locations, JSON_NUMERIC_CHECK); ?>;
 
+  // Warn if no centers found
   if (evacuationCenters.length === 0) {
     console.warn("No evacuation center data available.");
   }
 
+  // Loop through and display each evacuation center
   evacuationCenters.forEach(center => {
     const lat = parseFloat(center.latitude);
     const lng = parseFloat(center.longitude);
@@ -147,7 +152,35 @@
     } else {
       console.warn("Invalid coordinates for center:", center);
     }
-
-    console.log("Evacuation Center:", center.name, "Barangay:", center.barangay, "at", lat, lng);
   });
+
+  // Add marker for user's current device location
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+
+        const userIcon = L.icon({
+          iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // Optional custom icon
+          iconSize: [30, 30],
+          iconAnchor: [15, 30],
+          popupAnchor: [0, -30]
+        });
+
+        const userMarker = L.marker([userLat, userLng], { icon: userIcon })
+          .addTo(map)
+          .bindPopup("<strong>You are here</strong>")
+          .openPopup();
+
+        // Optional: re-center map on user's location
+        map.setView([userLat, userLng], 13);
+      },
+      error => {
+        console.warn("Geolocation failed:", error.message);
+      }
+    );
+  } else {
+    console.warn("Geolocation not supported by this browser.");
+  }
 </script>
