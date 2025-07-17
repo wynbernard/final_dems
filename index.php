@@ -196,7 +196,7 @@
 	<!-- Hero Section -->
 	<section id="home" class="hero d-flex align-items-center">
 		<div class="container text-center d-flex flex-column justify-content-center">
-			<h1 class="display-4 fw-bold">Disaster Evacuation Management System</h1>
+			<h1 class="display-4 fw-bold" id="title"></h1>
 			<p class="lead mt-3">Real-time alerts. Smart tracking. Efficient evacuation.</p>
 			<a href="#features" class="btn btn-light btn-sm mt-4 d-block mx-auto" style="width: 100px;">Learn More</a>
 		</div>
@@ -562,6 +562,24 @@
 			lightSections.forEach(section => observer.observe(section));
 		});
 	</script>
+
+	<!-- FOR THE TYPING EFFECT -->
+	<script>
+		const text = "Disaster Evacuation Management System";
+		const titleElement = document.getElementById("title");
+		let index = 0;
+
+		function typeNextLetter() {
+			if (index < text.length) {
+				titleElement.textContent += text.charAt(index);
+				index++;
+				setTimeout(typeNextLetter, 80); // Change speed (ms) here
+			}
+		}
+
+		typeNextLetter(); // Start the typing effect
+	</script>
+
 
 
 

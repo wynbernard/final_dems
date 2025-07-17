@@ -102,12 +102,12 @@
         <div class="small-box text-bg-warning">
           <div class="inner">
             <?php
-             $query = "SELECT COUNT(*) AS evac_reg FROM evac_reg_table";
+            $query = "SELECT COUNT(*) AS evac_reg FROM evac_reg_table";
             $result = mysqli_query($conn, $query);
             $row = mysqli_fetch_assoc($result);
             $total_evac_reg = $row['evac_reg'];
             ?>
-            <h3><?php echo htmlspecialchars($total_evac_reg)?></h3>
+            <h3><?php echo htmlspecialchars($total_evac_reg) ?></h3>
             <p>Evacuation Registration</p>
           </div>
           <svg
@@ -157,6 +157,66 @@
           </a>
         </div>
         <!--end::Small Box Widget 4-->
+      </div>
+      <div class="col-12 mb-4">
+        <div class="card shadow-lg rounded border-success h-100">
+          <div class="card-header bg-success text-white">
+            <h3 class="card-title mb-0" style="font-size: 1.25rem;">Evacuation Room Availability</h3>
+          </div>
+
+          <div class="card-body">
+            <!-- Dynamic Location Selector -->
+            <div class="mb-3">
+              <label for="locationSelect" class="form-label fw-bold">Select Location</label>
+              <select id="locationSelect" class="form-select" onchange="fetchRoomInfo(this.value)">
+                <option value="">-- Select a location --</option>
+                <?php
+                include '../db_connect.php';
+                $res = $conn->query("SELECT evac_loc_id, name FROM evac_loc_table ORDER BY name ASC");
+                while ($row = $res->fetch_assoc()) {
+                  echo '<option value="' . htmlspecialchars($row['evac_loc_id']) . '">' . htmlspecialchars($row['name']) . '</option>';
+                }
+                ?>
+              </select>
+            </div>
+            <!-- Room Availability Display -->
+            <div id="roomInfo" class="border rounded p-3 bg-light text-dark" style="min-height: 100px;">
+              <em>Please select a location to see available rooms.</em>
+            </div>
+          </div>
+          <script>
+            function fetchRoomInfo(evacLocId) {
+              const roomInfo = document.getElementById('roomInfo');
+
+              if (!evacLocId) {
+                roomInfo.innerHTML = '<em>Please select a location to see available rooms.</em>';
+                return;
+              }
+
+              fetch('../fetch_data/get_room_info.php?evac_loc_id=' + encodeURIComponent(evacLocId))
+                .then(res => res.json())
+                .then(data => {
+                  if (data.success) {
+                    roomInfo.innerHTML = `
+          <strong>Location:</strong> ${data.location}<br>
+          <strong>Total Rooms:</strong> ${data.total_rooms}<br>
+          <strong>Available Rooms:</strong> ${data.available_rooms}<br>
+          <strong>Occupied Rooms:</strong> ${data.total_rooms - data.available_rooms}<br>
+          <strong>Capacity per Room:</strong> ${data.capacity_per_room} people
+        `;
+                  } else {
+                    roomInfo.innerHTML = `<em>${data.message}</em>`;
+                  }
+                })
+                .catch(() => {
+                  roomInfo.innerHTML = '<em>Error retrieving data.</em>';
+                });
+            }
+          </script>
+          <div class="card-footer text-muted text-center small">
+            Disaster Management System
+          </div>
+        </div>
       </div>
       <!--end::Col-->
     </div>

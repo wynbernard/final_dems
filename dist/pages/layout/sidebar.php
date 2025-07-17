@@ -55,8 +55,8 @@
     <nav class="mt-2">
       <!--begin::Sidebar Menu-->
       <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu" data-accordion="false">
-        <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'menu-open' : ''; ?>">
-          <a href="./dashboard.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'active' : ''; ?>" title="Dashboard">
+        <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'Dashboard.php' ? 'menu-open' : ''; ?>">
+          <a href="./Dashboard.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'Dashboard.php' ? 'active' : ''; ?>" title="Dashboard">
             <i class="nav-icon bi bi-speedometer"></i>
             <p>Dashboard</p>
           </a>

@@ -16,7 +16,7 @@
     <nav class="mt-2">
       <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu">
         <li class="nav-item">
-          <a href="./dashboard.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'active' : ''; ?>">
+          <a href="./Dashboard.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'Dashboard.php' ? 'active' : ''; ?>">
             <i class="nav-icon bi bi-speedometer"></i>
             <p>Dashboard</p>
           </a>
