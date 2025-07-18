@@ -166,7 +166,7 @@
 
           <div class="card-body">
             <!-- Evacuation Location Dropdown -->
-            <div class="mb-3">
+            <div class="mb-3 col-md-3">
               <label for="locationSelect" class="form-label fw-bold">Select Location</label>
               <select id="locationSelect" class="form-select" onchange="fetchRoomInfo(this.value)">
                 <option value="">-- Select a location --</option>
@@ -209,22 +209,22 @@
                       }
 
                       const roomBoxes = rooms.map(room => `
-          <div class="room-box ${room.is_available ? 'available' : 'full'}">
-            <div class="room-name">${room.name}</div>
-            <div class="room-capacity">
-              Occupied: ${room.occupied} / ${room.capacity}<br>
-              Remaining: ${room.remaining}
-            </div>
-            <div class="room-status">
-              ${room.is_available ? '✅ Available' : '❌ Full'}
-            </div>
-          </div>
-        `).join('');
+                        <div class="room-box ${room.is_available ? 'available' : 'full'}">
+                          <div class="room-name">${room.name}</div>
+                          <div class="room-capacity">
+                            Occupied: ${room.occupied} / ${room.capacity}<br>
+                            Remaining: ${room.remaining}
+                          </div>
+                          <div class="room-status">
+                            ${room.is_available ? '✅ Available' : '❌ Full'}
+                          </div>
+                        </div>
+                      `).join('');
 
-                      roomInfo.innerHTML = `
-          <h5>${location}</h5>
-          <div class="room-box-container mt-3">${roomBoxes}</div>
-        `;
+                                    roomInfo.innerHTML = `
+                        <h5>${location}</h5>
+                        <div class="room-box-container mt-3">${roomBoxes}</div>
+                      `;
                     } else {
                       roomInfo.innerHTML = `<em>${data.message}</em>`;
                     }

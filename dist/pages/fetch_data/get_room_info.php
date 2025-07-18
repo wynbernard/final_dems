@@ -1,6 +1,9 @@
 <?php
 include '../../../database/conn.php';
 header('Content-Type: application/json');
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+error_reporting(E_ALL);
 
 if (!isset($_GET['evac_loc_id']) || $_GET['evac_loc_id'] === '') {
     echo json_encode(['success' => false, 'message' => 'No location provided']);
@@ -9,32 +12,27 @@ if (!isset($_GET['evac_loc_id']) || $_GET['evac_loc_id'] === '') {
 
 $evacLocId = $_GET['evac_loc_id'];
 
-/* ─────────────────────────────
-   1.  Summary info for location
-   ───────────────────────────── */
+/* 1. Summary info for location */
 $infoSql = "
   SELECT 
-  el.name                    AS location_name,
-  COUNT(r.room_id)           AS total_rooms,
-  SUM(r.room_capacity)       AS total_capacity,
-  MAX(r.room_capacity)       AS max_capacity_per_room
-FROM room_table r
-JOIN evac_loc_table el ON r.evac_loc_id = el.evac_loc_id
-WHERE el.evac_loc_id = ?
-GROUP BY el.evac_loc_id;
-
+    el.name                    AS location_name,
+    COUNT(r.room_id)           AS total_rooms,
+    SUM(r.room_capacity)       AS total_capacity,
+    MAX(r.room_capacity)       AS max_capacity_per_room
+  FROM room_table r
+  JOIN evac_loc_table el ON r.evac_loc_id = el.evac_loc_id
+  WHERE el.evac_loc_id = ?
+  GROUP BY el.evac_loc_id
 ";
 $infoStmt = $conn->prepare($infoSql);
 $infoStmt->bind_param('s', $evacLocId);
 $infoStmt->execute();
 $infoRow = $infoStmt->get_result()->fetch_assoc();
 
-/* ─────────────────────────────
-   2.  Detailed room list
-   ───────────────────────────── */
+/* 2. Room-level details */
 $roomsSql = "
   SELECT
-      r.room_id,
+      r.room_id,	
       r.room_name,
       r.room_capacity,
       COUNT(er.pre_reg_id)                   AS number_of_people,
@@ -57,27 +55,24 @@ $roomsRes = $roomsStmt->get_result();
 $rooms = [];
 while ($row = $roomsRes->fetch_assoc()) {
     $rooms[] = [
-        'name'            => $row['room_name'],
-        'capacity'        => (int) $row['room_capacity'],
-        'occupied'        => (int) $row['number_of_people'],
-        'remaining'       => (int) $row['remaining_slots'],
-        'is_available'    => (int) $row['is_available']
+        'name'         => $row['room_name'],
+        'capacity'     => (int) $row['room_capacity'],
+        'occupied'     => (int) $row['number_of_people'],
+        'remaining'    => (int) $row['remaining_slots'],
+        'is_available' => (bool) $row['is_available']
     ];
 }
 
-
-/* ─────────────────────────────
-   3.  Output JSON
-   ───────────────────────────── */
+/* 3. Output JSON */
 if ($infoRow) {
     echo json_encode([
-        'success'          => true,
-        'location'         => $infoRow['location_name'],
-        'total_rooms'      => (int) $infoRow['total_rooms'],
-        'available_rooms'  => (int) $infoRow['available_rooms'],
-        'capacity_per_room' => (int) $infoRow['capacity_per_room'],
-        'rooms'            => $rooms
+        'success'               => true,
+        'location'              => $infoRow['location_name'],
+        'total_rooms'           => (int) $infoRow['total_rooms'],
+        'total_capacity'        => (int) $infoRow['total_capacity'],
+        'max_capacity_per_room' => (int) $infoRow['max_capacity_per_room'],
+        'rooms'                 => $rooms
     ]);
 } else {
-    echo json_encode(['success' => false, 'message' => 'Location not found']);
+    echo json_encode(['success' => false, 'message' => 'No room available']);
 }
