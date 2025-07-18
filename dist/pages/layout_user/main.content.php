@@ -72,6 +72,7 @@
       </div>
       <div class="card-body p-0" style="min-height: 300px;">
         <div id="map" style="height: 100%; width: 100%; min-height: 300px;"></div>
+        <div id="route-directions" class="leaflet-routing-container"></div>
       </div>
       <div class="card-footer text-muted text-center small">
         Powered by OpenStreetMap & Leaflet
@@ -83,6 +84,10 @@
 </div>
 <!--end::App Content-->
 <?php include '../fetch_data/location_evacuation.php'; ?>
+<!-- Leaflet Routing Machine -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.min.js"></script>
+
 
 <script>
   async function loadTyphoonData() {
@@ -115,27 +120,51 @@
   setInterval(loadTyphoonData, 300000); // refresh every 5 minutes
 </script>
 <script>
-  // Coordinates for center of map (e.g., barangay center)
   const barangayLat = <?php echo $barangayCoords['latitude']; ?>;
   const barangayLng = <?php echo $barangayCoords['longitude']; ?>;
 
-  // Initialize the Leaflet map
   const map = L.map("map").setView([barangayLat, barangayLng], 12);
 
-  // Add OpenStreetMap tile layer
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
-  // PHP to JS: Evacuation center data
   const evacuationCenters = <?php echo json_encode($locations, JSON_NUMERIC_CHECK); ?>;
 
-  // Warn if no centers found
-  if (evacuationCenters.length === 0) {
-    console.warn("No evacuation center data available.");
+  let userLat = null;
+  let userLng = null;
+  let routingControl = null;
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        userLat = position.coords.latitude;
+        userLng = position.coords.longitude;
+
+        const userIcon = L.icon({
+          iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+          iconSize: [30, 30],
+          iconAnchor: [15, 30],
+          popupAnchor: [0, -30]
+        });
+
+        L.marker([userLat, userLng], {
+            icon: userIcon
+          })
+          .addTo(map)
+          .bindPopup("<strong>You are here</strong>")
+          .openPopup();
+
+        map.setView([userLat, userLng], 13);
+      },
+      error => {
+        console.warn("Geolocation failed:", error.message);
+      }
+    );
+  } else {
+    console.warn("Geolocation not supported by this browser.");
   }
 
-  // Loop through and display each evacuation center
   evacuationCenters.forEach(center => {
     const lat = parseFloat(center.latitude);
     const lng = parseFloat(center.longitude);
@@ -143,7 +172,8 @@
     if (!isNaN(lat) && !isNaN(lng)) {
       const popupContent = `
         <strong>${center.name}</strong><br>
-        <small>Barangay: ${center.barangay_name}</small>
+        <small>Barangay: ${center.barangay_name}</small><br>
+        <button onclick="createRoute(${lat}, ${lng})">Get Route</button>
       `;
 
       L.marker([lat, lng])
@@ -154,33 +184,37 @@
     }
   });
 
-  // Add marker for user's current device location
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        const userLat = position.coords.latitude;
-        const userLng = position.coords.longitude;
+  function createRoute(destLat, destLng) {
+    if (userLat === null || userLng === null) {
+      alert("User location not available yet.");
+      return;
+    }
 
-        const userIcon = L.icon({
-          iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // Optional custom icon
-          iconSize: [30, 30],
-          iconAnchor: [15, 30],
-          popupAnchor: [0, -30]
-        });
+    if (routingControl) {
+      map.removeControl(routingControl);
+    }
 
-        const userMarker = L.marker([userLat, userLng], { icon: userIcon })
-          .addTo(map)
-          .bindPopup("<strong>You are here</strong>")
-          .openPopup();
-
-        // Optional: re-center map on user's location
-        map.setView([userLat, userLng], 13);
+    routingControl = L.Routing.control({
+      waypoints: [
+        L.latLng(userLat, userLng),
+        L.latLng(destLat, destLng)
+      ],
+      routeWhileDragging: false,
+      draggableWaypoints: false,
+      addWaypoints: false,
+      showAlternatives: false,
+      lineOptions: {
+        styles: [{
+          color: 'blue',
+          weight: 5
+        }]
       },
-      error => {
-        console.warn("Geolocation failed:", error.message);
-      }
-    );
-  } else {
-    console.warn("Geolocation not supported by this browser.");
+      show: true,
+      container: L.DomUtil.get('route-directions'),
+      router: L.Routing.osrmv1({
+        serviceUrl: 'https://router.project-osrm.org/route/v1'
+      }),
+      createMarker: () => null
+    }).addTo(map);
   }
 </script>
