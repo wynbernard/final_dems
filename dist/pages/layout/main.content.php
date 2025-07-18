@@ -165,54 +165,74 @@
           </div>
 
           <div class="card-body">
-            <!-- Dynamic Location Selector -->
-            <div class="mb-3">
-              <label for="locationSelect" class="form-label fw-bold">Select Location</label>
-              <select id="locationSelect" class="form-select" onchange="fetchRoomInfo(this.value)">
-                <option value="">-- Select a location --</option>
-                <?php
-                include '../db_connect.php';
-                $res = $conn->query("SELECT evac_loc_id, name FROM evac_loc_table ORDER BY name ASC");
-                while ($row = $res->fetch_assoc()) {
-                  echo '<option value="' . htmlspecialchars($row['evac_loc_id']) . '">' . htmlspecialchars($row['name']) . '</option>';
-                }
-                ?>
-              </select>
+ <!-- Evacuation Location Dropdown -->
+<div class="mb-3">
+  <label for="locationSelect" class="form-label fw-bold">Select Location</label>
+  <select id="locationSelect" class="form-select" onchange="fetchRoomInfo(this.value)">
+    <option value="">-- Select a location --</option>
+    <?php
+    include '../db_connect.php';
+    $res = $conn->query("SELECT evac_loc_id, name FROM evac_loc_table ORDER BY name ASC");
+    while ($row = $res->fetch_assoc()) {
+      echo '<option value="' . htmlspecialchars($row['evac_loc_id']) . '">' . htmlspecialchars($row['name']) . '</option>';
+    }
+    ?>
+  </select>
+</div>
+
+<!-- Room Info Display -->
+<div id="roomInfo" class="mt-3">
+  <em>Please select a location to see available rooms.</em>
+</div>
+
+<script>
+function fetchRoomInfo(evacLocId) {
+  const roomInfo = document.getElementById('roomInfo');
+
+  if (!evacLocId) {
+    roomInfo.innerHTML = '<em>Please select a location to see available rooms.</em>';
+    return;
+  }
+
+  fetch(`../fetch_data/get_room_info.php?evac_loc_id=${encodeURIComponent(evacLocId)}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        const { location, rooms } = data;
+
+        if (!rooms.length) {
+          roomInfo.innerHTML = `<em>No rooms found in ${location}.</em>`;
+          return;
+        }
+
+        const roomBoxes = rooms.map(room => `
+          <div class="room-box ${room.is_available ? 'available' : 'full'}">
+            <div class="room-name">${room.name}</div>
+            <div class="room-capacity">
+              Occupied: ${room.occupied} / ${room.capacity}<br>
+              Remaining: ${room.remaining}
             </div>
-            <!-- Room Availability Display -->
-            <div id="roomInfo" class="border rounded p-3 bg-light text-dark" style="min-height: 100px;">
-              <em>Please select a location to see available rooms.</em>
+            <div class="room-status">
+              ${room.is_available ? '✅ Available' : '❌ Full'}
             </div>
           </div>
-          <script>
-            function fetchRoomInfo(evacLocId) {
-              const roomInfo = document.getElementById('roomInfo');
+        `).join('');
 
-              if (!evacLocId) {
-                roomInfo.innerHTML = '<em>Please select a location to see available rooms.</em>';
-                return;
-              }
+        roomInfo.innerHTML = `
+          <h5>${location}</h5>
+          <div class="room-box-container mt-3">${roomBoxes}</div>
+        `;
+      } else {
+        roomInfo.innerHTML = `<em>${data.message}</em>`;
+      }
+    })
+    .catch(error => {
+      console.error(error);
+      roomInfo.innerHTML = '<em>Error retrieving room data.</em>';
+    });
+}
+</script>
 
-fetch('../fetch_data/get_room_info.php?evac_loc_id=' + encodeURIComponent(evacLocId))
-  .then(res => res.json())
-  .then(data => {
-    if (data.success) {
-      const roomBoxes = data.rooms.map(room =>
-        `<div class="room-box">${room.name}</div>`
-      ).join('');
-
-      roomInfo.innerHTML = `
-        <div class="room-box-container">${roomBoxes}</div>
-      `;
-                  } else {
-                    roomInfo.innerHTML = `<em>${data.message}</em>`;
-                  }
-                })
-                .catch(() => {
-                  roomInfo.innerHTML = '<em>Error retrieving data.</em>';
-                });
-            }
-          </script>
           <div class="card-footer text-muted text-center small">
           </div>
         </div>
@@ -223,26 +243,42 @@ fetch('../fetch_data/get_room_info.php?evac_loc_id=' + encodeURIComponent(evacLo
   <!--end::Container-->
 </div>
 <style>
-  .room-box-container {
+.room-box-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 15px;
+  gap: 1rem;
 }
 
 .room-box {
-  padding: 10px;
-  background-color: #e8f4ff;
-  border: 2px solid #007bff;
-  border-radius: 8px;
-  width: 100px;
-  height: 60px;
+  background-color: #f1f5f9;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  padding: 1rem;
+  width: 220px;
   text-align: center;
-  font-weight: bold;
-  color: #007bff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transition: 0.3s ease;
 }
 
+.room-box.available {
+  background-color: #dcfce7;
+}
+.room-box.full {
+  background-color: #fee2e2;
+}
+
+.room-name {
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.room-capacity {
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.room-status {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
 </style>
