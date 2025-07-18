@@ -165,47 +165,50 @@
           </div>
 
           <div class="card-body">
- <!-- Evacuation Location Dropdown -->
-<div class="mb-3">
-  <label for="locationSelect" class="form-label fw-bold">Select Location</label>
-  <select id="locationSelect" class="form-select" onchange="fetchRoomInfo(this.value)">
-    <option value="">-- Select a location --</option>
-    <?php
-    include '../db_connect.php';
-    $res = $conn->query("SELECT evac_loc_id, name FROM evac_loc_table ORDER BY name ASC");
-    while ($row = $res->fetch_assoc()) {
-      echo '<option value="' . htmlspecialchars($row['evac_loc_id']) . '">' . htmlspecialchars($row['name']) . '</option>';
-    }
-    ?>
-  </select>
-</div>
+            <!-- Evacuation Location Dropdown -->
+            <div class="mb-3">
+              <label for="locationSelect" class="form-label fw-bold">Select Location</label>
+              <select id="locationSelect" class="form-select" onchange="fetchRoomInfo(this.value)">
+                <option value="">-- Select a location --</option>
+                <?php
+                include '../db_connect.php';
+                $res = $conn->query("SELECT evac_loc_id, name FROM evac_loc_table ORDER BY name ASC");
+                while ($row = $res->fetch_assoc()) {
+                  echo '<option value="' . htmlspecialchars($row['evac_loc_id']) . '">' . htmlspecialchars($row['name']) . '</option>';
+                }
+                ?>
+              </select>
+            </div>
 
-<!-- Room Info Display -->
-<div id="roomInfo" class="mt-3">
-  <em>Please select a location to see available rooms.</em>
-</div>
+            <!-- Room Info Display -->
+            <div id="roomInfo" class="mt-3">
+              <em>Please select a location to see available rooms.</em>
+            </div>
 
-<script>
-function fetchRoomInfo(evacLocId) {
-  const roomInfo = document.getElementById('roomInfo');
+            <script>
+              function fetchRoomInfo(evacLocId) {
+                const roomInfo = document.getElementById('roomInfo');
 
-  if (!evacLocId) {
-    roomInfo.innerHTML = '<em>Please select a location to see available rooms.</em>';
-    return;
-  }
+                if (!evacLocId) {
+                  roomInfo.innerHTML = '<em>Please select a location to see available rooms.</em>';
+                  return;
+                }
 
-  fetch(`../fetch_data/get_room_info.php?evac_loc_id=${encodeURIComponent(evacLocId)}`)
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        const { location, rooms } = data;
+                fetch(`../fetch_data/get_room_info.php?evac_loc_id=${encodeURIComponent(evacLocId)}`)
+                  .then(res => res.json())
+                  .then(data => {
+                    if (data.success) {
+                      const {
+                        location,
+                        rooms
+                      } = data;
 
-        if (!rooms.length) {
-          roomInfo.innerHTML = `<em>No rooms found in ${location}.</em>`;
-          return;
-        }
+                      if (!rooms.length) {
+                        roomInfo.innerHTML = `<em>No rooms found in ${location}.</em>`;
+                        return;
+                      }
 
-        const roomBoxes = rooms.map(room => `
+                      const roomBoxes = rooms.map(room => `
           <div class="room-box ${room.is_available ? 'available' : 'full'}">
             <div class="room-name">${room.name}</div>
             <div class="room-capacity">
@@ -218,67 +221,68 @@ function fetchRoomInfo(evacLocId) {
           </div>
         `).join('');
 
-        roomInfo.innerHTML = `
+                      roomInfo.innerHTML = `
           <h5>${location}</h5>
           <div class="room-box-container mt-3">${roomBoxes}</div>
         `;
-      } else {
-        roomInfo.innerHTML = `<em>${data.message}</em>`;
-      }
-    })
-    .catch(error => {
-      console.error(error);
-      roomInfo.innerHTML = '<em>Error retrieving room data.</em>';
-    });
-}
-</script>
+                    } else {
+                      roomInfo.innerHTML = `<em>${data.message}</em>`;
+                    }
+                  })
+                  .catch(error => {
+                    console.error(error);
+                    roomInfo.innerHTML = `<em>Error retrieving room data: ${error.message}</em>`;
+                  });
+              }
+            </script>
 
-          <div class="card-footer text-muted text-center small">
+            <div class="card-footer text-muted text-center small">
+            </div>
           </div>
         </div>
+        <!--end::Col-->
       </div>
-      <!--end::Col-->
     </div>
+    <!--end::Container-->
   </div>
-  <!--end::Container-->
-</div>
-<style>
-.room-box-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
+  <style>
+    .room-box-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
 
-.room-box {
-  background-color: #f1f5f9;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  padding: 1rem;
-  width: 220px;
-  text-align: center;
-  transition: 0.3s ease;
-}
+    .room-box {
+      background-color: #f1f5f9;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      padding: 1rem;
+      width: 220px;
+      text-align: center;
+      transition: 0.3s ease;
+    }
 
-.room-box.available {
-  background-color: #dcfce7;
-}
-.room-box.full {
-  background-color: #fee2e2;
-}
+    .room-box.available {
+      background-color: #dcfce7;
+    }
 
-.room-name {
-  font-weight: bold;
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
-}
+    .room-box.full {
+      background-color: #fee2e2;
+    }
 
-.room-capacity {
-  font-size: 0.95rem;
-  margin-bottom: 0.5rem;
-}
+    .room-name {
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
 
-.room-status {
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-</style>
+    .room-capacity {
+      font-size: 0.95rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .room-status {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+  </style>

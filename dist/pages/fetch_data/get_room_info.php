@@ -18,8 +18,8 @@ $infoSql = "
   COUNT(r.room_id)           AS total_rooms,
   SUM(r.room_capacity)       AS total_capacity,
   MAX(r.room_capacity)       AS max_capacity_per_room
-FROM evac_loc_table el
-LEFT JOIN room_table r ON r.evac_loc_id = el.evac_loc_id
+FROM room_table r
+JOIN evac_loc_table el ON r.evac_loc_id = el.evac_loc_id
 WHERE el.evac_loc_id = ?
 GROUP BY el.evac_loc_id;
 
@@ -61,7 +61,7 @@ while ($row = $roomsRes->fetch_assoc()) {
         'capacity'        => (int) $row['room_capacity'],
         'occupied'        => (int) $row['number_of_people'],
         'remaining'       => (int) $row['remaining_slots'],
-        'is_available'    => (bool) $row['is_available']
+        'is_available'    => (int) $row['is_available']
     ];
 }
 
@@ -75,10 +75,9 @@ if ($infoRow) {
         'location'         => $infoRow['location_name'],
         'total_rooms'      => (int) $infoRow['total_rooms'],
         'available_rooms'  => (int) $infoRow['available_rooms'],
-        'capacity_per_room'=> (int) $infoRow['capacity_per_room'],
+        'capacity_per_room' => (int) $infoRow['capacity_per_room'],
         'rooms'            => $rooms
     ]);
 } else {
     echo json_encode(['success' => false, 'message' => 'Location not found']);
 }
-?>
