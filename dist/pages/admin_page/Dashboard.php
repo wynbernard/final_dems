@@ -30,8 +30,8 @@ include '../layout/head_links.php';
       });
     </script>
   <?php endif; ?>
-  <div class="app-wrapper">
-    <?php
+    <div class="app-wrapper">
+      <?php
     include '../layout/header.php';
     include '../layout/sidebar.php';
     ?>
