@@ -406,7 +406,7 @@
 					<div class="card shadow-lg border-0 rounded-4">
 						<div class="card-body p-4">
 							<h4 class="fw-semibold mb-3 text-center">Quick Inquiry</h4>
-							<form id="contact-form">
+							<form id="contact-form" action="./send_email.php" method="post">
 								<div class="mb-3">
 									<label for="name">Name</label>
 									<input type="text" id="name" name="name" class="form-control rounded-3" placeholder="Your Name">
@@ -488,7 +488,7 @@
 
 	<!-- FOR EMAIL SECTION -->
 
-	<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+	<!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 	<script>
 		(function() {
@@ -532,7 +532,7 @@
 					});
 			});
 		}
-	</script>
+	</script> -->
 	<script>
 		document.addEventListener("DOMContentLoaded", function() {
 			const navbar = document.querySelector('.navbar');

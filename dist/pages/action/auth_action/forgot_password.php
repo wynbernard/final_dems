@@ -1,10 +1,10 @@
 <?php
 // Configuration
 const SMTP_HOST = 'smtp.hostinger.com';
-const SMTP_PORT = 587; // TLS
+const SMTP_PORT = 465; // TLS
 const SMTP_USER = 'dems_info@bccbsis.com';
 const SMTP_PASS = 'nAgc/#^Jj7';
-const BASE_URL  = 'http://dems.bccbsis.com'; // Change to your real base URL
+const BASE_URL  = 'http://localhost/FInal_DEMS'; // Change to your real base URL
 
 
 include '../../../../database/conn.php';
@@ -26,21 +26,22 @@ $stmt->execute();
 $stmt->store_result();
 
 if ($stmt->num_rows === 0) {
-    echo json_encode(['success' => true, 'message' => 'If the email exists, a reset link was sent.']);
+    echo json_encode(['success' => true, 'message' => 'You Dont Have an account.']);
     exit;
 }
 
 // Generate token (encoded JSON with email + expiry)
 $expires = time() + 3600; // 1 hour
 $payload = base64_encode(json_encode(['email' => $email, 'exp' => $expires]));
-$resetLink = BASE_URL . "/dist/pages/auth/reset_password.php?token=" . urlencode($payload);
+$resetLink = "http://localhost/Final_dems/dist/pages/auth/reset_password.php?token=" . urlencode($payload);
 
 // Compose email
 $subject = "Reset your password";
 $body = "Click this link to reset your password:\n\n$resetLink\n\nThis link expires in 1 hour.";
 
 // Send email using raw SMTP
-function sendMailSMTP($to, $subject, $body) {
+function sendMailSMTP($to, $subject, $body)
+{
     $socket = fsockopen("ssl://" . SMTP_HOST, SMTP_PORT, $errno, $errstr, 10);
     if (!$socket) return false;
 
@@ -48,13 +49,20 @@ function sendMailSMTP($to, $subject, $body) {
     $write = fn($msg) => fputs($socket, $msg . "\r\n");
 
     $read();
-    $write("EHLO localhost");  while (strpos($read(), "250-") === 0);
-    $write("AUTH LOGIN");       $read();
-    $write(base64_encode(SMTP_USER)); $read();
-    $write(base64_encode(SMTP_PASS)); $read();
-    $write("MAIL FROM:<" . SMTP_USER . ">"); $read();
-    $write("RCPT TO:<$to>"); $read();
-    $write("DATA"); $read();
+    $write("EHLO localhost");
+    while (strpos($read(), "250-") === 0);
+    $write("AUTH LOGIN");
+    $read();
+    $write(base64_encode(SMTP_USER));
+    $read();
+    $write(base64_encode(SMTP_PASS));
+    $read();
+    $write("MAIL FROM:<" . SMTP_USER . ">");
+    $read();
+    $write("RCPT TO:<$to>");
+    $read();
+    $write("DATA");
+    $read();
 
     $msg = "From: DEMS Info <" . SMTP_USER . ">\r\n";
     $msg .= "To: <$to>\r\n";
@@ -62,14 +70,16 @@ function sendMailSMTP($to, $subject, $body) {
     $msg .= "MIME-Version: 1.0\r\n";
     $msg .= "Content-Type: text/plain; charset=UTF-8\r\n\r\n";
     $msg .= $body . "\r\n.";
-    $write($msg); $read();
+    $write($msg);
+    $read();
 
-    $write("QUIT"); fclose($socket);
+    $write("QUIT");
+    fclose($socket);
     return true;
 }
 
 if (sendMailSMTP($email, $subject, $body)) {
-    echo json_encode(['success' => true, 'message' => 'Reset link sent.']);
+    echo json_encode(['success' => true, 'message' => 'Reset link sent.' . urlencode($payload)]);
 } else {
     echo json_encode(['success' => false, 'message' => 'Failed to send email.']);
 }
