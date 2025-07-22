@@ -1,4 +1,4 @@
-<!-- Edit Email Modal -->
+    <!-- Edit Email Modal -->
 <div class="modal fade" id="editEmailModal" tabindex="-1" aria-labelledby="editEmailModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -210,3 +210,77 @@
         </div>
     </div>
 </div>
+<!-- Edit Address Modal -->
+<div class="modal fade" id="editAddressModal" tabindex="-1" aria-labelledby="editAddressModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form method="POST" action="../action_user/profile_user.php">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editAddressModalLabel">Edit Address</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label>House/Block No.</label>
+              <input type="text" name="house_block_number" class="form-control"
+                value="<?php echo htmlspecialchars($solo_address['house_block_number'] ?? $family_address['house_block_number'] ?? ''); ?>">
+            </div>
+
+            <input type="text" name="registered_as" class="form-control"
+              value="<?php echo htmlspecialchars($user['registered_as']); ?>" hidden>
+
+            <div class="col-md-6">
+              <label>Street</label>
+              <input type="text" name="street" class="form-control"
+                value="<?php echo htmlspecialchars($solo_address['street'] ?? $family_address['street'] ?? ''); ?>" >
+            </div>
+
+            <div class="col-md-6">
+              <label>Sub-village</label>
+              <input type="text" name="sub_village" class="form-control"
+                value="<?php echo htmlspecialchars($solo_address['sub_village'] ?? $family_address['sub_village'] ?? ''); ?>">
+            </div>
+
+            <div class="col-md-6">
+              <label>Barangay</label>
+              <input type="text" name="barangay_name" class="form-control"
+                value="<?php echo htmlspecialchars($solo_address['barangay_name'] ?? $family_address['barangay_name'] ?? ''); ?>">
+            </div>
+
+            <div class="col-md-6">
+              <label>City / Municipality</label>
+              <input type="text" name="city_municipality" class="form-control"
+                value="<?php echo htmlspecialchars($solo_address['city_municipality'] ?? $family_address['city_municipality'] ?? ''); ?>">
+            </div>
+
+            <div class="col-md-6">
+              <label>Province</label>
+              <input type="text" name="province" class="form-control"
+                value="<?php echo htmlspecialchars($solo_address['province'] ?? $family_address['province'] ?? ''); ?>">
+            </div>
+
+            <div class="col-md-6">
+              <label>Region</label>
+              <input type="text" name="region" class="form-control"
+                value="<?php echo htmlspecialchars($solo_address['region'] ?? $family_address['region'] ?? ''); ?>">
+            </div>
+
+            <div class="col-md-6">
+              <label>Zip Code</label>
+              <input type="text" name="zip_code" class="form-control"
+                value="<?php echo htmlspecialchars($solo_address['zip_code'] ?? $family_address['zip_code'] ?? ''); ?>">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+

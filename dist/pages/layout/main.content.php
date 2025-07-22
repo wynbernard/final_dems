@@ -5,7 +5,7 @@
     <!--begin::Row-->
     <div class="row">
       <div class="col-sm-6">
-        <h3 class="mb-0">Dashboard</h3>
+        <h3 class="mb-0"> Admin Dashboard</h3>
       </div>
       <div class="col-sm-6">
         <ol class="breadcrumb float-sm-end">
@@ -18,11 +18,18 @@
   </div>
   <!--end::Container-->
 </div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <!--end::App Content Header-->
 <!--begin::App Content-->
-<div class="app-content">
+
+<div class="app-content position-relative">
   <!--begin::Container-->
-  <div class="container-fluid">
+  <div id="evacMapContainer">
+    <div id="evacMap"></div>
+  </div>
+  <div class="container-fluid position-relative" style="z-index: 2;">
     <!--begin::Row-->
     <div class="row">
       <!--begin::Col-->
@@ -36,7 +43,7 @@
             $row = mysqli_fetch_assoc($result);
             $total_admin = $row['total_admin'];
             ?>
-            <h3><?php echo htmlspecialchars($total_admin) ?></h3>
+            <h3 style="color:#333"><?php echo htmlspecialchars($total_admin) ?></h3>
             <p>Total Staff</p>
           </div>
           <svg
@@ -76,7 +83,7 @@
             $row = mysqli_fetch_assoc($result);
             $total_pre_reg = $row['pre_reg'];
             ?>
-            <h3><?php echo htmlspecialchars($total_pre_reg) ?><sup class="fs-5"></sup></h3>
+            <h3 style="color:#333"><?php echo htmlspecialchars($total_pre_reg) ?><sup class="fs-5"></sup></h3>
             <p>Pre-Registration</p>
           </div>
           <svg
@@ -158,93 +165,56 @@
         </div>
         <!--end::Small Box Widget 4-->
       </div>
-      <div class="col-12 mb-4">
-        <div class="card shadow-lg rounded border-success h-100">
-          <div class="card-header bg-success text-white">
-            <h3 class="card-title mb-0" style="font-size: 1.25rem;">Evacuation Room Availability</h3>
+      <div class="col-lg-3">
+        <div class="card shadow-sm border-0 bg-white rounded-3">
+          <div class="card-header bg-primary text-white py-2 px-3">
+            <strong>Evacuation Locations</strong>
           </div>
-
-          <div class="card-body">
-            <!-- Evacuation Location Dropdown -->
-            <div class="mb-3 col-md-3">
-              <label for="locationSelect" class="form-label fw-bold">Select Location</label>
-              <select id="locationSelect" class="form-select" onchange="fetchRoomInfo(this.value)">
-                <option value="">-- Select a location --</option>
-                <?php
-                include '../db_connect.php';
-                $res = $conn->query("SELECT evac_loc_id, name FROM evac_loc_table ORDER BY name ASC");
-                while ($row = $res->fetch_assoc()) {
-                  echo '<option value="' . htmlspecialchars($row['evac_loc_id']) . '">' . htmlspecialchars($row['name']) . '</option>';
-                }
-                ?>
-              </select>
+          <div class="card-body p-3" style="max-height: 500px; overflow-y: auto;">
+            <!-- Search box -->
+            <div class="input-group mb-3">
+              <input type="text" class="form-control" id="evacSearch" placeholder="Search location...">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
             </div>
 
-            <!-- Room Info Display -->
-            <div id="roomInfo" class="mt-3">
-              <em>Please select a location to see available rooms.</em>
-            </div>
-
-            <script>
-              function fetchRoomInfo(evacLocId) {
-                const roomInfo = document.getElementById('roomInfo');
-
-                if (!evacLocId) {
-                  roomInfo.innerHTML = '<em>Please select a location to see available rooms.</em>';
-                  return;
-                }
-
-                fetch(`../fetch_data/get_room_info.php?evac_loc_id=${encodeURIComponent(evacLocId)}`)
-                  .then(res => res.json())
-                  .then(data => {
-                    if (data.success) {
-                      const {
-                        location,
-                        rooms
-                      } = data;
-
-                      if (!rooms.length) {
-                        roomInfo.innerHTML = `<em>No rooms found in ${location}.</em>`;
-                        return;
-                      }
-
-                      const roomBoxes = rooms.map(room => `
-                        <div class="room-box ${room.is_available ? 'available' : 'full'}">
-                          <div class="room-name">${room.name}</div>
-                          <div class="room-capacity">
-                            Occupied: ${room.occupied} / ${room.capacity}<br>
-                            Remaining: ${room.remaining}
-                          </div>
-                          <div class="room-status">
-                            ${room.is_available ? '✅ Available' : '❌ Full'}
-                          </div>
-                        </div>
-                      `).join('');
-
-                                    roomInfo.innerHTML = `
-                        <h5>${location}</h5>
-                        <div class="room-box-container mt-3">${roomBoxes}</div>
-                      `;
-                    } else {
-                      roomInfo.innerHTML = `<em>${data.message}</em>`;
-                    }
-                  })
-                  .catch(error => {
-                    console.error(error);
-                    roomInfo.innerHTML = `<em>Error retrieving room data: ${error.message}</em>`;
-                  });
-              }
-            </script>
-
-            <div class="card-footer text-muted text-center small">
-            </div>
+            <!-- Evacuation list -->
+            <ul class="list-group list-group-flush" id="evacuationList">
+              <?php
+              $query = "
+                    SELECT 
+                      elt.name, 
+                      elt.latitude, 
+                      elt.longitude, 
+                      COUNT(rt.evac_loc_id) AS room_count
+                    FROM room_table AS rt
+                    LEFT JOIN evac_loc_table AS elt ON rt.evac_loc_id = elt.evac_loc_id
+                    GROUP BY elt.evac_loc_id, elt.name, elt.latitude, elt.longitude
+                  ";
+              $result = mysqli_query($conn, $query);
+              while ($row = mysqli_fetch_assoc($result)):
+                $name = htmlspecialchars($row['name']);
+                $roomCount = htmlspecialchars($row['room_count']);
+                $lat = htmlspecialchars($row['latitude']);
+                $lng = htmlspecialchars($row['longitude']);
+              ?>
+                <li class="list-group-item d-flex justify-content-between align-items-start evacuation-item"
+                  data-lat="<?= $lat ?>"
+                  data-lng="<?= $lng ?>">
+                  <div>
+                    <div class="fw-semibold"><?= $name ?></div>
+                    <small><?= $roomCount ?> room(s)</small>
+                  </div>
+                  <button class="btn btn-sm btn-outline-primary show-on-map">Show</button>
+                </li>
+              <?php endwhile; ?>
+            </ul>
           </div>
         </div>
-        <!--end::Col-->
       </div>
     </div>
     <!--end::Container-->
   </div>
+
   <style>
     .room-box-container {
       display: flex;
@@ -286,3 +256,151 @@
       font-weight: 600;
     }
   </style>
+  <!-- Leaflet CSS -->
+
+
+  <style>
+    .app-content {
+      position: relative;
+      padding: 20px;
+    }
+
+    #evacMapContainer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 500px;
+      margin: 0 auto;
+      z-index: 1;
+      border: 3px solid #ccc;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    #evacMap {
+      width: 100%;
+      height: 100%;
+    }
+
+    .small-box {
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 15px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      position: relative;
+      z-index: 2;
+    }
+
+    /* small boxes */
+    .small-box {
+      padding: 10px 12px;
+      min-height: auto;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      background-color: #ffffff !important;
+      /* white background */
+      color: #333;
+      position: relative;
+    }
+
+    .small-box .inner h3 {
+      font-size: 20px;
+      margin: 0 0 4px 0;
+      font-weight: 600;
+    }
+
+    .small-box .inner p {
+      font-size: 13px;
+      margin: 0;
+      color: #666;
+    }
+
+    .small-box-icon {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      width: 22px;
+      height: 22px;
+      opacity: 0.15;
+    }
+
+    .small-box-footer {
+      font-size: 12px;
+      margin-top: 6px;
+      display: inline-block;
+    }
+  </style>
+
+
+  <!-- SEARCH THE LOCATION -->
+  <script>
+    $(document).ready(function() {
+      $('#evacSearch').on('keyup', function() {
+        const searchTerm = $(this).val().toLowerCase().trim();
+
+        $('#evacuationList .evacuation-item').each(function() {
+          const text = $(this).text().toLowerCase();
+
+          if (text.includes(searchTerm)) {
+            $(this).stop(true, true).fadeIn(150);
+          } else {
+            $(this).stop(true, true).fadeOut(150);
+          }
+        });
+      });
+
+      // Show on map button
+      $('#evacuationList').on('click', '.show-on-map', function() {
+        const item = $(this).closest('.evacuation-item');
+        const lat = parseFloat(item.data('lat'));
+        const lng = parseFloat(item.data('lng'));
+        const label = item.find('.fw-semibold').text();
+
+        if (window.evacMap && lat && lng) {
+          evacMap.setView([lat, lng], 17);
+          L.popup()
+            .setLatLng([lat, lng])
+            .setContent(label)
+            .openOn(evacMap);
+        }
+      });
+    });
+  </script>
+
+
+
+  <!-- Leaflet JS -->
+
+
+  <script>
+    const map = L.map('evacMap').setView([10.485, 122.83], 13); // Change coords to your area
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Example: Static evacuation locations (replace with dynamic PHP data if needed)
+    const evacLocations = [{
+        name: "Evac Center 1",
+        lat: 10.486,
+        lng: 122.831
+      },
+      {
+        name: "Evac Center 2",
+        lat: 10.489,
+        lng: 122.829
+      },
+      {
+        name: "Evac Center 3",
+        lat: 10.483,
+        lng: 122.827
+      }
+    ];
+
+    evacLocations.forEach(loc => {
+      L.marker([loc.lat, loc.lng]).addTo(map).bindPopup(loc.name);
+    });
+  </script>

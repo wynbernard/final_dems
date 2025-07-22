@@ -64,18 +64,30 @@
   </div>
 
 
-  <!--begin::Col Map Box-->
-  <div class="col-12 col-sm-12 col-md-12 mb-4">
-    <div class="card shadow-lg rounded border-success h-100">
-      <div class="card-header bg-success text-white">
-        <h3 class="card-title mb-0" style="font-size: 1.25rem;">Disaster Map</h3>
+  <div class="row">
+    <!-- Map Column -->
+    <div class="col-lg-8 col-md-7 col-sm-12 mb-4">
+      <div class="card shadow-lg rounded border-success h-100">
+        <div class="card-header bg-success text-white">
+          <h3 class="card-title mb-0" style="font-size: 1.25rem;">Disaster Map</h3>
+        </div>
+        <div class="card-body p-0" style="min-height: 300px;">
+          <div id="map" style="height: 100%; width: 100%; min-height: 300px;"></div>
+          <div id="route-directions" class="leaflet-routing-container"></div>
+        </div>
+        <div class="card-footer text-muted text-center small">
+          Powered by OpenStreetMap & Leaflet
+        </div>
       </div>
-      <div class="card-body p-0" style="min-height: 300px;">
-        <div id="map" style="height: 100%; width: 100%; min-height: 300px;"></div>
-        <div id="route-directions" class="leaflet-routing-container"></div>
-      </div>
-      <div class="card-footer text-muted text-center small">
-        Powered by OpenStreetMap & Leaflet
+    </div>
+
+    <!-- Evacuation Centers List Column -->
+    <div class="col-lg-4 col-md-5 col-sm-12 mb-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">Evacuation Centers</h5>
+        </div>
+        <ul id="evacuation-list" class="list-group list-group-flush"></ul>
       </div>
     </div>
   </div>
@@ -84,109 +96,98 @@
 </div>
 <!--end::App Content-->
 <?php include '../fetch_data/location_evacuation.php'; ?>
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 <!-- Leaflet Routing Machine -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
 <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.min.js"></script>
 
-
-<script>
-  async function loadTyphoonData() {
-    try {
-      const res = await fetch("../typhoon_json/typhoon_scraper.php");
-      const data = await res.json();
-
-      const infoDiv = document.getElementById("typhoon-info");
-      const updated = document.getElementById("typhoon-updated");
-      const title = document.getElementById("report-title");
-
-      if (data.status === "success") {
-        title.innerText = data.type || "Phenomenal Report";
-
-        if (data.latest.length === 0) {
-          infoDiv.innerHTML = "<p>No phenomenal weather at the moment.</p>";
-        } else {
-          infoDiv.innerHTML = data.latest.map((entry) => `<p>${entry}</p>`).join("");
-        }
-
-        updated.innerText = "Source: PAGASA • Updated: " + new Date().toLocaleString();
-      } else {
-        throw new Error("Invalid data");
-      }
-    } catch (err) {
-      document.getElementById("typhoon-info").innerHTML = "<p>Failed to load Phenomenal Report.</p>";
-    }
-  }
-  loadTyphoonData();
-  setInterval(loadTyphoonData, 300000); // refresh every 5 minutes
-</script>
 <script>
   const barangayLat = <?php echo $barangayCoords['latitude']; ?>;
   const barangayLng = <?php echo $barangayCoords['longitude']; ?>;
+  const evacuationCenters = <?php echo json_encode($locations, JSON_NUMERIC_CHECK); ?>;
 
-  const map = L.map("map").setView([barangayLat, barangayLng], 12);
+  let userLat = null;
+  let userLng = null;
+  let userMarker = null;
+  let routingControl = null;
+
+  const map = L.map("map").setView([barangayLat, barangayLng], 13);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
-  const evacuationCenters = <?php echo json_encode($locations, JSON_NUMERIC_CHECK); ?>;
-
-  let userLat = null;
-  let userLng = null;
-  let routingControl = null;
-
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        userLat = position.coords.latitude;
-        userLng = position.coords.longitude;
-
-        const userIcon = L.icon({
-          iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
-          iconSize: [30, 30],
-          iconAnchor: [15, 30],
-          popupAnchor: [0, -30]
-        });
-
-        L.marker([userLat, userLng], {
-            icon: userIcon
-          })
-          .addTo(map)
-          .bindPopup("<strong>You are here</strong>")
-          .openPopup();
-
-        map.setView([userLat, userLng], 13);
-      },
-      error => {
-        console.warn("Geolocation failed:", error.message);
-      }
-    );
-  } else {
-    console.warn("Geolocation not supported by this browser.");
-  }
-
-  evacuationCenters.forEach(center => {
-    const lat = parseFloat(center.latitude);
-    const lng = parseFloat(center.longitude);
-
-    if (!isNaN(lat) && !isNaN(lng)) {
-      const popupContent = `
-        <strong>${center.name}</strong><br>
-        <small>Barangay: ${center.barangay_name}</small><br>
-        <button onclick="createRoute(${lat}, ${lng})">Get Route</button>
-      `;
-
-      L.marker([lat, lng])
-        .addTo(map)
-        .bindPopup(popupContent);
-    } else {
-      console.warn("Invalid coordinates for center:", center);
-    }
+  const userIcon = L.icon({
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -30]
   });
 
-  function createRoute(destLat, destLng) {
+  const evacList = document.getElementById("evacuation-list");
+  const bounds = [];
+
+  function getDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function renderEvacuationCenters() {
+    evacList.innerHTML = '';
+
+    evacuationCenters.forEach(center => {
+      const lat = parseFloat(center.latitude);
+      const lng = parseFloat(center.longitude);
+
+      if (!isNaN(lat) && !isNaN(lng)) {
+        // Add marker
+        const popupContent = `
+          <strong>${center.name}</strong><br>
+          <small>Barangay: ${center.barangay_name}</small><br>
+          <button onclick="createRoute(${lat}, ${lng}, this)">Get Route</button>
+        `;
+        L.marker([lat, lng]).addTo(map).bindPopup(popupContent);
+        bounds.push([lat, lng]);
+
+        // Distance calculation
+        const distance = (userLat && userLng) ? getDistance(userLat, userLng, lat, lng) : null;
+        const distanceText = distance ? `<small class="text-muted">${distance.toFixed(2)} km away</small><br>` : '';
+
+        // Build list item
+        const listItem = document.createElement("li");
+        listItem.className = "list-group-item d-flex justify-content-between align-items-start flex-column";
+        listItem.innerHTML = `
+          <div class="w-100">
+            <strong>${center.name}</strong><br>
+            <small>Barangay: ${center.barangay_name}</small><br>
+            ${distanceText}
+            <div class="route-steps mt-2 text-muted small"></div>
+          </div>
+          <button class="btn btn-sm btn-outline-primary align-self-end mt-2" onclick="createRoute(${lat}, ${lng}, this)">Get Route</button>
+        `;
+        evacList.appendChild(listItem);
+      }
+    });
+
+    if (bounds.length) {
+      map.fitBounds(bounds, {
+        padding: [20, 20]
+      });
+    }
+  }
+
+  function createRoute(destLat, destLng, btn) {
     if (userLat === null || userLng === null) {
-      alert("User location not available yet.");
+      alert("Getting your current location... please try again.");
       return;
     }
 
@@ -194,27 +195,71 @@
       map.removeControl(routingControl);
     }
 
+    const stepDiv = btn.closest("li").querySelector(".route-steps");
+    stepDiv.innerHTML = "<em>Loading directions...</em>";
+
     routingControl = L.Routing.control({
       waypoints: [
         L.latLng(userLat, userLng),
         L.latLng(destLat, destLng)
       ],
+      router: new L.Routing.OSRMv1({
+        serviceUrl: 'https://router.project-osrm.org/route/v1'
+      }),
       routeWhileDragging: false,
       draggableWaypoints: false,
       addWaypoints: false,
+      fitSelectedRoutes: true,
       showAlternatives: false,
+      createMarker: () => null,
       lineOptions: {
         styles: [{
           color: 'blue',
           weight: 5
         }]
-      },
-      show: true,
-      container: L.DomUtil.get('route-directions'),
-      router: L.Routing.osrmv1({
-        serviceUrl: 'https://router.project-osrm.org/route/v1'
-      }),
-      createMarker: () => null
+      }
     }).addTo(map);
+
+    routingControl.on('routesfound', e => {
+      const steps = e.routes[0].instructions.map((step, i) => `${i + 1}. ${step.text}`);
+      stepDiv.innerHTML = `<strong>Directions:</strong><br>${steps.join("<br>")}`;
+    });
+
+    routingControl.on('routingerror', err => {
+      console.error("Routing error:", err);
+      stepDiv.innerHTML = "<span class='text-danger'>Failed to get route.</span>";
+    });
+  }
+
+  // Geolocation & start tracking
+  if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(pos => {
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+
+      if (!userMarker) {
+        userMarker = L.marker([userLat, userLng], {
+            icon: userIcon
+          })
+          .addTo(map)
+          .bindPopup("<strong>You are here</strong>")
+          .openPopup();
+        map.setView([userLat, userLng], 15);
+      } else {
+        userMarker.setLatLng([userLat, userLng]);
+      }
+
+      renderEvacuationCenters();
+    }, err => {
+      console.warn("Location error:", err.message);
+      renderEvacuationCenters();
+    }, {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 10000
+    });
+  } else {
+    alert("Geolocation is not supported.");
+    renderEvacuationCenters();
   }
 </script>

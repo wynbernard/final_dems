@@ -11,8 +11,14 @@
 	<link rel="stylesheet" href="../css/auth/log_in.css">
 	<script src="../scripts/auth_script/log_in.js"></script>
 </head>
+<style>
+	.login-page {
+		background: url('../../../src/images/new.jpg') no-repeat center center fixed;
+		background-size: cover;
+	}
+</style>
 
-<body class="d-flex justify-content-center align-items-center vh-100 bg-light">
+<body class="login-page d-flex justify-content-center align-items-center vh-100 bg-light">
 	<div class="container">
 		<div class="row login-container bg-white">
 			<!-- Left Side - Background Image -->
@@ -158,6 +164,46 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 			input.type = "password";
 			icon.classList.remove("fa-eye");
 			icon.classList.add("fa-eye-slash");
+		}
+	}
+
+
+	async function forgotPassword() {
+		const email = document.querySelector('input[name="username"]').value.trim();
+		if (!email) return alert("Please enter your email first.");
+
+		try {
+			const res = await fetch('/final_dems/dist/pages/action/auth_action/forgot_password.php', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					email
+				})
+			});
+
+			const text = await res.text(); // get raw body
+
+			// 1. server returned 200-299?
+			if (!res.ok) {
+				console.error("HTTP error", res.status, text);
+				return alert("Server responded with " + res.status);
+			}
+
+			// 2. try JSON-parse safely
+			let data;
+			try {
+				data = JSON.parse(text);
+			} catch (e) {
+				console.error("Bad JSON:", text);
+				return alert("Unexpected server response:\n" + text);
+			}
+
+			alert(data.message);
+		} catch (err) {
+			console.error(err);
+			alert("Network or CORS error. Check console.");
 		}
 	}
 </script>
