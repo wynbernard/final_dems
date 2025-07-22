@@ -167,6 +167,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		}
 	}
 </script>
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
 function forgotPassword() {
   Swal.fire({
@@ -174,10 +177,14 @@ function forgotPassword() {
     input: 'email',
     inputLabel: 'Enter your email address',
     inputPlaceholder: 'you@example.com',
+    inputAttributes: { required: true },
     showCancelButton: true,
     confirmButtonText: 'Send Reset Link',
     preConfirm: (email) => {
-      if (!email) return Swal.showValidationMessage('Email is required');
+      if (!email) {
+        Swal.showValidationMessage('⚠️ Email is required');
+        return;
+      }
 
       return fetch('forgot_password.php', {
         method: 'POST',
@@ -200,6 +207,8 @@ function forgotPassword() {
   });
 }
 </script>
+
+
 
 <style>
 	.input-group {

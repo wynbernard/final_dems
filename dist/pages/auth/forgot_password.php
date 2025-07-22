@@ -1,10 +1,17 @@
 <?php
 header('Content-Type: application/json');
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
-require '../../../vendor/autoload.php'; // Adjust if needed
+require '../../../vendor/autoload.php';
 use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
-$data = json_decode(file_get_contents('php://input'), true);
+// Database connection
+include 'db_config.php'; // this should define $conn
+
+// Read JSON input
+$data = json_decode(file_get_contents("php://input"), true);
 $email = filter_var(trim($data['email'] ?? ''), FILTER_VALIDATE_EMAIL);
 
 if (!$email) {
@@ -12,10 +19,7 @@ if (!$email) {
     exit;
 }
 
-// 🔐 TODO: Check if email exists in your database
-// For example:
-include '../../../database/conn.php';
-
+// Check if email exists in database
 $stmt = $conn->prepare("SELECT pre_reg_id FROM pre_reg_table WHERE email_address = ?");
 $stmt->bind_param("s", $email);
 $stmt->execute();
@@ -26,12 +30,15 @@ if ($result->num_rows === 0) {
     exit;
 }
 
-// ✅ Optional: generate token + save to DB
+// Generate token and save to DB
 $token = bin2hex(random_bytes(32));
 $expiry = date('Y-m-d H:i:s', strtotime('+15 minutes'));
-$conn->query("UPDATE users SET reset_token = '$token', token_expiry = '$expiry' WHERE email = '$email'");
 
-// ✉️ Send reset email
+$stmt = $conn->prepare("UPDATE users SET reset_token = ?, token_expiry = ? WHERE email = ?");
+$stmt->bind_param("sss", $token, $expiry, $email);
+$stmt->execute();
+
+// Send reset email
 $mail = new PHPMailer(true);
 try {
     $mail->isSMTP();
@@ -42,17 +49,22 @@ try {
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
     $mail->Port = 465;
 
-    $mail->setFrom('dems_info@bccbsis.com', 'DEMS Reset');
+    $mail->setFrom('dems_info@bccbsis.com', 'DEMS System');
     $mail->addAddress($email);
 
-    $resetLink = "http://yourdomain.com/reset_password.php?token=$token";
+    $resetLink = "http://localhost/reset_password.php?token=$token";
 
     $mail->isHTML(true);
     $mail->Subject = 'Password Reset Request';
-    $mail->Body    = "<p>Click the link below to reset your password:</p><p><a href='$resetLink'>$resetLink</a></p>";
-    $mail->send();
+    $mail->Body    = "
+        <h2>Password Reset</h2>
+        <p>Hello,</p>
+        <p>Click the link below to reset your password. This link will expire in 15 minutes.</p>
+        <p><a href='$resetLink'>$resetLink</a></p>
+    ";
 
+    $mail->send();
     echo json_encode(['success' => true, 'message' => 'Reset link sent to your email.']);
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => 'Mail Error: ' . $mail->ErrorInfo]);
+    echo json_encode(['success' => false, 'message' => 'Mailer Error: ' . $mail->ErrorInfo]);
 }
