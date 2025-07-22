@@ -48,10 +48,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $mail->AltBody = "Name: $name\nEmail: $email\nMessage:\n$message";
 
         $mail->send();
-        echo "✅ Message sent successfully!";
+        echo json_encode(['success' => true, 'message' => 'Your message was sent successfully!']);
     } catch (Exception $e) {
-        echo "❌ Message could not be sent.<br>Error: " . $mail->ErrorInfo;
+        echo json_encode(['success' => false, 'message' => "❌ Message could not be sent.<br>Error: " . $mail->ErrorInfo]);
     }
 } else {
-    echo "Form not submitted properly.";
+    echo json_encode(['success' => false, 'message' => "Form not submitted properly."]);
 }

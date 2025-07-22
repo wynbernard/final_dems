@@ -406,7 +406,7 @@
 					<div class="card shadow-lg border-0 rounded-4">
 						<div class="card-body p-4">
 							<h4 class="fw-semibold mb-3 text-center">Quick Inquiry</h4>
-							<form id="contact-form" action="./send_email.php" method="post">
+							<form id="contact-form">
 								<div class="mb-3">
 									<label for="name">Name</label>
 									<input type="text" id="name" name="name" class="form-control rounded-3" placeholder="Your Name">
@@ -486,53 +486,43 @@
 		});
 	</script>
 
-	<!-- FOR EMAIL SECTION -->
-
-	<!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 	<script>
-		(function() {
-			emailjs.init({
-				publicKey: "glaLEYSsKmM6c8uHi",
-			});
-		})();
-		window.onload = function() {
-			document.getElementById('contact-form').addEventListener('submit', function(event) {
-				event.preventDefault();
+document.getElementById("contact-form").addEventListener("submit", async function(e) {
+  e.preventDefault();
 
-				// Show loading SweetAlert
-				Swal.fire({
-					title: 'Sending...',
-					text: 'Please wait while we send your message.',
-					allowOutsideClick: false,
-					didOpen: () => {
-						Swal.showLoading();
-					}
-				});
+  const form = this;
+  const formData = new FormData(form);
 
-				// Send the form
-				emailjs.sendForm('service_wynbernard', 'template_wbbp0vr', this)
-					.then(() => {
-						Swal.fire({
-							icon: 'success',
-							title: 'Message Sent!',
-							text: 'Your inquiry has been successfully sent.',
-							confirmButtonColor: '#3085d6',
-							confirmButtonText: 'OK'
-						});
-						this.reset(); // Clear the form
-					}, (error) => {
-						console.error('FAILED...', error);
-						Swal.fire({
-							icon: 'error',
-							title: 'Oops...',
-							text: 'Failed to send your message. Please try again.',
-							confirmButtonColor: '#d33'
-						});
-					});
-			});
-		}
-	</script> -->
+  Swal.fire({
+    title: "Sending...",
+    text: "Please wait while we send your message.",
+    allowOutsideClick: false,
+    didOpen: () => {
+      Swal.showLoading();
+    }
+  });
+
+  try {
+    const res = await fetch("send_email.php", {
+      method: "POST",
+      body: formData
+    });
+
+    const result = await res.json();
+
+    if (result.success) {
+      Swal.fire("✅ Sent!", result.message, "success");
+      form.reset();
+    } else {
+      Swal.fire("❌ Error", result.message, "error");
+    }
+  } catch (err) {
+    Swal.fire("❌ Error", "Something went wrong. Please try again.", "error");
+  }
+});
+</script>
 	<script>
 		document.addEventListener("DOMContentLoaded", function() {
 			const navbar = document.querySelector('.navbar');
