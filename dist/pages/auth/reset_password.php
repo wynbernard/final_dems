@@ -39,10 +39,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $error = "Passwords do not match.";
     } else {
         // ✅ Save new password to database (adjust table name & field)
-        include 'db_config.php';
+        include '../../../database/conn.php';
         $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
 
-        $stmt = $conn->prepare("UPDATE users SET password = ? WHERE email = ?");
+        $stmt = $conn->prepare("UPDATE pre_reg_table SET password = ? WHERE email_address = ?");
         $stmt->bind_param("ss", $hashed, $email);
         $stmt->execute();
 
