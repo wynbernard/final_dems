@@ -151,7 +151,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		const input = document.getElementById('password');
 		const icon = document.getElementById('toggleIcon');
 		if (input.type === "password") {
-			input.type = "text";
+			input.type = "text";1
 			icon.classList.remove("fa-eye-slash");
 			icon.classList.add("fa-eye");
 		} else {
@@ -160,43 +160,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 			icon.classList.add("fa-eye-slash");
 		}
 	}
-
-
-	async function forgotPassword() {
-  const email = document.querySelector('input[name="username"]').value.trim();
-  if (!email) return alert("Please enter your email first.");
-
-  try {
-    const res  = await fetch('/final_dems/dist/pages/action/auth_action/forgot_password.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    });
-
-    const text = await res.text();           // get raw body
-
-    // 1. server returned 200-299?
-    if (!res.ok) {
-      console.error("HTTP error", res.status, text);
-      return alert("Server responded with " + res.status);
-    }
-
-    // 2. try JSON-parse safely
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      console.error("Bad JSON:", text);
-      return alert("Unexpected server response:\n" + text);
-    }
-
-    alert(data.message);
-  } catch (err) {
-    console.error(err);
-    alert("Network or CORS error. Check console.");
-  }
-}
-
 </script>
 
 <style>
