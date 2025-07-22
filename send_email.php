@@ -1,46 +1,57 @@
 <?php
+// Load Composer's autoloader
+require 'vendor/autoload.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-// Include PHPMailer manually
-require 'PHPMailer/PHPMailer.php';
-require 'PHPMailer/SMTP.php';
-require 'PHPMailer/Exception.php';
+// Check if form was submitted
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $name    = htmlspecialchars(trim($_POST['name'] ?? ''));
+    $email   = filter_var(trim($_POST['email'] ?? ''), FILTER_VALIDATE_EMAIL);
+    $message = htmlspecialchars(trim($_POST['message'] ?? ''));
 
+    if (!$email || empty($name) || empty($message)) {
+        exit("❌ Invalid form input.");
+    }
 
-// Get form input
-$name = $_POST['name'] ?? '';
-$email = $_POST['email'] ?? '';
-$message = $_POST['message'] ?? '';
+    $mail = new PHPMailer(true);
 
-// Setup email
-$mail = new PHPMailer(true);
-try {
-	// SMTP config
-	$mail->isSMTP();
-	$mail->Host       = 'smtp.hostinger.com'; // your SMTP server
-	$mail->SMTPAuth   = true;
-	$mail->Username   = 'dems_info@bccbsis.com';
-	$mail->Password   = '[nAgc/#^Jj7';
-	$mail->SMTPSecure = 'tls'; // or 'ssl'
-	$mail->Port       = 465;   // or 587 for SSL
+    try {
+        // Enable verbose debug output for testing (remove on live)
+        // $mail->SMTPDebug = 2;
+        // $mail->Debugoutput = 'html';
 
-	// Email headers
-	$mail->setFrom('dems_info@bccbsis.com', 'Website Contact');
-	$mail->addAddress('dems_info@bccbsis.com'); // recipient
-	$mail->isHTML(true);
-	$mail->Subject = "New Message from $name";
-	$mail->Body    = "
-        <h3>Message from Website</h3>
-        <p><strong>Name:</strong> $name</p>
-        <p><strong>Email:</strong> $email</p>
-        <p><strong>Message:</strong><br>$message</p>
-    ";
+        // SMTP server configuration
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.hostinger.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = 'dems_info@bccbsis.com';     // your Hostinger email
+        $mail->Password   = '[nAgc/#^Jj7';                // your Hostinger email password
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS; // 'ssl' or use PHPMailer::ENCRYPTION_SMTPS
+        $mail->Port       = 465;
 
-	// Send the email
-	$mail->send();
-	echo "Message sent successfully.";
-} catch (Exception $e) {
-	echo "Message failed. Error: " . $mail->ErrorInfo;
+        // Sender and recipient
+        $mail->setFrom('dems_info@bccbsis.com', 'DEMS Website');
+        $mail->addAddress('dems_info@bccbsis.com', 'DEMS Admin'); // Or another recipient
+        $mail->addReplyTo($email, $name); // Allow replies to sender
+
+        // Email content
+        $mail->isHTML(true);
+        $mail->Subject = "📬 Contact Form: $name";
+        $mail->Body    = "
+            <h2>New Contact Form Submission</h2>
+            <p><strong>Name:</strong> {$name}</p>
+            <p><strong>Email:</strong> {$email}</p>
+            <p><strong>Message:</strong><br>" . nl2br($message) . "</p>
+        ";
+        $mail->AltBody = "Name: $name\nEmail: $email\nMessage:\n$message";
+
+        $mail->send();
+        echo "✅ Message sent successfully!";
+    } catch (Exception $e) {
+        echo "❌ Message could not be sent.<br>Error: " . $mail->ErrorInfo;
+    }
+} else {
+    echo "Form not submitted properly.";
 }
