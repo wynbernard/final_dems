@@ -180,25 +180,34 @@ function forgotPassword() {
     inputAttributes: { required: true },
     showCancelButton: true,
     confirmButtonText: 'Send Reset Link',
-    preConfirm: (email) => {
+    preConfirm: async (email) => {
       if (!email) {
         Swal.showValidationMessage('⚠️ Email is required');
         return;
       }
 
-      return fetch('forgot_password.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (!data.success) throw new Error(data.message);
-        return data;
-      })
-      .catch(error => {
+      try {
+        const response = await fetch('forgot_password.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        const text = await response.text(); // Get raw response first
+
+        try {
+          const data = JSON.parse(text); // Try to parse JSON
+          if (!data.success) throw new Error(data.message);
+          return data;
+        } catch (jsonError) {
+          console.error("❌ JSON parse error:", jsonError);
+          console.error("⚠️ Raw response:", text);
+          throw new Error("Server error or invalid response:\n" + text);
+        }
+
+      } catch (error) {
         Swal.showValidationMessage(`❌ ${error.message}`);
-      });
+      }
     }
   }).then((result) => {
     if (result.isConfirmed && result.value?.success) {
