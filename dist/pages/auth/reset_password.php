@@ -55,22 +55,29 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Reset Password</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-light">
-  <div class="container mt-5">
-    <div class="card mx-auto" style="max-width: 500px;">
+  <div class="container py-4">
+    <div class="card mx-auto shadow" style="max-width: 100%; width: 100%; max-width: 480px;">
       <div class="card-body">
-        <h3 class="card-title text-center">🔐 Reset Your Password</h3>
+        <h3 class="card-title text-center mb-4">🔐 Reset Your Password</h3>
 
-        <?php if (!empty($error)): ?>
-          <div class="alert alert-danger"><?= $error ?></div>
-        <?php elseif (!empty($success)): ?>
-          <div class="alert alert-success"><?= $success ?></div>
-        <?php endif; ?>
+        <?php
+          // These would typically be set after form processing
+          $error = $error ?? '';
+          $success = $success ?? '';
+        ?>
 
         <?php if (empty($success)): ?>
         <form method="POST">
@@ -88,5 +95,24 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       </div>
     </div>
   </div>
+
+  <script>
+    <?php if (!empty($error)): ?>
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: <?= json_encode($error) ?>,
+        confirmButtonColor: '#d33'
+      });
+    <?php elseif (!empty($success)): ?>
+      Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: <?= json_encode($success) ?>,
+        confirmButtonColor: '#3085d6'
+      });
+    <?php endif; ?>
+  </script>
 </body>
 </html>
+
