@@ -68,7 +68,7 @@ try {
     $mail->setFrom('dems_info@bccbsis.com', 'DEMS System');
     $mail->addAddress($email);
 
-    $resetLink = "http://localhost/final_dems/dist/pages/auth/reset_password.php?email=" . urlencode($email) . "&token=" . urlencode($token);
+    $resetLink = "http://dems.bccbsis.com/dist/pages/auth/reset_password.php?email=" . urlencode($email) . "&token=" . urlencode($token);
 
     $mail->isHTML(true);
     $mail->Subject = 'Password Reset Request';

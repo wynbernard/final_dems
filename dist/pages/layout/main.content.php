@@ -5,7 +5,9 @@
     <!--begin::Row-->
     <div class="row">
       <div class="col-sm-6">
-        <h3 class="mb-0"> Admin Dashboard</h3>
+        <h3 class="mb-0">
+          <i class="bi bi-speedometer2 me-2"></i> Admin Dashboard
+        </h3>
       </div>
       <div class="col-sm-6">
         <ol class="breadcrumb float-sm-end">
@@ -26,9 +28,6 @@
 
 <div class="app-content position-relative">
   <!--begin::Container-->
-  <div id="evacMapContainer">
-    <div id="evacMap"></div>
-  </div>
   <div class="container-fluid position-relative" style="z-index: 2;">
     <!--begin::Row-->
     <div class="row">
@@ -48,6 +47,7 @@
           </div>
           <svg
             class="small-box-icon"
+            style="color: #00000080; width: 50px; height: 50px; position: absolute; top: 15px; right: 15px;"
             fill="currentColor"
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
@@ -66,7 +66,7 @@
           </svg>
           <a
             href="#"
-            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
+            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover bg-primary">
             More info <i class="bi bi-link-45deg"></i>
           </a>
         </div>
@@ -83,21 +83,24 @@
             $row = mysqli_fetch_assoc($result);
             $total_pre_reg = $row['pre_reg'];
             ?>
-            <h3 style="color:#333"><?php echo htmlspecialchars($total_pre_reg) ?><sup class="fs-5"></sup></h3>
+            <h3 class="text-dark mb-1"><?php echo htmlspecialchars($total_pre_reg); ?><sup class="fs-5"></sup></h3>
             <p>Pre-Registration</p>
           </div>
+
+          <!-- Pre-Registration (User Check) Icon -->
           <svg
             class="small-box-icon"
+            style="color: #00000080; width: 50px; height: 50px; position: absolute; top: 15px; right: 15px;"
             fill="currentColor"
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true">
-            <path
-              d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75zM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 01-1.875-1.875V8.625zM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v6.75c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 013 19.875v-6.75z"></path>
+            <path d="M16.5 8.25a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM3.375 20.25a7.125 7.125 0 0114.25 0v.375a.375.375 0 01-.375.375H3.75a.375.375 0 01-.375-.375v-.375zM18.53 15.47a.75.75 0 00-1.06 1.06l1.47 1.47-1.47 1.47a.75.75 0 101.06 1.06L20.25 19l1.47 1.47a.75.75 0 101.06-1.06L21.31 18l1.47-1.47a.75.75 0 00-1.06-1.06L20.25 16.94l-1.47-1.47z" />
           </svg>
+
           <a
-            href="#"
-            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
+            href="../admin_page/pre_reg.php"
+            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover bg-primary">
             More info <i class="bi bi-link-45deg"></i>
           </a>
         </div>
@@ -114,11 +117,12 @@
             $row = mysqli_fetch_assoc($result);
             $total_evac_reg = $row['evac_reg'];
             ?>
-            <h3><?php echo htmlspecialchars($total_evac_reg) ?></h3>
+            <h3 style="color:#333"><?php echo htmlspecialchars($total_evac_reg) ?></h3>
             <p>Evacuation Registration</p>
           </div>
           <svg
             class="small-box-icon"
+            style="color: #00000080; width: 50px; height: 50px; position: absolute; top: 15px; right: 15px;"
             fill="currentColor"
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
@@ -127,8 +131,8 @@
               d="M6.25 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM3.25 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM19.75 7.5a.75.75 0 00-1.5 0v2.25H16a.75.75 0 000 1.5h2.25v2.25a.75.75 0 001.5 0v-2.25H22a.75.75 0 000-1.5h-2.25V7.5z"></path>
           </svg>
           <a
-            href="#"
-            class="small-box-footer link-dark link-underline-opacity-0 link-underline-opacity-50-hover">
+            href="../admin_page/idps_user.php"
+            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover bg-primary">
             More info <i class="bi bi-link-45deg"></i>
           </a>
         </div>
@@ -137,83 +141,217 @@
       <!--end::Col-->
       <div class="col-lg-3 col-6">
         <!--begin::Small Box Widget 4-->
-        <div class="small-box text-bg-danger">
-          <div class="inner">
-            <h3>65</h3>
-            <p>Unique Visitors</p>
-          </div>
-          <svg
-            class="small-box-icon"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true">
-            <path
-              clip-rule="evenodd"
-              fill-rule="evenodd"
-              d="M2.25 13.5a8.25 8.25 0 018.25-8.25.75.75 0 01.75.75v6.75H18a.75.75 0 01.75.75 8.25 8.25 0 01-16.5 0z"></path>
-            <path
-              clip-rule="evenodd"
-              fill-rule="evenodd"
-              d="M12.75 3a.75.75 0 01.75-.75 8.25 8.25 0 018.25 8.25.75.75 0 01-.75.75h-7.5a.75.75 0 01-.75-.75V3z"></path>
-          </svg>
-          <a
-            href="#"
-            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
-            More info <i class="bi bi-link-45deg"></i>
-          </a>
+       <div class="small-box text-bg-danger">
+        <div class="inner">
+          <?php
+          $query = "SELECT COUNT(*) AS total_locations FROM evac_loc_table";
+          $result = mysqli_query($conn, $query);
+          $row = mysqli_fetch_assoc($result);
+          $total_locations = $row['total_locations'];
+          ?>
+          <h3 class="text-dark mb-1"><?php echo htmlspecialchars($total_locations); ?></h3>
+          <p>Evacuation Locations</p>
         </div>
-        <!--end::Small Box Widget 4-->
-      </div>
-      <div class="col-lg-3">
-        <div class="card shadow-sm border-0 bg-white rounded-3">
-          <div class="card-header bg-primary text-white py-2 px-3">
-            <strong>Evacuation Locations</strong>
-          </div>
-          <div class="card-body p-3" style="max-height: 500px; overflow-y: auto;">
-            <!-- Search box -->
-            <div class="input-group mb-3">
-              <input type="text" class="form-control" id="evacSearch" placeholder="Search location...">
-              <span class="input-group-text"><i class="bi bi-search"></i></span>
-            </div>
 
-            <!-- Evacuation list -->
-            <ul class="list-group list-group-flush" id="evacuationList">
-              <?php
-              $query = "
-                    SELECT 
-                      elt.name, 
-                      elt.latitude, 
-                      elt.longitude, 
-                      COUNT(rt.evac_loc_id) AS room_count
-                    FROM room_table AS rt
-                    LEFT JOIN evac_loc_table AS elt ON rt.evac_loc_id = elt.evac_loc_id
-                    GROUP BY elt.evac_loc_id, elt.name, elt.latitude, elt.longitude
-                  ";
-              $result = mysqli_query($conn, $query);
-              while ($row = mysqli_fetch_assoc($result)):
-                $name = htmlspecialchars($row['name']);
-                $roomCount = htmlspecialchars($row['room_count']);
-                $lat = htmlspecialchars($row['latitude']);
-                $lng = htmlspecialchars($row['longitude']);
-              ?>
-                <li class="list-group-item d-flex justify-content-between align-items-start evacuation-item"
-                  data-lat="<?= $lat ?>"
-                  data-lng="<?= $lng ?>">
-                  <div>
-                    <div class="fw-semibold"><?= $name ?></div>
-                    <small><?= $roomCount ?> room(s)</small>
-                  </div>
-                  <button class="btn btn-sm btn-outline-primary show-on-map">Show</button>
-                </li>
-              <?php endwhile; ?>
-            </ul>
-          </div>
-        </div>
+        <!-- Location Pin Icon -->
+        <svg
+          class="small-box-icon"
+          style="color: #00000080; width: 50px; height: 50px; position: absolute; top: 15px; right: 15px;"
+          fill="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true">
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1112 6a2.5 2.5 0 010 5.5z">
+          </path>
+        </svg>
+
+        <a
+          href="../admin_page/loc_management.php"
+          class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover bg-primary">
+          More info <i class="bi bi-link-45deg"></i>
+        </a>
+      </div>  
+        <!--end::Small Box Widget 4-->
       </div>
     </div>
     <!--end::Container-->
+    <div class="col-lg-3 col-6">
   </div>
+  <?php
+$evacCenters = [];
+$query = "SELECT name FROM evac_loc_table";
+$result = mysqli_query($conn, $query);
+if ($result && mysqli_num_rows($result) > 0) {
+    while ($row = mysqli_fetch_assoc($result)) {
+        $evacCenters[] = htmlspecialchars($row['name']);
+    }
+}
+?>
+<div class="mt-4">
+  <div class="card shadow-sm border-0">
+    <div class="card-body bg-light p-2">
+      <marquee behavior="scroll" direction="left" scrollamount="5" class="text-dark">
+        <?php
+        if (!empty($evacCenters)) {
+            echo "📍 Available Evacuation Centers: " . implode(" • ", $evacCenters);
+        } else {
+            echo "No evacuation centers available.";
+        }
+        ?>
+      </marquee>
+    </div>
+  </div>
+</div>
+<?php
+// --- Gender Breakdown ---
+$maleCount = 0;
+$femaleCount = 0;
+
+$genderQuery = "SELECT classification, COUNT(*) as count FROM evac_reg_table
+LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
+LEFT JOIN age_class_table ON pre_reg_table.pre_reg_id = age_class_table.age_class_id
+WHERE age_classification_table.age_group IS NOT NULL
+GROUP BY classification";
+$genderResult = mysqli_query($conn, $genderQuery);
+if ($genderResult) {
+    while ($row = mysqli_fetch_assoc($genderResult)) {
+        if (strtolower($row['gender']) == 'male') {
+            $maleCount = $row['count'];
+        } elseif (strtolower($row['gender']) == 'female') {
+            $femaleCount = $row['count'];
+        }
+    }
+}
+
+
+// --- Age Group Breakdown ---
+$ageGroups = [
+
+];
+
+$ageQuery = "
+SELECT act.classification, COUNT(*) as total
+FROM pre_reg_table prt
+LEFT JOIN evac_reg_table ert ON prt.pre_reg_id = ert.pre_reg_id
+LEFT JOIN age_class_table act ON prt.age_class_id = act.age_class_id
+GROUP BY act.classification
+";
+
+
+$ageResult = mysqli_query($conn, $ageQuery);
+if ($ageResult) {
+  while ($row = mysqli_fetch_assoc($ageResult)) {
+    $classification = $row['classification'];
+    $total = (int)$row['total'];
+    if (isset($ageGroups[$classification])) {
+        $ageGroups[$classification] = $total;
+    } else {
+        $ageGroups[$classification] = $total; // include any new/unexpected label
+    }
+  }
+}
+
+
+
+// --- Solo vs Family Count ---
+// Count solo evacuees with solo_address_id > 0
+$soloQuery = "SELECT COUNT(*) AS solo_count FROM pre_reg_table WHERE solo_address_id > 0";
+$soloResult = mysqli_query($conn, $soloQuery);
+$soloCount = ($soloResult) ? (int)mysqli_fetch_assoc($soloResult)['solo_count'] : 0;
+
+// Count family evacuees with family_id > 0
+$familyQuery = "SELECT COUNT(*) AS family_count FROM pre_reg_table WHERE family_id > 0";
+$familyResult = mysqli_query($conn, $familyQuery);
+$familyCount = ($familyResult) ? (int)mysqli_fetch_assoc($familyResult)['family_count'] : 0;
+
+
+?>
+
+<!-- Age Group and Evacuee Type Charts -->
+<div class="row mt-4">
+   <div class="col-lg-6">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-info text-white">Age Classification</div>
+      <div class="card-body">
+        <canvas id="ageChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-warning text-dark">Evacuee Type</div>
+      <div class="card-body text-center">
+        <div style="max-width: 300px; margin: auto;">
+          <canvas id="evacTypeChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+ const ageCtx = document.getElementById('ageChart').getContext('2d');
+new Chart(ageCtx, {
+  type: 'bar',
+  data: {
+    labels: <?php echo json_encode(array_keys($ageGroups)); ?>,
+    datasets: [{
+      label: 'No. of Evacuees',
+      data: <?php echo json_encode(array_values($ageGroups)); ?>,
+      backgroundColor: ['#3498db', '#f39c12', '#2ecc71', '#e74c3c'],
+      borderColor: '#ddd',
+      borderWidth: 1
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Evacuee Count'
+        }
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'Age Classification'
+        }
+      }
+    }
+  }
+});
+
+
+  // Solo vs Family Chart
+  const evacCtx = document.getElementById('evacTypeChart').getContext('2d');
+  new Chart(evacCtx, {
+    type: 'pie',
+    data: {
+      labels: ['Solo', 'Family'],
+      datasets: [{
+        label: 'Evacuee Type',
+        data: [<?php echo $soloCount; ?>, <?php echo $familyCount; ?>],
+        backgroundColor: ['#9b59b6', '#2ecc71']
+      }]
+    }
+  });
+</script>
+
+
+  
 
   <style>
     .room-box-container {
@@ -221,23 +359,13 @@
       flex-wrap: wrap;
       gap: 1rem;
     }
-
     .room-box {
-      background-color: #f1f5f9;
       border-radius: 10px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
       padding: 1rem;
       width: 220px;
       text-align: center;
       transition: 0.3s ease;
-    }
-
-    .room-box.available {
-      background-color: #dcfce7;
-    }
-
-    .room-box.full {
-      background-color: #fee2e2;
     }
 
     .room-name {
@@ -256,151 +384,71 @@
       font-weight: 600;
     }
   </style>
-  <!-- Leaflet CSS -->
-
 
   <style>
-    .app-content {
-      position: relative;
-      padding: 20px;
-    }
+.small-box {
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border: 1px solid #e5e7eb;
+  padding: 20px 24px;
+  color: #2f2f2f;
+  position: relative;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  border-radius: 12px; /* ✅ Rounded corners */
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15); /* ✅ black shadow */
+}
 
-    #evacMapContainer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 500px;
-      margin: 0 auto;
-      z-index: 1;
-      border: 3px solid #ccc;
-      border-radius: 15px;
-      overflow: hidden;
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-    }
+.small-box:hover {
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+.small-box .inner h3 {
+  font-size: 32px;
+  font-weight: 800;
+  color: #1f1f1f;
+  margin: 0 0 6px 0;
+  line-height: 1.2;
+}
 
-    #evacMap {
-      width: 100%;
-      height: 100%;
-    }
+.small-box .inner p {
+  font-size: 15px;
+  color: #6b7280;
+  margin: 0;
+  font-weight: 500;
+}
 
-    .small-box {
-      background-color: #fff;
-      border-radius: 10px;
-      padding: 15px;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-      position: relative;
-      z-index: 2;
-    }
+.small-box-icon {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 56px;
+  height: 56px;
+  color: rgba(0, 0, 0, 0.08);
+  opacity: 1;
+}
 
-    /* small boxes */
-    .small-box {
-      padding: 10px 12px;
-      min-height: auto;
-      border-radius: 8px;
-      font-size: 13px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      background-color: #ffffff !important;
-      /* white background */
-      color: #333;
-      position: relative;
-    }
+.small-box-footer {
+  display: inline-block;
+  margin-top: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0d6efd;
+  text-decoration: none;
+  position: relative;
+  padding-right: 18px;
+}
 
-    .small-box .inner h3 {
-      font-size: 20px;
-      margin: 0 0 4px 0;
-      font-weight: 600;
-    }
+.small-box-footer::after {
+  content: '→';
+  position: absolute;
+  right: 0;
+  top: 0;
+  transition: transform 0.2s;
+}
 
-    .small-box .inner p {
-      font-size: 13px;
-      margin: 0;
-      color: #666;
-    }
+.small-box-footer:hover::after {
+  transform: translateX(4px);
+}
 
-    .small-box-icon {
-      position: absolute;
-      top: 10px;
-      right: 12px;
-      width: 22px;
-      height: 22px;
-      opacity: 0.15;
-    }
-
-    .small-box-footer {
-      font-size: 12px;
-      margin-top: 6px;
-      display: inline-block;
-    }
   </style>
-
-
-  <!-- SEARCH THE LOCATION -->
-  <script>
-    $(document).ready(function() {
-      $('#evacSearch').on('keyup', function() {
-        const searchTerm = $(this).val().toLowerCase().trim();
-
-        $('#evacuationList .evacuation-item').each(function() {
-          const text = $(this).text().toLowerCase();
-
-          if (text.includes(searchTerm)) {
-            $(this).stop(true, true).fadeIn(150);
-          } else {
-            $(this).stop(true, true).fadeOut(150);
-          }
-        });
-      });
-
-      // Show on map button
-      $('#evacuationList').on('click', '.show-on-map', function() {
-        const item = $(this).closest('.evacuation-item');
-        const lat = parseFloat(item.data('lat'));
-        const lng = parseFloat(item.data('lng'));
-        const label = item.find('.fw-semibold').text();
-
-        if (window.evacMap && lat && lng) {
-          evacMap.setView([lat, lng], 17);
-          L.popup()
-            .setLatLng([lat, lng])
-            .setContent(label)
-            .openOn(evacMap);
-        }
-      });
-    });
-  </script>
-
-
-
-  <!-- Leaflet JS -->
-
-
-  <script>
-    const map = L.map('evacMap').setView([10.485, 122.83], 13); // Change coords to your area
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    // Example: Static evacuation locations (replace with dynamic PHP data if needed)
-    const evacLocations = [{
-        name: "Evac Center 1",
-        lat: 10.486,
-        lng: 122.831
-      },
-      {
-        name: "Evac Center 2",
-        lat: 10.489,
-        lng: 122.829
-      },
-      {
-        name: "Evac Center 3",
-        lat: 10.483,
-        lng: 122.827
-      }
-    ];
-
-    evacLocations.forEach(loc => {
-      L.marker([loc.lat, loc.lng]).addTo(map).bindPopup(loc.name);
-    });
-  </script>
