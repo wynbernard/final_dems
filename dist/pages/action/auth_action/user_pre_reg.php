@@ -53,21 +53,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	// 	header("Location: ../auth/user_registration.php");
 	// 	exit();
 	// }
+			$profilePicPath = ""; // Default to empty if no image uploaded
 
-	if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === UPLOAD_ERR_OK) {
-		$uploadDir = '../../profile_images/'; // Make sure this folder exists and is writable
-		if (!is_dir($uploadDir)) {
-			mkdir($uploadDir, 0777, true);
-		}
-		$fileTmpPath = $_FILES['profile_pic']['tmp_name'];
-		$fileName = uniqid('profile_', true) . '.' . pathinfo($_FILES['profile_pic']['name'], PATHINFO_EXTENSION);
-		$destPath = $uploadDir . $fileName;
+			if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === UPLOAD_ERR_OK) {
+				$uploadDir = '../../profile_images/'; // Make sure this folder exists and is writable
+				if (!is_dir($uploadDir)) {
+					mkdir($uploadDir, 0777, true);
+				}
 
-		if (move_uploaded_file($fileTmpPath, $destPath)) {
-			// Save relative path for database
-			$profilePicPath = '../profile_images/' . $fileName;
-		}
-	}
+				$fileTmpPath = $_FILES['profile_pic']['tmp_name'];
+				$extension = strtolower(pathinfo($_FILES['profile_pic']['name'], PATHINFO_EXTENSION));
+				$allowedTypes = ['jpg', 'jpeg', 'png', 'gif']; // Allow only image types
+
+				if (in_array($extension, $allowedTypes)) {
+					$fileName = uniqid('profile_', true) . '.' . $extension;
+					$destPath = $uploadDir . $fileName;
+
+					if (move_uploaded_file($fileTmpPath, $destPath)) {
+						// Save relative path for database
+						$profilePicPath = '../profile_images/' . $fileName;
+					} else {
+						$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Failed to move uploaded profile picture.";
+						header("Location: ../../auth/log_in.php");
+						exit;
+					}
+				} else {
+					$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Invalid profile picture type. Allowed: JPG, PNG, GIF.";
+					header("Location: ../../auth/log_in.php");
+					exit;
+				}
+			}
+
 
 	if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 		$_SESSION['error'] = "Invalid Email Format!";
@@ -216,69 +232,64 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		echo "No file uploaded or upload error.";
 	}
 
-	$targetDir = "../../signature_image/";
-	if (!file_exists($targetDir)) {
-		mkdir($targetDir, 0755, true);
-	}
 
-	$signaturePath = "";
+$targetDir = "../../signature_image/";
 
-	// Function to set white background for PNG images
-	function setWhiteBackgroundForPng($filepath)
-	{
-		// Check if the file is a PNG
-		if (exif_imagetype($filepath) !== IMAGETYPE_PNG) {
-			return;
-		}
+// Create the directory if it doesn't exist
+if (!file_exists($targetDir)) {
+	mkdir($targetDir, 0755, true);
+}
 
-		$image = imagecreatefrompng($filepath);
-		$width = imagesx($image);
-		$height = imagesy($image);
+$signaturePath = "";
 
-		// Create a white background image
-		$white_bg = imagecreatetruecolor($width, $height);
-		$white = imagecolorallocate($white_bg, 255, 255, 255);
-		imagefill($white_bg, 0, 0, $white);
+// Helper function: Set white background for PNGs
+function setWhiteBackgroundForPng($filepath)
+{
+	if (exif_imagetype($filepath) !== IMAGETYPE_PNG) return;
 
-		// Copy the original image onto the white background
-		imagecopy($white_bg, $image, 0, 0, 0, 0, $width, $height);
+	$image = imagecreatefrompng($filepath);
+	$width = imagesx($image);
+	$height = imagesy($image);
 
-		// Save the result
-		imagepng($white_bg, $filepath);
+	$white_bg = imagecreatetruecolor($width, $height);
+	$white = imagecolorallocate($white_bg, 255, 255, 255);
+	imagefill($white_bg, 0, 0, $white);
+	imagecopy($white_bg, $image, 0, 0, 0, 0, $width, $height);
 
-		// Free memory
-		imagedestroy($image);
-		imagedestroy($white_bg);
-	}
+	imagepng($white_bg, $filepath);
 
-	if ($_POST['signature_option'] === 'draw' && !empty($_POST['signature_data'])) {
-		// Save drawn signature
-		$data = $_POST['signature_data'];
-		if (strpos($data, 'data:image/png;base64,') === 0) {
-			$data = str_replace('data:image/png;base64,', '', $data);
-			$data = str_replace(' ', '+', $data);
-			$image = base64_decode($data);
-			$filename = 'signature_draw_' . time() . '.png';
-			$filepath = $targetDir . $filename;
-			file_put_contents($filepath, $image);
+	imagedestroy($image);
+	imagedestroy($white_bg);
+}
 
-			// Process to set white background
-			setWhiteBackgroundForPng($filepath);
+// Check and process uploaded signature
+if (isset($_FILES['signature_file']) && $_FILES['signature_file']['error'] === UPLOAD_ERR_OK) {
+	$uploadName = basename($_FILES["signature_file"]["name"]);
+	$extension = strtolower(pathinfo($uploadName, PATHINFO_EXTENSION));
+	$filename = 'signature_upload_' . time() . '.' . $extension;
+	$filepath = $targetDir . $filename;
 
-			$signaturePath = $filepath;
-		}
-	} elseif ($_POST['signature_option'] === 'upload' && isset($_FILES['signature_file'])) {
-		// Save uploaded signature
-		$uploadName = basename($_FILES["signature_file"]["name"]);
-		$filename = 'signature_upload_' . time() . '_' . $uploadName;
-		$filepath = $targetDir . $filename;
+	$allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+	$fileType = mime_content_type($_FILES["signature_file"]["tmp_name"]);
 
+	if (in_array($fileType, $allowedTypes)) {
 		if (move_uploaded_file($_FILES["signature_file"]["tmp_name"], $filepath)) {
-			// Process only if it's a PNG
-			setWhiteBackgroundForPng($filepath);
+			if ($extension === 'png') {
+				setWhiteBackgroundForPng($filepath);
+			}
 			$signaturePath = $filepath;
+			echo "✅ Signature uploaded successfully!";
+			// You can now save $signaturePath to your database
+		} else {
+			echo "❌ Failed to move the uploaded signature.";
 		}
+	} else {
+		echo "❌ Invalid file type. Only JPG, PNG, and GIF are allowed.";
 	}
+} else {
+	echo "❌ No file uploaded or an error occurred.";
+}
+
 
 
 
@@ -290,9 +301,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	if ($stmt->execute()) {
 		$pre_reg_id = $stmt->insert_id;
 		$stmt->close();
-
-
-
 		// QR Code generation
 		$qr_data = "Pre_reg_id: $pre_reg_id\nName: $f_name $l_name\nEmail: $email\nPhone: $contact_no\nGender: $gender\nDOB: $dobFormatted\nAge: $age";
 		// Set directory and filename
@@ -325,8 +333,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		$_SESSION['success'] = "<span style='color: green;'><i class='bi bi-check-circle-fill'></i></span> Registered Successfull!!!";
 		header("Location: ../../auth/log_in.php");
 	} else {
-		$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Something went wrong!";
-		header("Location: ../../auth/user_registration.php");
+		if (!$stmt->execute()) {
+    $_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Database error: " . $stmt->error;
+    header("Location: ../../auth/log_in.php");
+    exit;
+		};
 	}
 	$conn->close();
 } else {

@@ -58,6 +58,7 @@
 							<div class="mb-3">
 								<label class="form-label">Last Name <span class="text-danger">*</span></label>
 								<input type="text" name="l_name" id="l_name" class="form-control" placeholder="Enter Last Name" required>
+								<small id="nameFeedback"></small>
 							</div>
 						</div>
 						<div class="col-md-3">
@@ -73,12 +74,84 @@
 								</select>
 							</div>
 						</div>
-					</div>
+						<script>
+							document.addEventListener("DOMContentLoaded", function () {
+							const fName = document.getElementById("f_name");
+							const mName = document.getElementById("m_name");
+							const lName = document.getElementById("l_name");
+							const nameExt = document.getElementById("name_extension"); // matches your <select>
+							const feedback = document.getElementById("nameFeedback");
 
+							// Add input/change listeners
+							[fName, mName, lName, nameExt].forEach(field => {
+								field.addEventListener("input", validateName);
+								field.addEventListener("change", validateName); // For <select>
+							});
+
+							function validateName() {
+								const first = fName.value.trim();
+								const middle = mName.value.trim();
+								const last = lName.value.trim();
+								const extension = nameExt.value || ""; // Handles "" if not selected
+
+								if (!first || !middle || !last) {
+								feedback.innerHTML = "";
+								feedback.className = "";
+								[fName, mName, lName, nameExt].forEach(f => f.classList.remove("is-valid", "is-invalid"));
+								return;
+								}
+
+								checkNameAvailability(first, middle, last, extension);
+							}
+
+							function checkNameAvailability(first, middle, last, extension) {
+								fetch("../check_validation/name_validation.php", {
+								method: "POST",
+								headers: {
+									"Content-Type": "application/x-www-form-urlencoded",
+								},
+								body:
+									"f_name=" + encodeURIComponent(first) +
+									"&m_name=" + encodeURIComponent(middle) +
+									"&l_name=" + encodeURIComponent(last) +
+									"&name_ext=" + encodeURIComponent(extension),
+								})
+								.then((response) => response.text())
+								.then((data) => {
+								const result = data.trim();
+
+								if (result === "taken") {
+									feedback.innerHTML = "Full name already registered.";
+									feedback.className = "text-danger";
+									[fName, mName, lName, nameExt].forEach(field => {
+									field.classList.add("is-invalid");
+									field.classList.remove("is-valid");
+									});
+								} else if (result === "available") {
+									feedback.innerHTML = "Name is unique.";
+									feedback.className = "text-success";
+									[fName, mName, lName, nameExt].forEach(field => {
+									field.classList.add("is-valid");
+									field.classList.remove("is-invalid");
+									});
+								} else {
+									feedback.innerHTML = "Error checking name.";
+									feedback.className = "text-warning";
+								}
+								})
+								.catch((error) => {
+								console.error("Error:", error);
+								feedback.innerHTML = "Server error.";
+								feedback.className = "text-warning";
+								});
+							}
+							});
+						</script>
+					</div>
 					<div class="row">
 						<div class="col-md-4">
 							<div class="mb-3">
-								<label class="form-label">Contact No. <span class="text-danger">*</span></label>
+								<label class="form-label">Contact No.<span class="text-danger">*</span></label>
 								<input type="number" name="contact_no" id="contact_no" class="form-control" placeholder="Enter Contact No." required pattern="[0-9]{10,15}">
 								<small id="contactError" class="text-danger"></small>
 							</div>
@@ -157,12 +230,12 @@
 									</div>
 								</div> -->
 								<!-- Upload Signature File -->
-								<div id="signature-upload" class="mt-0">
+								<div class="mt-0">
 									<input type="file" name="signature_file" id="signature_file" class="form-control" accept="image/*" required>
 								</div>
 							</div>
 						</div>
-
+							
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">Date of Birth <span class="text-danger">*</span></label>
@@ -314,7 +387,6 @@
 								</div>
 							</div>
 						</div>
-
 						<!-- <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script> -->
 						<!-- SweetAlert2 CSS -->
 						<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
@@ -323,22 +395,23 @@
 
 						<script src="tesseract.js"></script>
 						<script>
-							document.getElementById('ic_image').addEventListener('change', function() {
+						document.getElementById('ic_image').addEventListener('change', function () {
 								const file = this.files[0];
 								const fname = document.getElementById('f_name').value.trim().toLowerCase();
+								const mname = document.getElementById('m_name').value.trim().toLowerCase();
 								const lname = document.getElementById('l_name').value.trim().toLowerCase();
+								const ext = document.getElementById('name_extension').value.trim().toLowerCase(); // optional
 
-								if (!file || !fname || !lname) {
+								if (!file || !fname || !mname || !lname) {
 									Swal.fire({
 										icon: 'warning',
 										title: 'Missing Input',
-										text: 'Please enter both first and last name before uploading the ID.'
+										text: 'Please fill out first, middle, and last name before uploading the ID.'
 									});
 									this.value = "";
 									return;
 								}
 
-								// Show loading modal
 								Swal.fire({
 									title: 'Scanning ID...',
 									html: 'Please wait while we extract text from the image.<br><b>This may take a few seconds.</b>',
@@ -356,16 +429,18 @@
 											});
 										}
 									}
-								}).then(({
-									data: {
-										text
-									}
-								}) => {
-									const lowerText = text.toLowerCase();
-									const fnameMatch = lowerText.includes(fname);
-									const lnameMatch = lowerText.includes(lname);
+								}).then(({ data: { text } }) => {
+									const normalize = str =>
+										str.toLowerCase().replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ').trim();
 
-									if (fnameMatch && lnameMatch) {
+									const cleanText = normalize(text);
+
+									const fnameMatch = cleanText.includes(normalize(fname));
+									const mnameMatch = cleanText.includes(normalize(mname));
+									const lnameMatch = cleanText.includes(normalize(lname));
+									const extMatch = ext ? cleanText.includes(normalize(ext)) : true;
+
+									if (fnameMatch && mnameMatch && lnameMatch && extMatch) {
 										Swal.fire({
 											icon: 'success',
 											title: 'Match Found',
@@ -373,10 +448,16 @@
 											confirmButtonColor: '#198754'
 										});
 									} else {
+										let unmatched = [];
+										if (!fnameMatch) unmatched.push("First Name");
+										if (!mnameMatch) unmatched.push("Middle Name");
+										if (!lnameMatch) unmatched.push("Last Name");
+										if (!extMatch) unmatched.push("Extension");
+
 										Swal.fire({
 											icon: 'error',
 											title: 'Name Mismatch',
-											text: '❌ Name on the ID does not match the input.',
+											text: `❌ ${unmatched.join(", ")} not found on the ID.`,
 											confirmButtonColor: '#dc3545'
 										});
 										document.getElementById('ic_image').value = "";
@@ -392,8 +473,6 @@
 								});
 							});
 						</script>
-
-
 						<div class="col-md-2">
 							<div class="mb-3">
 								<label class="form-label">Others</label>
@@ -461,9 +540,6 @@
 								}
 							});
 						</script>
-
-
-
 					</div>
 					<div class="row">
 						<!-- Personal Information -->

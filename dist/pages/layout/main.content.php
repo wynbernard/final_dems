@@ -28,9 +28,6 @@
 
 <div class="app-content position-relative">
   <!--begin::Container-->
-  <div id="evacMapContainer">
-    <div id="evacMap"></div>
-  </div>
   <div class="container-fluid position-relative" style="z-index: 2;">
     <!--begin::Row-->
     <div class="row">
@@ -102,7 +99,7 @@
           </svg>
 
           <a
-            href="#"
+            href="../admin_page/pre_reg.php"
             class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover bg-primary">
             More info <i class="bi bi-link-45deg"></i>
           </a>
@@ -134,7 +131,7 @@
               d="M6.25 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM3.25 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM19.75 7.5a.75.75 0 00-1.5 0v2.25H16a.75.75 0 000 1.5h2.25v2.25a.75.75 0 001.5 0v-2.25H22a.75.75 0 000-1.5h-2.25V7.5z"></path>
           </svg>
           <a
-            href="#"
+            href="../admin_page/idps_user.php"
             class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover bg-primary">
             More info <i class="bi bi-link-45deg"></i>
           </a>
@@ -172,7 +169,7 @@
         </svg>
 
         <a
-          href="#"
+          href="../admin_page/loc_management.php"
           class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover bg-primary">
           More info <i class="bi bi-link-45deg"></i>
         </a>
@@ -183,6 +180,177 @@
     <!--end::Container-->
     <div class="col-lg-3 col-6">
   </div>
+  <?php
+$evacCenters = [];
+$query = "SELECT name FROM evac_loc_table";
+$result = mysqli_query($conn, $query);
+if ($result && mysqli_num_rows($result) > 0) {
+    while ($row = mysqli_fetch_assoc($result)) {
+        $evacCenters[] = htmlspecialchars($row['name']);
+    }
+}
+?>
+<div class="mt-4">
+  <div class="card shadow-sm border-0">
+    <div class="card-body bg-light p-2">
+      <marquee behavior="scroll" direction="left" scrollamount="5" class="text-dark">
+        <?php
+        if (!empty($evacCenters)) {
+            echo "📍 Available Evacuation Centers: " . implode(" • ", $evacCenters);
+        } else {
+            echo "No evacuation centers available.";
+        }
+        ?>
+      </marquee>
+    </div>
+  </div>
+</div>
+<?php
+// --- Gender Breakdown ---
+$maleCount = 0;
+$femaleCount = 0;
+
+$genderQuery = "SELECT classification, COUNT(*) as count FROM evac_reg_table
+LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
+LEFT JOIN age_class_table ON pre_reg_table.pre_reg_id = age_class_table.age_class_id
+WHERE age_classification_table.age_group IS NOT NULL
+GROUP BY classification";
+$genderResult = mysqli_query($conn, $genderQuery);
+if ($genderResult) {
+    while ($row = mysqli_fetch_assoc($genderResult)) {
+        if (strtolower($row['gender']) == 'male') {
+            $maleCount = $row['count'];
+        } elseif (strtolower($row['gender']) == 'female') {
+            $femaleCount = $row['count'];
+        }
+    }
+}
+
+
+// --- Age Group Breakdown ---
+$ageGroups = [
+
+];
+
+$ageQuery = "
+SELECT act.classification, COUNT(*) as total
+FROM pre_reg_table prt
+LEFT JOIN evac_reg_table ert ON prt.pre_reg_id = ert.pre_reg_id
+LEFT JOIN age_class_table act ON prt.age_class_id = act.age_class_id
+GROUP BY act.classification
+";
+
+
+$ageResult = mysqli_query($conn, $ageQuery);
+if ($ageResult) {
+  while ($row = mysqli_fetch_assoc($ageResult)) {
+    $classification = $row['classification'];
+    $total = (int)$row['total'];
+    if (isset($ageGroups[$classification])) {
+        $ageGroups[$classification] = $total;
+    } else {
+        $ageGroups[$classification] = $total; // include any new/unexpected label
+    }
+  }
+}
+
+
+
+// --- Solo vs Family Count ---
+// Count solo evacuees with solo_address_id > 0
+$soloQuery = "SELECT COUNT(*) AS solo_count FROM pre_reg_table WHERE solo_address_id > 0";
+$soloResult = mysqli_query($conn, $soloQuery);
+$soloCount = ($soloResult) ? (int)mysqli_fetch_assoc($soloResult)['solo_count'] : 0;
+
+// Count family evacuees with family_id > 0
+$familyQuery = "SELECT COUNT(*) AS family_count FROM pre_reg_table WHERE family_id > 0";
+$familyResult = mysqli_query($conn, $familyQuery);
+$familyCount = ($familyResult) ? (int)mysqli_fetch_assoc($familyResult)['family_count'] : 0;
+
+
+?>
+
+<!-- Age Group and Evacuee Type Charts -->
+<div class="row mt-4">
+   <div class="col-lg-6">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-info text-white">Age Classification</div>
+      <div class="card-body">
+        <canvas id="ageChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-warning text-dark">Evacuee Type</div>
+      <div class="card-body text-center">
+        <div style="max-width: 300px; margin: auto;">
+          <canvas id="evacTypeChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+ const ageCtx = document.getElementById('ageChart').getContext('2d');
+new Chart(ageCtx, {
+  type: 'bar',
+  data: {
+    labels: <?php echo json_encode(array_keys($ageGroups)); ?>,
+    datasets: [{
+      label: 'No. of Evacuees',
+      data: <?php echo json_encode(array_values($ageGroups)); ?>,
+      backgroundColor: ['#3498db', '#f39c12', '#2ecc71', '#e74c3c'],
+      borderColor: '#ddd',
+      borderWidth: 1
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Evacuee Count'
+        }
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'Age Classification'
+        }
+      }
+    }
+  }
+});
+
+
+  // Solo vs Family Chart
+  const evacCtx = document.getElementById('evacTypeChart').getContext('2d');
+  new Chart(evacCtx, {
+    type: 'pie',
+    data: {
+      labels: ['Solo', 'Family'],
+      datasets: [{
+        label: 'Evacuee Type',
+        data: [<?php echo $soloCount; ?>, <?php echo $familyCount; ?>],
+        backgroundColor: ['#9b59b6', '#2ecc71']
+      }]
+    }
+  });
+</script>
+
+
   
 
   <style>
@@ -284,75 +452,3 @@
 }
 
   </style>
-
-
-  <!-- SEARCH THE LOCATION -->
-  <script>
-    $(document).ready(function() {
-      $('#evacSearch').on('keyup', function() {
-        const searchTerm = $(this).val().toLowerCase().trim();
-
-        $('#evacuationList .evacuation-item').each(function() {
-          const text = $(this).text().toLowerCase();
-
-          if (text.includes(searchTerm)) {
-            $(this).stop(true, true).fadeIn(150);
-          } else {
-            $(this).stop(true, true).fadeOut(150);
-          }
-        });
-      });
-
-      // Show on map button
-      $('#evacuationList').on('click', '.show-on-map', function() {
-        const item = $(this).closest('.evacuation-item');
-        const lat = parseFloat(item.data('lat'));
-        const lng = parseFloat(item.data('lng'));
-        const label = item.find('.fw-semibold').text();
-
-        if (window.evacMap && lat && lng) {
-          evacMap.setView([lat, lng], 13);
-          L.popup()
-            .setLatLng([lat, lng])
-            .setContent(label)
-            .openOn(evacMap);
-        }
-      });
-    });
-  </script>
-
-  <!-- Leaflet JS -->
-
-<script>
-  // Initialize the map centered to a default location
-  const map = L.map('evacMap').setView([10.3157, 123.8854], 17); // default center (Cebu City)
-  
-  // Load OpenStreetMap tiles
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
-
-  // Marker reference
-  let marker;
-
-  // Event listener for "Show" buttons
-  document.querySelectorAll('.show-on-map').forEach(btn => {
-    btn.addEventListener('click', function () {
-      const item = this.closest('.evacuation-item');
-      const lat = parseFloat(item.dataset.lat);
-      const lng = parseFloat(item.dataset.lng);
-
-      // Move map view
-      map.setView([lat, lng], 17);
-
-      // Add or move marker
-      if (marker) {
-        marker.setLatLng([lat, lng]);
-      } else {
-        marker = L.marker([lat, lng]).addTo(map);
-      }
-
-      marker.bindPopup(item.querySelector('.fw-semibold').textContent).openPopup();
-    });
-  });
-</script>

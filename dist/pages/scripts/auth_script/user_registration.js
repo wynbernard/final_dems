@@ -136,23 +136,32 @@ function toggleEthnicity() {
 		ethnicityField.style.display = checkbox.checked ? 'block' : 'none';
 	}
 
-// PHONE NUMBER VALIDATION
-document.getElementById('contact_no').addEventListener('input', function() {
-		let contactInput = this.value;
-		let errorMessage = document.getElementById('contactError');
-		let regex = /^[0-9]{10,15}$/;
+	
+// CONTACT NUMBER VALIDATION
+document.getElementById('contact_no').addEventListener('input', function () {
+	let contactInput = this.value.replace(/\D/g, ''); // Remove non-digits
+	if (contactInput.length > 11) {
+		contactInput = contactInput.slice(0, 11); // Trim to 11 digits only
+	}
+	this.value = contactInput;
 
-		if (!regex.test(contactInput)) {
-			errorMessage.textContent = "Contact number must be 10-15 digits.";
-			this.classList.add('is-invalid');
-		} else {
-			errorMessage.textContent = "";
-			this.classList.remove('is-invalid');
-		}
-	});
+	let errorMessage = document.getElementById('contactError');
+	let regex = /^[0-9]{11}$/;
 
-	// MONTHLY INCOME VALIDATION
+	if (!regex.test(contactInput)) {
+		errorMessage.textContent = "Contact number must be exactly 11 digits.";
+		this.classList.add('is-invalid');
+		this.classList.remove('is-valid');
+	} else {
+		errorMessage.textContent = "";
+		this.classList.remove('is-invalid');
+		this.classList.add('is-valid');
+	}
+});
 
+
+
+// MONTHLY INCOME VALIDATION
 function formatWithCommas() {
 	const display = document.getElementById("monthly_income_display");
 	const hidden = document.getElementById("monthly_income");
@@ -306,3 +315,4 @@ function formatPhilHealth(input) {
 		return out;
 	});
 }
+
