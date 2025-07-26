@@ -4,6 +4,7 @@ ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 require '../../../vendor/autoload.php';
+
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -31,7 +32,7 @@ if ($result->num_rows === 0) {
 
 // ✅ Generate token and expiry
 $token = bin2hex(random_bytes(32));
-$expiry = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+$expiry = date('Y-m-d H:i:s', strtotime('+10 minutes'));
 
 // ✅ Save to file cache
 $cacheDir = __DIR__ . '/cache';

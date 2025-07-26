@@ -141,314 +141,364 @@
       <!--end::Col-->
       <div class="col-lg-3 col-6">
         <!--begin::Small Box Widget 4-->
-       <div class="small-box text-bg-danger">
-        <div class="inner">
-          <?php
-          $query = "SELECT COUNT(*) AS total_locations FROM evac_loc_table";
-          $result = mysqli_query($conn, $query);
-          $row = mysqli_fetch_assoc($result);
-          $total_locations = $row['total_locations'];
-          ?>
-          <h3 class="text-dark mb-1"><?php echo htmlspecialchars($total_locations); ?></h3>
-          <p>Evacuation Locations</p>
+        <div class="small-box text-bg-danger">
+          <div class="inner">
+            <?php
+            $query = "SELECT COUNT(*) AS total_locations FROM evac_loc_table";
+            $result = mysqli_query($conn, $query);
+            $row = mysqli_fetch_assoc($result);
+            $total_locations = $row['total_locations'];
+            ?>
+            <h3 class="text-dark mb-1"><?php echo htmlspecialchars($total_locations); ?></h3>
+            <p>Evacuation Locations</p>
+          </div>
+
+          <!-- Location Pin Icon -->
+          <svg
+            class="small-box-icon"
+            style="color: #00000080; width: 50px; height: 50px; position: absolute; top: 15px; right: 15px;"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true">
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1112 6a2.5 2.5 0 010 5.5z">
+            </path>
+          </svg>
+
+          <a
+            href="../admin_page/loc_management.php"
+            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover bg-primary">
+            More info <i class="bi bi-link-45deg"></i>
+          </a>
         </div>
-
-        <!-- Location Pin Icon -->
-        <svg
-          class="small-box-icon"
-          style="color: #00000080; width: 50px; height: 50px; position: absolute; top: 15px; right: 15px;"
-          fill="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true">
-          <path
-            fill-rule="evenodd"
-            clip-rule="evenodd"
-            d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1112 6a2.5 2.5 0 010 5.5z">
-          </path>
-        </svg>
-
-        <a
-          href="../admin_page/loc_management.php"
-          class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover bg-primary">
-          More info <i class="bi bi-link-45deg"></i>
-        </a>
-      </div>  
         <!--end::Small Box Widget 4-->
       </div>
     </div>
     <!--end::Container-->
     <div class="col-lg-3 col-6">
-  </div>
-  <?php
-$evacCenters = [];
-$query = "SELECT name FROM evac_loc_table";
-$result = mysqli_query($conn, $query);
-if ($result && mysqli_num_rows($result) > 0) {
-    while ($row = mysqli_fetch_assoc($result)) {
+    </div>
+    <?php
+    $evacCenters = [];
+    $query = "SELECT name FROM evac_loc_table";
+    $result = mysqli_query($conn, $query);
+    if ($result && mysqli_num_rows($result) > 0) {
+      while ($row = mysqli_fetch_assoc($result)) {
         $evacCenters[] = htmlspecialchars($row['name']);
+      }
     }
-}
-?>
-<div class="mt-4">
-  <div class="card shadow-sm border-0">
-    <div class="card-body bg-light p-2">
-      <marquee behavior="scroll" direction="left" scrollamount="5" class="text-dark">
-        <?php
-        if (!empty($evacCenters)) {
-            echo "📍 Available Evacuation Centers: " . implode(" • ", $evacCenters);
-        } else {
-            echo "No evacuation centers available.";
-        }
-        ?>
-      </marquee>
-    </div>
-  </div>
-</div>
-<?php
-// --- Gender Breakdown ---
-$maleCount = 0;
-$femaleCount = 0;
-
-$genderQuery = "SELECT classification, COUNT(*) as count FROM evac_reg_table
-LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
-LEFT JOIN age_class_table ON pre_reg_table.pre_reg_id = age_class_table.age_class_id
-WHERE age_classification_table.age_group IS NOT NULL
-GROUP BY classification";
-$genderResult = mysqli_query($conn, $genderQuery);
-if ($genderResult) {
-    while ($row = mysqli_fetch_assoc($genderResult)) {
-        if (strtolower($row['gender']) == 'male') {
-            $maleCount = $row['count'];
-        } elseif (strtolower($row['gender']) == 'female') {
-            $femaleCount = $row['count'];
-        }
-    }
-}
-
-
-// --- Age Group Breakdown ---
-$ageGroups = [
-
-];
-
-$ageQuery = "
-SELECT act.classification, COUNT(*) as total
-FROM pre_reg_table prt
-LEFT JOIN evac_reg_table ert ON prt.pre_reg_id = ert.pre_reg_id
-LEFT JOIN age_class_table act ON prt.age_class_id = act.age_class_id
-GROUP BY act.classification
-";
-
-
-$ageResult = mysqli_query($conn, $ageQuery);
-if ($ageResult) {
-  while ($row = mysqli_fetch_assoc($ageResult)) {
-    $classification = $row['classification'];
-    $total = (int)$row['total'];
-    if (isset($ageGroups[$classification])) {
-        $ageGroups[$classification] = $total;
-    } else {
-        $ageGroups[$classification] = $total; // include any new/unexpected label
-    }
-  }
-}
-
-
-
-// --- Solo vs Family Count ---
-// Count solo evacuees with solo_address_id > 0
-$soloQuery = "SELECT COUNT(*) AS solo_count FROM pre_reg_table WHERE solo_address_id > 0";
-$soloResult = mysqli_query($conn, $soloQuery);
-$soloCount = ($soloResult) ? (int)mysqli_fetch_assoc($soloResult)['solo_count'] : 0;
-
-// Count family evacuees with family_id > 0
-$familyQuery = "SELECT COUNT(*) AS family_count FROM pre_reg_table WHERE family_id > 0";
-$familyResult = mysqli_query($conn, $familyQuery);
-$familyCount = ($familyResult) ? (int)mysqli_fetch_assoc($familyResult)['family_count'] : 0;
-
-
-?>
-
-<!-- Age Group and Evacuee Type Charts -->
-<div class="row mt-4">
-   <div class="col-lg-6">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-info text-white">Age Classification</div>
-      <div class="card-body">
-        <canvas id="ageChart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-lg-6">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-warning text-dark">Evacuee Type</div>
-      <div class="card-body text-center">
-        <div style="max-width: 300px; margin: auto;">
-          <canvas id="evacTypeChart"></canvas>
+    ?>
+    <div class="mt-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-body bg-light p-2">
+          <marquee behavior="scroll" direction="left" scrollamount="5" class="text-dark">
+            <?php
+            if (!empty($evacCenters)) {
+              echo "📍 Available Evacuation Centers: " . implode(" • ", $evacCenters);
+            } else {
+              echo "No evacuation centers available.";
+            }
+            ?>
+          </marquee>
         </div>
       </div>
     </div>
-  </div>
-</div>
+    <?php
+    // --- Gender Breakdown ---
+    $maleCount = 0;
+    $femaleCount = 0;
 
-
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
- const ageCtx = document.getElementById('ageChart').getContext('2d');
-new Chart(ageCtx, {
-  type: 'bar',
-  data: {
-    labels: <?php echo json_encode(array_keys($ageGroups)); ?>,
-    datasets: [{
-      label: 'No. of Evacuees',
-      data: <?php echo json_encode(array_values($ageGroups)); ?>,
-      backgroundColor: ['#3498db', '#f39c12', '#2ecc71', '#e74c3c'],
-      borderColor: '#ddd',
-      borderWidth: 1
-    }]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: 'Evacuee Count'
-        }
-      },
-      x: {
-        title: {
-          display: true,
-          text: 'Age Classification'
+    $genderQuery = "SELECT classification, COUNT(*) as count FROM evac_reg_table
+LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
+LEFT JOIN age_class_table ON pre_reg_table.pre_reg_id = age_class_table.age_class_id
+WHERE age_class_table.classification IS NOT NULL
+GROUP BY classification";
+    $genderResult = mysqli_query($conn, $genderQuery);
+    if ($genderResult) {
+      while ($row = mysqli_fetch_assoc($genderResult)) {
+        if (strtolower($row['gender']) == 'male') {
+          $maleCount = $row['count'];
+        } elseif (strtolower($row['gender']) == 'female') {
+          $femaleCount = $row['count'];
         }
       }
     }
-  }
-});
+    $selectedSource = $_GET['source'] ?? 'pre';
 
-
-  // Solo vs Family Chart
-  const evacCtx = document.getElementById('evacTypeChart').getContext('2d');
-  new Chart(evacCtx, {
-    type: 'pie',
-    data: {
-      labels: ['Solo', 'Family'],
-      datasets: [{
-        label: 'Evacuee Type',
-        data: [<?php echo $soloCount; ?>, <?php echo $familyCount; ?>],
-        backgroundColor: ['#9b59b6', '#2ecc71']
-      }]
-    }
-  });
-</script>
-
-
-  
-
-  <style>
-    .room-box-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-    .room-box {
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      padding: 1rem;
-      width: 220px;
-      text-align: center;
-      transition: 0.3s ease;
+    // Prepare static age classification labels
+    $ageGroups = [];
+    $staticAgeLabels = ['Infant', 'Child', 'Teen', 'Adult', 'Senior'];
+    foreach ($staticAgeLabels as $label) {
+      $ageGroups[$label] = 0;
     }
 
-    .room-name {
-      font-weight: bold;
-      font-size: 1.1rem;
-      margin-bottom: 0.5rem;
+    // Query based on selected source
+    if ($selectedSource === 'evac') {
+      $ageQuery = "
+    SELECT act.classification, COUNT(*) as total
+    FROM evac_reg_table ert
+    LEFT JOIN pre_reg_table prt ON ert.pre_reg_id = prt.pre_reg_id
+    LEFT JOIN age_class_table act ON prt.age_class_id = act.age_class_id
+    GROUP BY act.classification
+  ";
+    } else {
+      $ageQuery = "
+    SELECT act.classification, COUNT(*) as total
+    FROM pre_reg_table prt
+    LEFT JOIN evac_reg_table ert ON prt.pre_reg_id = ert.pre_reg_id
+    LEFT JOIN age_class_table act ON prt.age_class_id = act.age_class_id
+    GROUP BY act.classification
+  ";
     }
 
-    .room-capacity {
-      font-size: 0.95rem;
-      margin-bottom: 0.5rem;
+    $ageResult = mysqli_query($conn, $ageQuery);
+    if ($ageResult) {
+      while ($row = mysqli_fetch_assoc($ageResult)) {
+        $classification = $row['classification'];
+        $total = (int)$row['total'];
+        $ageGroups[$classification] = $total;
+      }
     }
+    // Count solo evacuees with solo_address_id > 0
+    $soloQuery = "SELECT COUNT(*) AS solo_count FROM pre_reg_table WHERE solo_address_id > 0";
+    $soloResult = mysqli_query($conn, $soloQuery);
+    $soloCount = ($soloResult) ? (int)mysqli_fetch_assoc($soloResult)['solo_count'] : 0;
 
-    .room-status {
-      font-size: 0.9rem;
-      font-weight: 600;
-    }
-  </style>
+    // Count family evacuees with family_id > 0
+    $familyQuery = "SELECT COUNT(DISTINCT family_id) AS family_count FROM pre_reg_table WHERE family_id > 0";
+    $familyResult = mysqli_query($conn, $familyQuery);
+    $familyCount = ($familyResult) ? (int)mysqli_fetch_assoc($familyResult)['family_count'] : 0;
+    ?>
+    <!-- Age Group and Evacuee Type Charts -->
+    <div class="row mt-4">
+      <div class="col-lg-6">
+        <!-- Navbar-style tabs for source selection -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <h6 class="mb-1 fw-bold">Age Classification Source:</h6>
+            <ul class="nav nav-pills custom-nav-pills">
+              <li class="nav-item">
+                <a class="nav-link <?= $selectedSource === 'pre' ? 'active' : '' ?>"
+                  href="?source=pre">
+                  <small>Pre-Registration</small>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link <?= $selectedSource === 'evac' ? 'active' : '' ?>"
+                  href="?source=evac">
+                  <small>Evacuation Registration</small>
+                </a>
+              </li>
+            </ul>
 
-  <style>
-.small-box {
-  background: linear-gradient(135deg, #ffffff, #f8f9fa);
-  border: 1px solid #e5e7eb;
-  padding: 20px 24px;
-  color: #2f2f2f;
-  position: relative;
-  font-size: 14px;
-  transition: all 0.3s ease;
-  overflow: hidden;
-  border-radius: 12px; /* ✅ Rounded corners */
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15); /* ✅ black shadow */
-}
+          </div>
+          <div>
+            <span class="badge bg-primary">
+              <?= $selectedSource === 'pre' ? 'Showing: Pre-Registration' : 'Showing: Evacuation Registration' ?>
+            </span>
+          </div>
+        </div>
+        <!-- Chart Card -->
+        <div class="card shadow-sm border-0">
+          <div class="card-body">
+            <canvas id="ageChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-warning text-dark">Evacuee Type</div>
+          <div class="card-body text-center">
+            <div style="max-width: 300px; margin: auto;">
+              <canvas id="evacTypeChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-.small-box:hover {
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.2);
-  transform: translateY(-2px);
-}
-.small-box .inner h3 {
-  font-size: 32px;
-  font-weight: 800;
-  color: #1f1f1f;
-  margin: 0 0 6px 0;
-  line-height: 1.2;
-}
 
-.small-box .inner p {
-  font-size: 15px;
-  color: #6b7280;
-  margin: 0;
-  font-weight: 500;
-}
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      const ageLabels = <?= json_encode(array_keys($ageGroups)) ?>;
+      const ageData = <?= json_encode(array_values($ageGroups)) ?>;
 
-.small-box-icon {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 56px;
-  height: 56px;
-  color: rgba(0, 0, 0, 0.08);
-  opacity: 1;
-}
+      const ageCtx = document.getElementById('ageChart').getContext('2d');
+      new Chart(ageCtx, {
+        type: 'bar',
+        data: {
+          labels: ageLabels,
+          datasets: [{
+            label: 'No. of Individuals',
+            data: ageData,
+            backgroundColor: ['#4dc9f6', '#f67019', '#f53794', '#537bc4', '#acc236'],
+            borderRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            },
+            title: {
+              display: true,
+              text: 'Age Classification Breakdown'
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1
+              }
+            }
+          }
+        }
+      });
+      // Solo vs Family Chart
+      const evacCtx = document.getElementById('evacTypeChart').getContext('2d');
+      new Chart(evacCtx, {
+        type: 'pie',
+        data: {
+          labels: ['Solo', 'Family'],
+          datasets: [{
+            label: 'Evacuee Type',
+            data: [<?php echo $soloCount; ?>, <?php echo $familyCount; ?>],
+            backgroundColor: ['#9b59b6', '#2ecc71']
+          }]
+        }
+      });
+    </script>
 
-.small-box-footer {
-  display: inline-block;
-  margin-top: 16px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #0d6efd;
-  text-decoration: none;
-  position: relative;
-  padding-right: 18px;
-}
+    <style>
+      .room-box-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
 
-.small-box-footer::after {
-  content: '→';
-  position: absolute;
-  right: 0;
-  top: 0;
-  transition: transform 0.2s;
-}
+      .room-box {
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        padding: 1rem;
+        width: 220px;
+        text-align: center;
+        transition: 0.3s ease;
+      }
 
-.small-box-footer:hover::after {
-  transform: translateX(4px);
-}
+      .room-name {
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+      }
 
-  </style>
+      .room-capacity {
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .room-status {
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+    </style>
+
+    <style>
+      .small-box {
+        background: linear-gradient(135deg, #ffffff, #f8f9fa);
+        border: 1px solid #e5e7eb;
+        padding: 20px 24px;
+        color: #2f2f2f;
+        position: relative;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        overflow: hidden;
+        border-radius: 12px;
+        /* ✅ Rounded corners */
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        /* ✅ black shadow */
+      }
+
+      .small-box:hover {
+        box-shadow: 0 14px 28px rgba(0, 0, 0, 0.2);
+        transform: translateY(-2px);
+      }
+
+      .small-box .inner h3 {
+        font-size: 32px;
+        font-weight: 800;
+        color: #1f1f1f;
+        margin: 0 0 6px 0;
+        line-height: 1.2;
+      }
+
+      .small-box .inner p {
+        font-size: 15px;
+        color: #6b7280;
+        margin: 0;
+        font-weight: 500;
+      }
+
+      .small-box-icon {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 56px;
+        height: 56px;
+        color: rgba(0, 0, 0, 0.08);
+        opacity: 1;
+      }
+
+      .small-box-footer {
+        display: inline-block;
+        margin-top: 16px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #0d6efd;
+        text-decoration: none;
+        position: relative;
+        padding-right: 18px;
+      }
+
+      .small-box-footer::after {
+        content: '→';
+        position: absolute;
+        right: 0;
+        top: 0;
+        transition: transform 0.2s;
+      }
+
+      .small-box-footer:hover::after {
+        transform: translateX(4px);
+      }
+    </style>
+
+    <style>
+      .custom-nav-pills .nav-link {
+        color: #495057;
+        background-color: transparent;
+        border: 1px solid transparent;
+        border-radius: 0.25rem;
+        padding: 4px 10px;
+        margin-right: 5px;
+        transition: all 0.2s ease-in-out;
+      }
+
+      .custom-nav-pills .nav-link.active {
+        color: #0d6efd;
+        background-color: #e7f1ff;
+        /* light blue background */
+        border: 1px solid #b6d4fe;
+        /* subtle blue border */
+        font-weight: 500;
+      }
+
+      .custom-nav-pills .nav-link:hover {
+        background-color: #f0f8ff;
+        color: #0a58ca;
+      }
+    </style>
