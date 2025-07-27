@@ -3,8 +3,9 @@ include '../../../database/session.php';
 include '../layout/head_links.php';
 
 // Modified query for resource distribution
-$query = "SELECT *
+$query = "SELECT * ,d.quantity AS quantite
           FROM resource_distribution_table d
+		  LEFT JOIN resource_allocation_table r ON d.resource_id = r.resource_id
           LEFT JOIN evac_reg_table i ON d.evac_reg_id = i.evac_reg_id
 		  LEFT JOIN pre_reg_table p ON i.pre_reg_id = p.pre_reg_id
           ORDER BY d.date_time DESC";
@@ -77,8 +78,6 @@ if (!$result) {
 												<th><i class="bi bi-box-seam"></i> Resource</th>
 												<th><i class="bi bi-stack"></i> Quantity</th>
 												<th><i class="bi bi-calendar-check-fill"></i> Distribution Date</th>
-												<th><i class="bi bi-gear-fill"></i> Actions</th>
-
 											</tr>
 										</thead>
 										<tbody>
@@ -92,16 +91,8 @@ if (!$result) {
 														<td><?= $counter++ ?></td>
 														<td><?= htmlspecialchars($row['f_name'] . ' ' . $row['l_name']) ?></td>
 														<td><?= htmlspecialchars($row['resource_name']) ?></td>
-														<td><?= htmlspecialchars($row['quantity']) ?></td>
+														<td><?= htmlspecialchars($row['quantite']) ?></td>
 														<td class="distribution-info"><?= $distribution_date ?></td>
-														<td class="action-btns">
-															<button class="btn btn-sm btn-info view-distribution" data-id="<?= $row['distribution_id'] ?>">
-																<i class="fas fa-eye"></i>
-															</button>
-															<button class="btn btn-sm btn-warning edit-distribution" data-id="<?= $row['distribution_id'] ?>">
-																<i class="fas fa-edit"></i>
-															</button>
-														</td>
 													</tr>
 											<?php }
 											} else {
