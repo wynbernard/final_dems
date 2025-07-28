@@ -108,7 +108,7 @@
 
 list to deploy the changes.
 
-1. admin_page/resource_distribution.php
-2. fetch_data/get_family_data.php
-3. fetch_data/recieve_resources_ajax.php
-4. modal/resources_distribution.php
+1. admin_page/resource_distribution.php//
+2. fetch_data/get_family_data.php//
+3. fetch_data/recieve_resources_ajax.php//
+4. modal/resources_distribution.php//

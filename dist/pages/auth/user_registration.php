@@ -212,30 +212,34 @@
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">Signature <span class="text-danger">*</span></label>
-								<!-- Signature Option Selector -->
-								<!-- <div class="form-check">
-									<input class="form-check-input" type="radio" name="signature_option" id="option_draw" value="draw" checked onchange="toggleSignatureInput()">
-									<label class="form-check-label" for="option_draw">Draw Signature</label>
-								</div> -->
-								<!-- <div class="form-check">
-									<input class="form-check-input" type="radio" name="signature_option" id="option_upload" value="upload" onchange="toggleSignatureInput()">
-									<label class="form-check-label" for="option_upload">Upload Signature</label>
-								</div> -->
-								<!-- Draw Signature Canvas -->
-								<!-- <div id="signature-draw" class="mt-2">
-									<canvas id="signature-pad" style="width: 100%; height: 150px; border: 1px solid #ccc;"></canvas>
-									<input type="hidden" name="signature_data" id="signature_data">
-									<div class="mt-2">
-										<button type="button" class="btn btn-sm btn-secondary" onclick="clearSignature()">Clear Signature</button>
-									</div>
-								</div> -->
-								<!-- Upload Signature File -->
 								<div class="mt-0">
-									<input type="file" name="signature_file" id="signature_file" class="form-control" accept="image/*" required>
+									<input type="file" name="signature_file" id="signature_file" class="form-control" accept="image/*" required onchange="previewSignature(event)">
+								</div>
+								<div class="mt-2">
+									<img id="signaturePreview" src="#" alt="Signature Preview" style="max-width: 200px; display: none; border: 1px solid #ddd; padding: 5px;"/>
 								</div>
 							</div>
 						</div>
-							
+							<script>
+								function previewSignature(event) {
+								const input = event.target;
+								const preview = document.getElementById('signaturePreview');
+
+								if (input.files && input.files[0]) {
+									const reader = new FileReader();
+
+									reader.onload = function (e) {
+									preview.src = e.target.result;
+									preview.style.display = 'block';
+									};
+
+									reader.readAsDataURL(input.files[0]);
+								} else {
+									preview.src = '#';
+									preview.style.display = 'none';
+								}
+								}
+							</script>
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">Date of Birth <span class="text-danger">*</span></label>
@@ -353,11 +357,33 @@
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label fw-semibold">Upload Image of ID Card Presented <span class="text-danger">*</span></label>
-								<input type="file" name="ic_image" id="ic_image" class="form-control" accept="image/*" required>
+								<input type="file" name="ic_image" id="ic_image" class="form-control" accept="image/*" required onchange="previewIdCard(event)">
+								<div class="mt-2">
+								<img id="idCardPreview" src="#" alt="ID Card Preview" style="max-width: 100%; max-height: 200px; display: none; border: 1px solid #ccc; padding: 5px;" />
+								</div>
 							</div>
 						</div>
+						<script>
+							function previewIdCard(event) {
+							const input = event.target;
+							const preview = document.getElementById('idCardPreview');
 
-						<!-- Modal for Image Processing -->
+							if (input.files && input.files[0]) {
+								const reader = new FileReader();
+
+								reader.onload = function(e) {
+								preview.src = e.target.result;
+								preview.style.display = 'block';
+								};
+
+								reader.readAsDataURL(input.files[0]);
+							} else {
+								preview.src = '#';
+								preview.style.display = 'none';
+							}
+							}
+						</script>
+													<!-- Modal for Image Processing -->
 						<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
 							<div class="modal-dialog modal-dialog-centered">
 								<div class="modal-content shadow rounded-4">
