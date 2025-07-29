@@ -118,7 +118,7 @@
             $total_evac_reg = $row['evac_reg'];
             ?>
             <h3 style="color:#333"><?php echo htmlspecialchars($total_evac_reg) ?></h3>
-            <p>Evacuation Registration</p>
+            <p>Registered Evacuees</p>
           </div>
           <svg
             class="small-box-icon"
@@ -262,7 +262,7 @@ GROUP BY classification";
       }
     }
     // Count solo evacuees with solo_address_id > 0
-    $soloQuery = "SELECT COUNT(*) AS solo_count FROM pre_reg_table WHERE solo_address_id > 0";
+    $soloQuery = "SELECT COUNT(DISTINCT solo_address_id) AS solo_count FROM pre_reg_table WHERE solo_address_id > 0";
     $soloResult = mysqli_query($conn, $soloQuery);
     $soloCount = ($soloResult) ? (int)mysqli_fetch_assoc($soloResult)['solo_count'] : 0;
 

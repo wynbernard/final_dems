@@ -40,6 +40,7 @@
 											<input class="form-check-input me-2" type="checkbox" name="resources[]" value="<?= $resourceId ?>" id="res-<?= $resourceId ?>">
 											<label class="form-check-label me-3" for="res-<?= $resourceId ?>"><?= $resourceLabel ?></label>
 											<input type="number" name="quantity[<?= $resourceId ?>]" class="form-control form-control-sm w-auto" value="1" min="1" style="width: 80px;">
+											
 										</div>
 								<?php
 									endwhile;
