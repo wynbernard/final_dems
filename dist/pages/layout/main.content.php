@@ -16,6 +16,66 @@
         </ol>
       </div>
     </div>
+    <!-- Pre-Registration Analytics -->
+    <?php
+    // Total pre-registrations
+    $analyticsTotal = 0;
+    $analyticsToday = 0;
+    $analyticsTrend = [];
+    $analyticsLabels = [];
+    $analyticsQuery = "SELECT COUNT(*) AS total FROM pre_reg_table";
+    $analyticsResult = mysqli_query($conn, $analyticsQuery);
+    if ($analyticsResult) {
+      $analyticsTotal = (int)mysqli_fetch_assoc($analyticsResult)['total'];
+    }
+    // New today
+    $today = date('Y-m-d');
+    $analyticsTodayQuery = "SELECT COUNT(*) AS today FROM pre_reg_table WHERE DATE(registered_date) = '$today'";
+    $analyticsTodayResult = mysqli_query($conn, $analyticsTodayQuery);
+    if ($analyticsTodayResult) {
+      $analyticsToday = (int)mysqli_fetch_assoc($analyticsTodayResult)['today'];
+    }
+    // Trend for last 7 days
+    $trendQuery = "SELECT DATE(registered_date) as reg_date, COUNT(*) as count FROM pre_reg_table WHERE registered_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) GROUP BY reg_date ORDER BY reg_date ASC";
+    $trendResult = mysqli_query($conn, $trendQuery);
+    $trendMap = [];
+    if ($trendResult) {
+      while ($row = mysqli_fetch_assoc($trendResult)) {
+        $trendMap[$row['reg_date']] = (int)$row['count'];
+      }
+    }
+    // Fill missing days
+    for ($i = 6; $i >= 0; $i--) {
+      $d = date('Y-m-d', strtotime("-$i days"));
+      $analyticsLabels[] = $d;
+      $analyticsTrend[] = isset($trendMap[$d]) ? $trendMap[$d] : 0;
+    }
+
+    // --- Predictive Trend (Simple Linear Regression) ---
+    // Predict next 3 days based on last 7 days
+    $n = count($analyticsTrend);
+    $x = range(1, $n);
+    $y = $analyticsTrend;
+    $sumX = array_sum($x);
+    $sumY = array_sum($y);
+    $sumXY = 0;
+    $sumX2 = 0;
+    for ($i = 0; $i < $n; $i++) {
+      $sumXY += $x[$i] * $y[$i];
+      $sumX2 += $x[$i] * $x[$i];
+    }
+    $slope = ($n * $sumXY - $sumX * $sumY) / ($n * $sumX2 - $sumX * $sumX);
+    $intercept = ($sumY - $slope * $sumX) / $n;
+    $predictLabels = [];
+    $predictData = [];
+    for ($i = 1; $i <= 3; $i++) {
+      $futureDate = date('Y-m-d', strtotime('+' . $i . ' days'));
+      $predictLabels[] = $futureDate;
+      $predictData[] = round($slope * ($n + $i) + $intercept, 2);
+    }
+    ?>
+    <div class="row mb-4">
+    </div>
     <!--end::Row-->
   </div>
   <!--end::Container-->
@@ -152,7 +212,6 @@
             <h3 class="text-dark mb-1"><?php echo htmlspecialchars($total_locations); ?></h3>
             <p>Evacuation Locations</p>
           </div>
-
           <!-- Location Pin Icon -->
           <svg
             class="small-box-icon"
@@ -260,6 +319,26 @@ GROUP BY classification";
       </div>
     </div>
 
+    <!-- Pre-Registration Analytics (Linear Graph Only) -->
+    <div class="row mb-4 mt-4">
+      <div class="col-12">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-primary text-white">7-Day Registration Trend</div>
+          <div class="card-body">
+            <canvas id="preRegTrendChart" height="100"></canvas>
+            <div class="d-flex justify-content-between mt-3">
+              <div>
+                <span class="fw-bold text-primary" style="font-size: 1.2rem;">Total: <?php echo $analyticsTotal; ?></span>
+              </div>
+              <div>
+                <span class="fw-bold text-success" style="font-size: 1.2rem;">New Today: <?php echo $analyticsToday; ?></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Age Group and Evacuee Type Charts -->
     <div class="row mt-4">
       <div class="col-lg-6">
@@ -332,6 +411,48 @@ GROUP BY classification";
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      // Pre-Registration Trend Chart
+      const preRegTrendLabels = <?= json_encode($analyticsLabels) ?>;
+      const preRegTrendData = <?= json_encode($analyticsTrend) ?>;
+      const preRegTrendCtx = document.getElementById('preRegTrendChart').getContext('2d');
+      new Chart(preRegTrendCtx, {
+        type: 'line',
+        data: {
+          labels: preRegTrendLabels,
+          datasets: [{
+            label: 'Registrations',
+            data: preRegTrendData,
+            borderColor: '#4dc9f6',
+            backgroundColor: 'rgba(77,201,246,0.15)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 4,
+            pointBackgroundColor: '#4dc9f6',
+            pointBorderColor: '#fff',
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            title: { display: false }
+          },
+          scales: {
+            x: {
+              ticks: { color: '#888', font: { size: 12 } },
+              grid: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1, color: '#888', font: { size: 12 } },
+              grid: { color: '#eee' }
+            }
+          }
+        }
+      });
+    </script>
     <script>
       const ageLabels = <?= json_encode(array_keys($ageGroups)) ?>;
       const ageData = <?= json_encode(array_values($ageGroups)) ?>;
