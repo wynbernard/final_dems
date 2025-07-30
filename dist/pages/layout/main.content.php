@@ -18,41 +18,45 @@
     </div>
     <!-- Pre-Registration Analytics -->
     <?php
-    // Total pre-registrations
+    // Evacuation statistics from evacuation_record_table
     $analyticsTotal = 0;
     $analyticsToday = 0;
     $analyticsTrend = [];
     $analyticsLabels = [];
-    $analyticsQuery = "SELECT COUNT(*) AS total FROM pre_reg_table";
+    // Total evacuations (sum of total_evacuation)
+    $analyticsQuery = "SELECT SUM(total_evacuation) AS total FROM evacuation_record_table";
     $analyticsResult = mysqli_query($conn, $analyticsQuery);
     if ($analyticsResult) {
       $analyticsTotal = (int)mysqli_fetch_assoc($analyticsResult)['total'];
     }
-    // New today
+    // New today (sum of total_evacuation for today)
     $today = date('Y-m-d');
-    $analyticsTodayQuery = "SELECT COUNT(*) AS today FROM pre_reg_table WHERE DATE(registered_date) = '$today'";
+    $analyticsTodayQuery = "SELECT SUM(total_evacuation) AS today FROM evacuation_record_table WHERE DATE(start_date) = '$today'";
     $analyticsTodayResult = mysqli_query($conn, $analyticsTodayQuery);
     if ($analyticsTodayResult) {
       $analyticsToday = (int)mysqli_fetch_assoc($analyticsTodayResult)['today'];
     }
-    // Trend for last 7 days
-    $trendQuery = "SELECT DATE(registered_date) as reg_date, COUNT(*) as count FROM pre_reg_table WHERE registered_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) GROUP BY reg_date ORDER BY reg_date ASC";
+    // Trend: group by start_date and end_date, sum total_evacuation for each unique pair (last 7 unique pairs)
+    $trendQuery = "SELECT start_date, end_date, SUM(total_evacuation) as total_evacuation FROM evacuation_record_table GROUP BY start_date, end_date ORDER BY start_date DESC LIMIT 7";
     $trendResult = mysqli_query($conn, $trendQuery);
-    $trendMap = [];
+    $analyticsLabels = [];
+    $analyticsTrend = [];
     if ($trendResult) {
+      $trendRows = [];
       while ($row = mysqli_fetch_assoc($trendResult)) {
-        $trendMap[$row['reg_date']] = (int)$row['count'];
+        $trendRows[] = $row;
       }
-    }
-    // Fill missing days
-    for ($i = 6; $i >= 0; $i--) {
-      $d = date('Y-m-d', strtotime("-$i days"));
-      $analyticsLabels[] = $d;
-      $analyticsTrend[] = isset($trendMap[$d]) ? $trendMap[$d] : 0;
+      // Reverse to show oldest to newest
+      $trendRows = array_reverse($trendRows);
+      foreach ($trendRows as $row) {
+        $label = date('M d', strtotime($row['start_date'])) . ' - ' . date('M d', strtotime($row['end_date']));
+        $analyticsLabels[] = $label;
+        $analyticsTrend[] = (int)$row['total_evacuation'];
+      }
     }
 
     // --- Predictive Trend (Simple Linear Regression) ---
-    // Predict next 3 days based on last 7 days
+    // Predict next 3 records (not dates, just for continuity)
     $n = count($analyticsTrend);
     $x = range(1, $n);
     $y = $analyticsTrend;
@@ -64,13 +68,18 @@
       $sumXY += $x[$i] * $y[$i];
       $sumX2 += $x[$i] * $x[$i];
     }
-    $slope = ($n * $sumXY - $sumX * $sumY) / ($n * $sumX2 - $sumX * $sumX);
+$denominator = ($n * $sumX2 - $sumX * $sumX);
+if ($denominator == 0 || $n == 0) {
+    $slope = 0;
+    $intercept = 0;
+} else {
+    $slope = ($n * $sumXY - $sumX * $sumY) / $denominator;
     $intercept = ($sumY - $slope * $sumX) / $n;
+}
     $predictLabels = [];
     $predictData = [];
     for ($i = 1; $i <= 3; $i++) {
-      $futureDate = date('Y-m-d', strtotime('+' . $i . ' days'));
-      $predictLabels[] = $futureDate;
+      $predictLabels[] = 'Next #' . $i;
       $predictData[] = round($slope * ($n + $i) + $intercept, 2);
     }
     ?>
@@ -297,12 +306,12 @@ GROUP BY classification";
       }
     }
     // Count solo evacuees with solo_address_id > 0
-    $soloQuery = "SELECT COUNT(DISTINCT solo_address_id) AS solo_count FROM pre_reg_table WHERE solo_address_id > 0";
+$soloQuery = "SELECT COUNT(DISTINCT solo_address_id) AS solo_count FROM pre_reg_table WHERE registered_as = 'Solo' AND solo_address_id IS NOT NULL AND solo_address_id > 0";
     $soloResult = mysqli_query($conn, $soloQuery);
     $soloCount = ($soloResult) ? (int)mysqli_fetch_assoc($soloResult)['solo_count'] : 0;
 
     // Count family evacuees with family_id > 0
-    $familyQuery = "SELECT COUNT(DISTINCT family_id) AS family_count FROM pre_reg_table WHERE family_id > 0";
+    $familyQuery = "SELECT COUNT(DISTINCT family_id) AS family_count FROM pre_reg_table WHERE registered_as = 'Family' AND family_id IS NOT NULL AND family_id > 0";
     $familyResult = mysqli_query($conn, $familyQuery);
     $familyCount = ($familyResult) ? (int)mysqli_fetch_assoc($familyResult)['family_count'] : 0;
     ?>
@@ -319,19 +328,15 @@ GROUP BY classification";
       </div>
     </div>
 
-    <!-- Pre-Registration Analytics (Linear Graph Only) -->
+    <!-- Evacuation Statistics (Last 7 Records) -->
     <div class="row mb-4 mt-4">
       <div class="col-12">
         <div class="card shadow-sm border-0">
-          <div class="card-header bg-primary text-white">7-Day Registration Trend</div>
+          <div class="card-header bg-primary text-white">Evacuation Statistics</div>
           <div class="card-body">
-            <canvas id="preRegTrendChart" height="100"></canvas>
-            <div class="d-flex justify-content-between mt-3">
-              <div>
-                <span class="fw-bold text-primary" style="font-size: 1.2rem;">Total: <?php echo $analyticsTotal; ?></span>
-              </div>
-              <div>
-                <span class="fw-bold text-success" style="font-size: 1.2rem;">New Today: <?php echo $analyticsToday; ?></span>
+            <div class="row justify-content-center">
+              <div class="col-md-10">
+                <canvas id="evacStatChart" height="100"></canvas>
               </div>
             </div>
           </div>
@@ -412,41 +417,42 @@ GROUP BY classification";
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-      // Pre-Registration Trend Chart
-      const preRegTrendLabels = <?= json_encode($analyticsLabels) ?>;
-      const preRegTrendData = <?= json_encode($analyticsTrend) ?>;
-      const preRegTrendCtx = document.getElementById('preRegTrendChart').getContext('2d');
-      new Chart(preRegTrendCtx, {
+      // Statistic Graph: Start Date - End Date as X-axis (Last 7 Records) - LINE CHART
+      const evacStatLabels = <?= json_encode($analyticsLabels) ?>;
+      const evacStatData = <?= json_encode($analyticsTrend) ?>;
+      const ctxEvacStat = document.getElementById('evacStatChart').getContext('2d');
+      new Chart(ctxEvacStat, {
         type: 'line',
         data: {
-          labels: preRegTrendLabels,
+          labels: evacStatLabels,
           datasets: [{
-            label: 'Registrations',
-            data: preRegTrendData,
+            label: 'Total Evacuees',
+            data: evacStatData,
+            fill: false,
             borderColor: '#4dc9f6',
-            backgroundColor: 'rgba(77,201,246,0.15)',
+            backgroundColor: '#4dc9f6',
             tension: 0.3,
-            fill: true,
-            pointRadius: 4,
-            pointBackgroundColor: '#4dc9f6',
-            pointBorderColor: '#fff',
-            pointHoverRadius: 6
+            pointBackgroundColor: '#fff',
+            pointBorderColor: '#4dc9f6',
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            borderWidth: 3
           }]
         },
         options: {
           responsive: true,
           plugins: {
-            legend: { display: false },
-            title: { display: false }
+            legend: { display: true },
+            title: { display: true, text: 'Evacuation Statistics (Last 7 Records)' }
           },
           scales: {
             x: {
-              ticks: { color: '#888', font: { size: 12 } },
+              ticks: { color: '#888', font: { size: 12 }, maxRotation: 45, minRotation: 0 },
               grid: { display: false }
             },
             y: {
               beginAtZero: true,
-              ticks: { stepSize: 1, color: '#888', font: { size: 12 } },
+              ticks: { stepSize: 1000, color: '#888', font: { size: 12 } },
               grid: { color: '#eee' }
             }
           }
