@@ -54,15 +54,15 @@
             aria-hidden="true">
             <path
               d="M4.619,15.479c0.888,3.39,3.752,6.513,7.382,6.513c3.684,0,6.594-3.109,7.504-6.49c0.346-0.039,0.632-0.303,0.663-0.663
-				l0.115-1.336c0.029-0.348-0.189-0.646-0.506-0.756c-0.006-0.08-0.008-0.161-0.017-0.24c-0.068-3.062-0.6-5.534-3.01-6.556
-				c-2.544-1.078-4.786-1.093-6.432-0.453C10.21,5.541,9.931,5.912,9.822,5.979C9.713,6.046,9.136,5.856,8.917,5.907
-				c-3.61,0.516-4.801,3.917-4.538,6.569C4.371,12.55,4.366,12.625,4.36,12.7c-0.349,0.087-0.599,0.404-0.567,0.774l0.114,1.336
-				C3.94,15.188,4.25,15.462,4.619,15.479z M5.388,12.833c1.581-0.579,4.622-1.79,4.952-2.426c1.383,1.437,6.267,2.244,8.411,2.513
-				c0.009,0.139,0.021,0.274,0.021,0.414c0,3.525-2.958,7.623-6.771,7.623c-3.799,0-6.638-4.024-6.638-7.623
-				C5.362,13.165,5.375,13,5.388,12.833z"></path>
+        l0.115-1.336c0.029-0.348-0.189-0.646-0.506-0.756c-0.006-0.08-0.008-0.161-0.017-0.24c-0.068-3.062-0.6-5.534-3.01-6.556
+        c-2.544-1.078-4.786-1.093-6.432-0.453C10.21,5.541,9.931,5.912,9.822,5.979C9.713,6.046,9.136,5.856,8.917,5.907
+        c-3.61,0.516-4.801,3.917-4.538,6.569C4.371,12.55,4.366,12.625,4.36,12.7c-0.349,0.087-0.599,0.404-0.567,0.774l0.114,1.336
+        C3.94,15.188,4.25,15.462,4.619,15.479z M5.388,12.833c1.581-0.579,4.622-1.79,4.952-2.426c1.383,1.437,6.267,2.244,8.411,2.513
+        c0.009,0.139,0.021,0.274,0.021,0.414c0,3.525-2.958,7.623-6.771,7.623c-3.799,0-6.638-4.024-6.638-7.623
+        C5.362,13.165,5.375,13,5.388,12.833z"></path>
             <path d="M17.818,20.777c-0.19-0.029-0.376,0.014-0.498,0.063l-3.041,4.113l-2.307-1.84l-0.014,0.012v0.013l-0.003-0.003
-				l-2.307,1.84l-3.041-4.113c-0.121-0.05-0.308-0.093-0.498-0.064C0.364,21.608,0,34.584,0,34.584l11.969,0.008v-0.021
-				l11.958-0.008C23.928,34.563,23.562,21.587,17.818,20.777z" />
+        l-2.307,1.84l-3.041-4.113c-0.121-0.05-0.308-0.093-0.498-0.064C0.364,21.608,0,34.584,0,34.584l11.969,0.008v-0.021
+        l11.958-0.008C23.928,34.563,23.562,21.587,17.818,20.777z" />
           </svg>
           <a
             href="#"
@@ -180,31 +180,7 @@
     <!--end::Container-->
     <div class="col-lg-3 col-6">
     </div>
-    <?php
-    $evacCenters = [];
-    $query = "SELECT name FROM evac_loc_table";
-    $result = mysqli_query($conn, $query);
-    if ($result && mysqli_num_rows($result) > 0) {
-      while ($row = mysqli_fetch_assoc($result)) {
-        $evacCenters[] = htmlspecialchars($row['name']);
-      }
-    }
-    ?>
-    <div class="mt-4">
-      <div class="card shadow-sm border-0">
-        <div class="card-body bg-light p-2">
-          <marquee behavior="scroll" direction="left" scrollamount="5" class="text-dark">
-            <?php
-            if (!empty($evacCenters)) {
-              echo "📍 Available Evacuation Centers: " . implode(" • ", $evacCenters);
-            } else {
-              echo "No evacuation centers available.";
-            }
-            ?>
-          </marquee>
-        </div>
-      </div>
-    </div>
+
     <?php
     // --- Gender Breakdown ---
     $maleCount = 0;
@@ -271,6 +247,19 @@ GROUP BY classification";
     $familyResult = mysqli_query($conn, $familyQuery);
     $familyCount = ($familyResult) ? (int)mysqli_fetch_assoc($familyResult)['family_count'] : 0;
     ?>
+
+    <!-- Evacuation Locations Map (Moved to Top) -->
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-info text-dark">Evacuation Locations Map</div>
+          <div class="card-body" style="height: 500px;">
+            <div id="evacMap" style="height: 100%; width: 100%; min-height: 400px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Age Group and Evacuee Type Charts -->
     <div class="row mt-4">
       <div class="col-lg-6">
@@ -318,6 +307,27 @@ GROUP BY classification";
         </div>
       </div>
     </div>
+
+    <?php
+    // Fetch evacuation locations with coordinates
+    $evacMapLocations = [];
+    $mapQuery = "SELECT evac_loc_id, city, barangay_id, purok, name, total_capacity, longitude, latitude FROM evac_loc_table WHERE latitude IS NOT NULL AND longitude IS NOT NULL";
+    $mapResult = mysqli_query($conn, $mapQuery);
+    if ($mapResult) {
+      while ($row = mysqli_fetch_assoc($mapResult)) {
+        $evacMapLocations[] = [
+          'id' => $row['evac_loc_id'],
+          'name' => $row['name'],
+          'city' => $row['city'],
+          'barangay' => $row['barangay_id'],
+          'purok' => $row['purok'],
+          'capacity' => $row['total_capacity'],
+          'lat' => (float)$row['latitude'],
+          'lng' => (float)$row['longitude'],
+        ];
+      }
+    }
+    ?>
 
 
     <!-- Chart.js -->
@@ -372,6 +382,37 @@ GROUP BY classification";
           }]
         }
       });
+    </script>
+
+    <!-- Leaflet Map Script for Evacuation Locations -->
+    <script>
+      const evacLocations = <?= json_encode($evacMapLocations) ?>;
+      if (evacLocations.length > 0) {
+        // Center map on first location, or default if none
+        const mapCenter = [evacLocations[0].lat, evacLocations[0].lng];
+        const map = L.map('evacMap').setView(mapCenter, 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 18,
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        evacLocations.forEach(loc => {
+          const marker = L.marker([loc.lat, loc.lng]).addTo(map);
+          let popupHtml = `<b>${loc.name}</b>`;
+          popupHtml += `<br><span>City: ${loc.city || ''}</span>`;
+          popupHtml += `<br><span>Barangay: ${loc.barangay || ''}</span>`;
+          popupHtml += `<br><span>Purok: ${loc.purok || ''}</span>`;
+          popupHtml += `<br><span>Capacity: ${loc.capacity || ''}</span>`;
+          popupHtml += `<br><small>Lat: ${loc.lat}, Lng: ${loc.lng}</small>`;
+          marker.bindPopup(popupHtml);
+        });
+      } else {
+        // If no locations, show a blank map centered on the Philippines
+        const map = L.map('evacMap').setView([12.8797, 121.7740], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 18,
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+      }
     </script>
 
     <style>

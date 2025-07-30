@@ -64,7 +64,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	$stmt->close();
 
 	// Insert new family member
-	$stmt = $conn->prepare("INSERT INTO pre_reg_table (f_name, l_name, age_class_id, gender, contact_no, family_id, date_of_birth ,relation_to_family, registered_as) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Family')");
+	$stmt = $conn->prepare("INSERT INTO pre_reg_table (f_name, l_name, age_class_id, gender, contact_no, family_id, date_of_birth ,relation_to_family) VALUES (?, ?, ?, ?, ?, ?, ?, ?	)");
 	$stmt->bind_param("ssississ", $f_name, $l_name, $age_class_id, $gender, $contact_no, $family_id, $birth_date, $relation);
 	if ($stmt->execute()) {
 		$stmt->close();
