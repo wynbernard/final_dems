@@ -82,7 +82,7 @@ LEFT JOIN barangay_manegement_table AS bm1 ON ft.barangay_id = bm1.barangay_id
 									$totalCount = ($totalResult && mysqli_num_rows($totalResult) > 0) ? mysqli_fetch_assoc($totalResult)['total_count'] : 0;
 
 									// Count family
-									$familyQuery = "SELECT COUNT(*) AS family_count FROM pre_reg_table WHERE Registered_as = 'Family'";
+									$familyQuery = "SELECT COUNT(*) AS family_count FROM pre_reg_table WHERE registered_as = 'Family'";
 									$familyResult = mysqli_query($conn, $familyQuery);
 									$familyCount = ($familyResult && mysqli_num_rows($familyResult) > 0) ? mysqli_fetch_assoc($familyResult)['family_count'] : 0;
 									?>

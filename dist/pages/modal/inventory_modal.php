@@ -16,6 +16,21 @@
 						<label for="quantity" class="form-label">Quantity</label>
 						<input type="number" min="0" class="form-control" id="quantity" name="quantity" required>
 					</div>
+					<!-- 🔽 Measurement Unit Dropdown -->
+					<div class="mb-3">
+						<label for="unit" class="form-label fw-semibold">
+							<i class="bi bi-rulers"></i> Measurement Unit
+						</label>
+						<select id="unit" name="unit" class="form-select" required>
+							<option value="" disabled selected>Select unit</option>
+							<option value="pcs">Pieces (pcs)</option>
+							<option value="pack">Pack</option>
+							<option value="sack">Sack</option>
+							<option value="box">Box</option>
+							<option value="kg">Kilogram (kg)</option>
+							<option value="litre">Litre</option>
+						</select>
+					</div>
 					<!-- Optional: Add expiration date if needed
 					<div class="mb-3">
 						<label for="expiration_date" class="form-label">Expiration Date</label>
@@ -51,6 +66,20 @@
 					<div class="mb-3">
 						<label for="editQuantity" class="form-label">Quantity</label>
 						<input type="number" class="form-control" id="editQuantity" name="quantity" required>
+					</div>
+					<div class="mb-3">
+						<label for="editUnit" class="form-label fw-semibold">
+							<i class="bi bi-rulers"></i> Measurement Unit
+						</label>
+						<select id="editUnit" name="unit" class="form-select" required>
+							<option value="" disabled selected>Select unit</option>
+							<option value="pcs">Pieces (pcs)</option>
+							<option value="pack">Pack</option>
+							<option value="sack">Sack</option>
+							<option value="box">Box</option>
+							<option value="kg">Kilogram (kg)</option>
+							<option value="litre">Litre</option>
+						</select>
 					</div>
 				</div>
 				<div class="modal-footer">

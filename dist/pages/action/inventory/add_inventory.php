@@ -5,11 +5,11 @@ include '../../../../database/session.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$resource_name = trim($_POST['resource_name'] ?? '');
 	$quantity = intval($_POST['quantity'] ?? 0);
-	// $expiration_date = !empty($_POST['expiration_date']) ? $_POST['expiration_date'] : null; // Uncomment if using expiration date
+	$measurement_unit = trim($_POST['unit'] ?? '');
 
-	if ($resource_name !== '' && $quantity >= 0) {
-		$stmt = $conn->prepare("INSERT INTO resource_allocation_table (resource_name, quantity) VALUES (?, ?)");
-		$stmt->bind_param("si", $resource_name, $quantity);
+	if ($resource_name !== '' && $quantity >= 0 && $measurement_unit !== '') {
+		$stmt = $conn->prepare("INSERT INTO resource_allocation_table (resource_name, quantity, measurement_unit) VALUES (?, ?, ?)");
+		$stmt->bind_param("sis", $resource_name, $quantity, $measurement_unit);
 		// If using expiration date:
 		// $stmt = $conn->prepare("INSERT INTO resource_inventory (resource_name, quantity, expiration_date) VALUES (?, ?, ?)");
 		// $stmt->bind_param("sis", $resource_name, $quantity, $expiration_date);

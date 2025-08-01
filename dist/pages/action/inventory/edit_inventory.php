@@ -6,11 +6,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$original_name = trim($_POST['original_resource_name'] ?? '');
 	$new_name = trim($_POST['resource_name'] ?? '');
 	$quantity = intval($_POST['quantity'] ?? 0);
+	$measurement_unit = trim($_POST['unit'] ?? ''); // Uncomment if you want to update measurement unit
 
 	if ($original_name !== '' && $new_name !== '' && $quantity >= 0) {
-		$stmt = $conn->prepare("UPDATE resource_allocation_table SET resource_name = ?, quantity = ? WHERE resource_name = ?");
+		$stmt = $conn->prepare("UPDATE resource_allocation_table SET resource_name = ?, quantity = ?, measurement_unit = ? WHERE resource_name = ?");
 		if ($stmt) {
-			$stmt->bind_param("sis", $new_name, $quantity, $original_name);
+			$stmt->bind_param("siss", $new_name, $quantity, $measurement_unit, $original_name);
 
 			if ($stmt->execute()) {
 				$_SESSION['success'] = "<span style='color: green;'><i class='bi bi-check-circle-fill'></i></span> Inventory updated successfully!";

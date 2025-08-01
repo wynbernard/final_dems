@@ -3,7 +3,7 @@ include '../../../database/session.php';
 include '../layout/head_links.php';
 
 // Modified query for inventory
-$query = "SELECT resource_name, quantity
+$query = "SELECT resource_name, quantity , measurement_unit
           FROM resource_allocation_table";
 $result = mysqli_query($conn, $query);
 
@@ -83,6 +83,7 @@ if (!$result) {
 													<th> No.</th>
 													<th><i class="bi bi-box-seam"></i> Resource Name</th>
 													<th><i class="bi bi-stack"></i> Quantity</th>
+													<th><i class="bi bi-rulers"></i> Measurement Unit</th>
 													<th><i class="bi bi-gear-fill"></i> Action</th>
 												</tr>
 											</thead>
@@ -109,6 +110,7 @@ if (!$result) {
 															<td><?= $counter++ ?></td>
 															<td><?= htmlspecialchars($row['resource_name']) ?></td>
 															<td><?= htmlspecialchars($row['quantity']) ?></td>
+															<td><?= htmlspecialchars($row['measurement_unit']) ?></td>
 															<td>
 																<a href="#" class="btn btn-outline-primary btn-sm edit-btn"
 																	data-resource="<?= htmlspecialchars($row['resource_name']) ?>"
