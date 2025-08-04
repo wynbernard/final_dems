@@ -75,76 +75,75 @@
 							</div>
 						</div>
 						<script>
-							document.addEventListener("DOMContentLoaded", function () {
-							const fName = document.getElementById("f_name");
-							const mName = document.getElementById("m_name");
-							const lName = document.getElementById("l_name");
-							const nameExt = document.getElementById("name_extension"); // matches your <select>
-							const feedback = document.getElementById("nameFeedback");
+							document.addEventListener("DOMContentLoaded", function() {
+								const fName = document.getElementById("f_name");
+								const mName = document.getElementById("m_name");
+								const lName = document.getElementById("l_name");
+								const nameExt = document.getElementById("name_extension"); // matches your <select>
+								const feedback = document.getElementById("nameFeedback");
 
-							// Add input/change listeners
-							[fName, mName, lName, nameExt].forEach(field => {
-								field.addEventListener("input", validateName);
-								field.addEventListener("change", validateName); // For <select>
-							});
-
-							function validateName() {
-								const first = fName.value.trim();
-								const middle = mName.value.trim();
-								const last = lName.value.trim();
-								const extension = nameExt.value || ""; // Handles "" if not selected
-
-								if (!first || !middle || !last) {
-								feedback.innerHTML = "";
-								feedback.className = "";
-								[fName, mName, lName, nameExt].forEach(f => f.classList.remove("is-valid", "is-invalid"));
-								return;
-								}
-
-								checkNameAvailability(first, middle, last, extension);
-							}
-
-							function checkNameAvailability(first, middle, last, extension) {
-								fetch("../check_validation/name_validation.php", {
-								method: "POST",
-								headers: {
-									"Content-Type": "application/x-www-form-urlencoded",
-								},
-								body:
-									"f_name=" + encodeURIComponent(first) +
-									"&m_name=" + encodeURIComponent(middle) +
-									"&l_name=" + encodeURIComponent(last) +
-									"&name_ext=" + encodeURIComponent(extension),
-								})
-								.then((response) => response.text())
-								.then((data) => {
-								const result = data.trim();
-
-								if (result === "taken") {
-									feedback.innerHTML = "Full name already registered.";
-									feedback.className = "text-danger";
-									[fName, mName, lName, nameExt].forEach(field => {
-									field.classList.add("is-invalid");
-									field.classList.remove("is-valid");
-									});
-								} else if (result === "available") {
-									feedback.innerHTML = "Name is unique.";
-									feedback.className = "text-success";
-									[fName, mName, lName, nameExt].forEach(field => {
-									field.classList.add("is-valid");
-									field.classList.remove("is-invalid");
-									});
-								} else {
-									feedback.innerHTML = "Error checking name.";
-									feedback.className = "text-warning";
-								}
-								})
-								.catch((error) => {
-								console.error("Error:", error);
-								feedback.innerHTML = "Server error.";
-								feedback.className = "text-warning";
+								// Add input/change listeners
+								[fName, mName, lName, nameExt].forEach(field => {
+									field.addEventListener("input", validateName);
+									field.addEventListener("change", validateName); // For <select>
 								});
-							}
+
+								function validateName() {
+									const first = fName.value.trim();
+									const middle = mName.value.trim();
+									const last = lName.value.trim();
+									const extension = nameExt.value || ""; // Handles "" if not selected
+
+									if (!first || !middle || !last) {
+										feedback.innerHTML = "";
+										feedback.className = "";
+										[fName, mName, lName, nameExt].forEach(f => f.classList.remove("is-valid", "is-invalid"));
+										return;
+									}
+
+									checkNameAvailability(first, middle, last, extension);
+								}
+
+								function checkNameAvailability(first, middle, last, extension) {
+									fetch("../check_validation/name_validation.php", {
+											method: "POST",
+											headers: {
+												"Content-Type": "application/x-www-form-urlencoded",
+											},
+											body: "f_name=" + encodeURIComponent(first) +
+												"&m_name=" + encodeURIComponent(middle) +
+												"&l_name=" + encodeURIComponent(last) +
+												"&name_ext=" + encodeURIComponent(extension),
+										})
+										.then((response) => response.text())
+										.then((data) => {
+											const result = data.trim();
+
+											if (result === "taken") {
+												feedback.innerHTML = "Full name already registered.";
+												feedback.className = "text-danger";
+												[fName, mName, lName, nameExt].forEach(field => {
+													field.classList.add("is-invalid");
+													field.classList.remove("is-valid");
+												});
+											} else if (result === "available") {
+												feedback.innerHTML = "Name is unique.";
+												feedback.className = "text-success";
+												[fName, mName, lName, nameExt].forEach(field => {
+													field.classList.add("is-valid");
+													field.classList.remove("is-invalid");
+												});
+											} else {
+												feedback.innerHTML = "Error checking name.";
+												feedback.className = "text-warning";
+											}
+										})
+										.catch((error) => {
+											console.error("Error:", error);
+											feedback.innerHTML = "Server error.";
+											feedback.className = "text-warning";
+										});
+								}
 							});
 						</script>
 					</div>
@@ -216,21 +215,21 @@
 									<input type="file" name="signature_file" id="signature_file" class="form-control" accept="image/*" required onchange="previewSignature(event)">
 								</div>
 								<div class="mt-2">
-									<img id="signaturePreview" src="#" alt="Signature Preview" style="max-width: 200px; display: none; border: 1px solid #ddd; padding: 5px;"/>
+									<img id="signaturePreview" src="#" alt="Signature Preview" style="max-width: 200px; display: none; border: 1px solid #ddd; padding: 5px;" />
 								</div>
 							</div>
 						</div>
-							<script>
-								function previewSignature(event) {
+						<script>
+							function previewSignature(event) {
 								const input = event.target;
 								const preview = document.getElementById('signaturePreview');
 
 								if (input.files && input.files[0]) {
 									const reader = new FileReader();
 
-									reader.onload = function (e) {
-									preview.src = e.target.result;
-									preview.style.display = 'block';
+									reader.onload = function(e) {
+										preview.src = e.target.result;
+										preview.style.display = 'block';
 									};
 
 									reader.readAsDataURL(input.files[0]);
@@ -238,8 +237,8 @@
 									preview.src = '#';
 									preview.style.display = 'none';
 								}
-								}
-							</script>
+							}
+						</script>
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">Date of Birth <span class="text-danger">*</span></label>
@@ -347,6 +346,7 @@
 							</div>
 						</div>
 
+
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">ID Card Number <span class="text-danger">*</span></label>
@@ -359,31 +359,31 @@
 								<label class="form-label fw-semibold">Upload Image of ID Card Presented <span class="text-danger">*</span></label>
 								<input type="file" name="ic_image" id="ic_image" class="form-control" accept="image/*" required onchange="previewIdCard(event)">
 								<div class="mt-2">
-								<img id="idCardPreview" src="#" alt="ID Card Preview" style="max-width: 100%; max-height: 200px; display: none; border: 1px solid #ccc; padding: 5px;" />
+									<img id="idCardPreview" src="#" alt="ID Card Preview" style="max-width: 100%; max-height: 200px; display: none; border: 1px solid #ccc; padding: 5px;" />
 								</div>
 							</div>
 						</div>
 						<script>
 							function previewIdCard(event) {
-							const input = event.target;
-							const preview = document.getElementById('idCardPreview');
+								const input = event.target;
+								const preview = document.getElementById('idCardPreview');
 
-							if (input.files && input.files[0]) {
-								const reader = new FileReader();
+								if (input.files && input.files[0]) {
+									const reader = new FileReader();
 
-								reader.onload = function(e) {
-								preview.src = e.target.result;
-								preview.style.display = 'block';
-								};
+									reader.onload = function(e) {
+										preview.src = e.target.result;
+										preview.style.display = 'block';
+									};
 
-								reader.readAsDataURL(input.files[0]);
-							} else {
-								preview.src = '#';
-								preview.style.display = 'none';
-							}
+									reader.readAsDataURL(input.files[0]);
+								} else {
+									preview.src = '#';
+									preview.style.display = 'none';
+								}
 							}
 						</script>
-													<!-- Modal for Image Processing -->
+						<!-- Modal for Image Processing -->
 						<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
 							<div class="modal-dialog modal-dialog-centered">
 								<div class="modal-content shadow rounded-4">
@@ -408,6 +408,7 @@
 												<div id="successIcon" class="d-none text-success fs-1">✔️</div>
 												<div id="errorIcon" class="d-none text-danger fs-1">❌</div>
 											</div>
+											<canvas id="ocrCanvas" style="display:none;"></canvas>
 										</div>
 									</div>
 								</div>
@@ -421,12 +422,13 @@
 
 						<script src="tesseract.js"></script>
 						<script>
-						document.getElementById('ic_image').addEventListener('change', function () {
+							document.getElementById('ic_image').addEventListener('change', function() {
 								const file = this.files[0];
 								const fname = document.getElementById('f_name').value.trim().toLowerCase();
 								const mname = document.getElementById('m_name').value.trim().toLowerCase();
 								const lname = document.getElementById('l_name').value.trim().toLowerCase();
-								const ext = document.getElementById('name_extension').value.trim().toLowerCase(); // optional
+								const ext = document.getElementById('name_extension').value.trim().toLowerCase();
+								const idSelect = document.getElementById('icp');
 
 								if (!file || !fname || !mname || !lname) {
 									Swal.fire({
@@ -439,66 +441,120 @@
 								}
 
 								Swal.fire({
-									title: 'Scanning ID...',
-									html: 'Please wait while we extract text from the image.<br><b>This may take a few seconds.</b>',
+									title: 'Checking ID...',
+									html: 'Extracting text from the ID image.<br><b>Please wait.</b>',
 									allowOutsideClick: false,
-									didOpen: () => {
-										Swal.showLoading();
-									}
+									didOpen: () => Swal.showLoading()
 								});
 
 								Tesseract.recognize(file, 'eng', {
 									logger: m => {
 										if (m.status === "recognizing text") {
 											Swal.update({
-												html: `Recognizing text... <b>${Math.round(m.progress * 100)}%</b>`
+												html: `Extracting text... <b>${Math.round(m.progress * 100)}%</b>`
 											});
 										}
 									}
-								}).then(({ data: { text } }) => {
+								}).then(({
+									data: {
+										text
+									}
+								}) => {
 									const normalize = str =>
-										str.toLowerCase().replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ').trim();
-
+										str.toLowerCase().replace(/[^\w\s\-\/]/gi, '').replace(/\s+/g, ' ').trim();
 									const cleanText = normalize(text);
 
+									// Match ID number
+									const idNumberMatch = cleanText.match(/\b([A-Z0-9]{3,}-[A-Z0-9]{2,}-[A-Z0-9]{3,}(?:-[A-Z0-9]+)?)\b|\b\d{4}-\d{4}-\d{4}-\d{4}\b/);
+									const extractedIdNumber = idNumberMatch ? idNumberMatch[0] : "";
+									document.getElementById('icn').value = extractedIdNumber;
+
+									// ID type detection keywords from OCR
+									const idTypeMap = {
+										"philippine national id": "Philippine National ID",
+										"philsys": "Philippine National ID",
+										"passport": "Passport",
+										"driver": "Driver's License",
+										"lto": "Driver's License",
+										"umid": "UMID",
+										"sss": "SSS ID",
+										"prc": "PRC ID",
+										"voter": "Voter's ID",
+										"tin": "TIN ID",
+										"philhealth": "PhilHealth ID"
+									};
+
+									let detectedType = "Unknown";
+									for (const keyword in idTypeMap) {
+										if (cleanText.includes(keyword)) {
+											detectedType = idTypeMap[keyword];
+											break;
+										}
+									}
+
+									// If not found in text, detect by ID number format
+									if (detectedType === "Unknown") {
+										if (/^\d{4}-\d{4}-\d{4}-\d{4}$/.test(extractedIdNumber)) {
+											detectedType = "Philippine National ID";
+										} else if (/^[A-Z]{1,3}-\d{2}-\d{6,7}$/.test(extractedIdNumber)) {
+											detectedType = "Driver's License";
+										} else if (/^\d{2}-\d{9,10}$/.test(extractedIdNumber)) {
+											detectedType = "PhilHealth ID";
+										} else if (/^\d{9}$/.test(extractedIdNumber)) {
+											detectedType = "TIN ID";
+										} else if (/^\d{2}-\d{7,10}$/.test(extractedIdNumber)) {
+											detectedType = "SSS ID";
+										}
+									}
+
+									// Update select dropdown if found
+									const matchOption = Array.from(idSelect.options).find(opt => opt.value === detectedType);
+									if (matchOption) {
+										idSelect.value = detectedType;
+									}
+
+									// Match names
 									const fnameMatch = cleanText.includes(normalize(fname));
 									const mnameMatch = cleanText.includes(normalize(mname));
 									const lnameMatch = cleanText.includes(normalize(lname));
 									const extMatch = ext ? cleanText.includes(normalize(ext)) : true;
 
+									let nameResult = "";
 									if (fnameMatch && mnameMatch && lnameMatch && extMatch) {
-										Swal.fire({
-											icon: 'success',
-											title: 'Match Found',
-											text: '✅ Name matched successfully!',
-											confirmButtonColor: '#198754'
-										});
+										nameResult = "✅ Name matched successfully!";
 									} else {
-										let unmatched = [];
+										const unmatched = [];
 										if (!fnameMatch) unmatched.push("First Name");
 										if (!mnameMatch) unmatched.push("Middle Name");
 										if (!lnameMatch) unmatched.push("Last Name");
 										if (!extMatch) unmatched.push("Extension");
-
-										Swal.fire({
-											icon: 'error',
-											title: 'Name Mismatch',
-											text: `❌ ${unmatched.join(", ")} not found on the ID.`,
-											confirmButtonColor: '#dc3545'
-										});
-										document.getElementById('ic_image').value = "";
+										nameResult = `❌ ${unmatched.join(", ")} not found on the ID.`;
 									}
+
+									Swal.fire({
+										icon: extractedIdNumber ? 'success' : 'warning',
+										title: extractedIdNumber ? 'ID Number Detected' : 'ID Number Not Found',
+										html: `
+				<div><b>Detected ID Type:</b> ${detectedType}</div>
+				<div><b>ID Number:</b> ${extractedIdNumber || '<i>Not Detected</i>'}</div>
+				<div class="mt-2">${nameResult}</div>
+			`,
+										confirmButtonColor: '#198754'
+									});
 								}).catch(err => {
 									console.error(err);
 									Swal.fire({
 										icon: 'error',
 										title: 'OCR Error',
-										text: '⚠️ Error processing the image. Please try again.',
+										text: 'There was an error reading the ID image. Please try again.',
 										confirmButtonColor: '#dc3545'
 									});
 								});
 							});
 						</script>
+
+
+
 						<div class="col-md-2">
 							<div class="mb-3">
 								<label class="form-label">Others</label>

@@ -139,6 +139,12 @@
             <p>Resources Inventory</p>
           </a>
         </li>
+        <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'resource_inventory.php' ? 'menu-open' : ''; ?>">
+          <a href="#" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'resource_inventory.php' ? 'active' : ''; ?>">
+            <i class="nav-icon bi bi-boxes"></i>
+            <p>Reports</p>
+          </a>
+        </li>
       </ul>
       <!--end::Sidebar Menu-->
     </nav>
