@@ -483,7 +483,7 @@ GROUP BY classification";
     </script>
     <script>
       const ageLabels = <?= json_encode(array_keys($ageGroups)) ?>;
-      const ageData = [2212];
+      const ageData = <?= json_encode(array_values($ageGroups)) ?>;
 
       const ageCtx = document.getElementById('ageChart').getContext('2d');
       new Chart(ageCtx, {

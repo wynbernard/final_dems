@@ -25,7 +25,7 @@ try {
 
 	// Prepare statements
 	$checkStmt = $conn->prepare("SELECT pre_reg_id FROM evac_reg_table WHERE pre_reg_id = ?");
-	$insertStmt = $conn->prepare("INSERT INTO evac_reg_table (room_id, pre_reg_id, evac_loc_id, date_reg) VALUES (?, ?, ?, CURDATE())");
+	$insertStmt = $conn->prepare("INSERT INTO evac_reg_table (room_id, pre_reg_id, evac_loc_id, date_reg ,status) VALUES (?, ?, ?, CURDATE(),'Evacuated')");
 	$logStmt = $conn->prepare("INSERT INTO logs_table (evac_reg_id, status, date_time) VALUES (?, ?, NOW())");
 
 	if (!$checkStmt || !$insertStmt || !$logStmt) {

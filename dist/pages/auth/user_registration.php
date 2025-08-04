@@ -66,6 +66,7 @@
 								<label class="form-label">Name Extension</label>
 								<select class="form-control" name="name_extension" id="name_extension">
 									<option value="" disabled selected>-- Select Extension --</option>
+									<option value="">None</option>
 									<option value="jr">Jr.</option>
 									<option value="sr">Sr.</option>
 									<option value="i">I</option>
@@ -330,6 +331,15 @@
 						</div>
 						<div class="col-md-4">
 							<div class="mb-3">
+								<label class="form-label fw-semibold">Upload Image of ID Card Presented <span class="text-danger">*</span></label>
+								<input type="file" name="ic_image" id="ic_image" class="form-control" accept="image/*" required onchange="previewIdCard(event)">
+								<div class="mt-2">
+									<img id="idCardPreview" src="#" alt="ID Card Preview" style="max-width: 100%; max-height: 200px; display: none; border: 1px solid #ccc; padding: 5px;" />
+								</div>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
 								<label for="icp" class="form-label">ID Card Presented <span class="text-danger">*</span></label>
 								<select name="icp" id="icp" class="form-select" required onchange="updateIDCardFormat()">
 									<option value="" disabled selected>Select ID Card</option>
@@ -345,8 +355,6 @@
 								</select>
 							</div>
 						</div>
-
-
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">ID Card Number <span class="text-danger">*</span></label>
@@ -354,15 +362,7 @@
 							</div>
 						</div>
 						<!-- ID Upload Input -->
-						<div class="col-md-4">
-							<div class="mb-3">
-								<label class="form-label fw-semibold">Upload Image of ID Card Presented <span class="text-danger">*</span></label>
-								<input type="file" name="ic_image" id="ic_image" class="form-control" accept="image/*" required onchange="previewIdCard(event)">
-								<div class="mt-2">
-									<img id="idCardPreview" src="#" alt="ID Card Preview" style="max-width: 100%; max-height: 200px; display: none; border: 1px solid #ccc; padding: 5px;" />
-								</div>
-							</div>
-						</div>
+
 						<script>
 							function previewIdCard(event) {
 								const input = event.target;
@@ -469,7 +469,7 @@
 									const extractedIdNumber = idNumberMatch ? idNumberMatch[0] : "";
 									document.getElementById('icn').value = extractedIdNumber;
 
-									// ID type detection keywords from OCR
+									// ID type detection
 									const idTypeMap = {
 										"philippine national id": "Philippine National ID",
 										"philsys": "Philippine National ID",
@@ -492,7 +492,7 @@
 										}
 									}
 
-									// If not found in text, detect by ID number format
+									// Fallback detection based on format
 									if (detectedType === "Unknown") {
 										if (/^\d{4}-\d{4}-\d{4}-\d{4}$/.test(extractedIdNumber)) {
 											detectedType = "Philippine National ID";
@@ -507,42 +507,54 @@
 										}
 									}
 
-									// Update select dropdown if found
+									// Update select dropdown
 									const matchOption = Array.from(idSelect.options).find(opt => opt.value === detectedType);
 									if (matchOption) {
 										idSelect.value = detectedType;
 									}
 
-									// Match names
+									// Name matching
 									const fnameMatch = cleanText.includes(normalize(fname));
 									const mnameMatch = cleanText.includes(normalize(mname));
 									const lnameMatch = cleanText.includes(normalize(lname));
 									const extMatch = ext ? cleanText.includes(normalize(ext)) : true;
 
-									let nameResult = "";
+									// Final validation
 									if (fnameMatch && mnameMatch && lnameMatch && extMatch) {
-										nameResult = "✅ Name matched successfully!";
+										Swal.fire({
+											icon: extractedIdNumber ? 'success' : 'warning',
+											title: extractedIdNumber ? 'ID Number Detected' : 'ID Number Not Found',
+											html: `
+						<div><b>Detected ID Type:</b> ${detectedType}</div>
+						<div><b>ID Number:</b> ${extractedIdNumber || '<i>Not Detected</i>'}</div>
+						<div class="mt-2">✅ Name matched successfully!</div>
+					`,
+											confirmButtonColor: '#198754'
+										});
 									} else {
+										// Remove the uploaded image if names do not match
+										document.getElementById('ic_image').value = "";
+
 										const unmatched = [];
 										if (!fnameMatch) unmatched.push("First Name");
 										if (!mnameMatch) unmatched.push("Middle Name");
 										if (!lnameMatch) unmatched.push("Last Name");
 										if (!extMatch) unmatched.push("Extension");
-										nameResult = `❌ ${unmatched.join(", ")} not found on the ID.`;
-									}
 
-									Swal.fire({
-										icon: extractedIdNumber ? 'success' : 'warning',
-										title: extractedIdNumber ? 'ID Number Detected' : 'ID Number Not Found',
-										html: `
-				<div><b>Detected ID Type:</b> ${detectedType}</div>
-				<div><b>ID Number:</b> ${extractedIdNumber || '<i>Not Detected</i>'}</div>
-				<div class="mt-2">${nameResult}</div>
-			`,
-										confirmButtonColor: '#198754'
-									});
+										Swal.fire({
+											icon: 'error',
+											title: 'Name Mismatch',
+											html: `
+						<div><b>Detected ID Type:</b> ${detectedType}</div>
+						<div><b>ID Number:</b> ${extractedIdNumber || '<i>Not Detected</i>'}</div>
+						<div class="mt-2">❌ ${unmatched.join(", ")} not found on the ID.<br>The uploaded image has been cleared.</div>
+					`,
+											confirmButtonColor: '#dc3545'
+										});
+									}
 								}).catch(err => {
 									console.error(err);
+									document.getElementById('ic_image').value = "";
 									Swal.fire({
 										icon: 'error',
 										title: 'OCR Error',
@@ -552,9 +564,6 @@
 								});
 							});
 						</script>
-
-
-
 						<div class="col-md-2">
 							<div class="mb-3">
 								<label class="form-label">Others</label>
