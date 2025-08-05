@@ -746,7 +746,7 @@
 
 			} catch (error) {
 				console.error("Registration error:", error);
-				showAlert("Failed to complete registration", "danger");
+		showAlert("Failed to complete registration: " + error.message, "danger");
 			}
 		}
 

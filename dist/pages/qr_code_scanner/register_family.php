@@ -1,82 +1,135 @@
 <?php
 header("Content-Type: application/json");
-include '../../../database/session.php'; // Assumes $conn (MySQLi) is set
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/php-error.log');
+error_reporting(E_ALL);
+
+include '../../../database/session.php'; // $conn must be available
 
 try {
-	// Decode the incoming JSON request
-	$data = json_decode(file_get_contents("php://input"), true);
+    $data = json_decode(file_get_contents("php://input"), true);
 
-	// Extract parameters from the request
-	$roomId = $data['room_id'] ?? null;
-	$memberIds = $data['member_ids'] ?? [];
-	$locationId = $data['location_id'] ?? null;
+    $roomId = $data['room_id'] ?? null;
+    $memberIds = $data['member_ids'] ?? [];
+    $locationId = $data['location_id'] ?? null;
 
-	// Check if all required parameters are present
-	if (!$roomId || !is_array($memberIds) || count($memberIds) === 0 || !$locationId) {
-		http_response_code(400);
-		throw new Exception("Invalid input data: missing room, members, or location.");
-	}
+    if (!$roomId || !is_array($memberIds) || count($memberIds) === 0 || !$locationId) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'error' => "Missing required input: room, members, or location."
+        ]);
+        exit;
+    }
 
-	// Begin the transaction
-	$conn->begin_transaction();
+    $conn->begin_transaction();
 
-	$successCount = 0;
-	$skipped = [];
+    $successCount = 0;
+    $soloCount = 0;
+    $familyCount = 0;
+    $skipped = [];
 
-	// Prepare statements
-	$checkStmt = $conn->prepare("SELECT pre_reg_id FROM evac_reg_table WHERE pre_reg_id = ?");
-	$insertStmt = $conn->prepare("INSERT INTO evac_reg_table (room_id, pre_reg_id, evac_loc_id, date_reg ,status) VALUES (?, ?, ?, CURDATE(),'Evacuated')");
-	$logStmt = $conn->prepare("INSERT INTO logs_table (evac_reg_id, status, date_time) VALUES (?, ?, NOW())");
+    // Prepare statements
+    $checkStmt = $conn->prepare("SELECT pre_reg_id FROM evac_reg_table WHERE pre_reg_id = ?");
+    $insertStmt = $conn->prepare("INSERT INTO evac_reg_table (room_id, pre_reg_id, evac_loc_id, date_reg, status) VALUES (?, ?, ?, CURDATE(), 'Evacuated')");
+    $logStmt = $conn->prepare("INSERT INTO logs_table (evac_reg_id, status, date_time) VALUES (?, ?, NOW())");
+    $typeStmt = $conn->prepare("SELECT registered_as FROM pre_reg_table WHERE pre_reg_id = ?");
+    $recordCheck = $conn->prepare("SELECT evacuation_id FROM evacuation_record_table WHERE evacuation_location = ? AND end_date IS NULL");
+    $recordInsert = $conn->prepare("INSERT INTO evacuation_record_table (evacuation_location, start_date, total_solo, total_family, total_evacuation) VALUES (?, NOW(), ?, ?, ?)");
+    $recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = total_solo + ?, total_family = total_family + ?, total_evacuation = total_evacuation + ? WHERE evacuation_id = ?");
+    $locationStmt = $conn->prepare("SELECT name FROM evac_loc_table WHERE evac_loc_id = ?");
 
-	if (!$checkStmt || !$insertStmt || !$logStmt) {
-		throw new Exception("Statement preparation failed: " . $conn->error);
-	}
+    if (!$checkStmt || !$insertStmt || !$logStmt || !$typeStmt || !$recordCheck || !$recordInsert || !$recordUpdate || !$locationStmt) {
+        throw new Exception("Statement preparation failed: " . $conn->error);
+    }
 
-	// Loop through the selected members and register them
-	foreach ($memberIds as $memberId) {
-		// Check if the member is already registered
-		$checkStmt->bind_param("i", $memberId);
-		$checkStmt->execute();
-		$checkStmt->store_result();
+    foreach ($memberIds as $memberId) {
+        $checkStmt->bind_param("i", $memberId);
+        $checkStmt->execute();
+        $checkStmt->store_result();
 
-		if ($checkStmt->num_rows === 0) {
-			// Register the member
-			$insertStmt->bind_param("iii", $roomId, $memberId, $locationId);
-			if (!$insertStmt->execute()) {
-				throw new Exception("Insert failed for member ID $memberId: " . $insertStmt->error);
-			}
-			$evacRegId = $insertStmt->insert_id;
+        if ($checkStmt->num_rows === 0) {
+            // Insert new registration
+            $insertStmt->bind_param("iii", $roomId, $memberId, $locationId);
+            if (!$insertStmt->execute()) {
+                throw new Exception("Insert failed for member ID $memberId: " . $insertStmt->error);
+            }
 
-			// Log the registration
-			$status = 'In';
-			$logStmt->bind_param("is", $evacRegId, $status);
-			if (!$logStmt->execute()) {
-				throw new Exception("Logging failed for evac_reg_id $evacRegId: " . $logStmt->error);
-			}
+            $evacRegId = $insertStmt->insert_id;
+            $status = 'In';
+            $logStmt->bind_param("is", $evacRegId, $status);
+            $logStmt->execute();
 
-			$successCount++;
-		} else {
-			$skipped[] = $memberId;
-		}
-	}
+            // Check registration type
+            $typeStmt->bind_param("i", $memberId);
+            $typeStmt->execute();
+            $typeResult = $typeStmt->get_result();
 
-	// Commit the transaction
-	$conn->commit();
+            if ($typeResult && $typeRow = $typeResult->fetch_assoc()) {
+                $groupType = strtolower($typeRow['registered_as']);
+                if ($groupType === 'solo') {
+                    $soloCount++;
+                } else if ($groupType === 'family') {
+                    $familyCount++;  // This counts family members individually
+                }
+            }
 
-	echo json_encode([
-		'success' => true,
-		'success_count' => $successCount,
-		'skipped_members' => $skipped,
-		'message' => 'Members registered successfully.'
-	]);
+            $successCount++;
+        } else {
+            $skipped[] = $memberId;
+        }
+    }
+
+    // Final individual count
+    $totalEvacuees = $successCount;
+
+    // Get location name
+    $locationStmt->bind_param("i", $locationId);
+    $locationStmt->execute();
+    $locationResult = $locationStmt->get_result();
+    if ($locationRow = $locationResult->fetch_assoc()) {
+        $locationName = $locationRow['name'];
+    } else {
+        throw new Exception("Location name not found for ID: $locationId");
+    }
+
+    // Update or insert evacuation record
+    $recordCheck->bind_param("s", $locationName);
+    $recordCheck->execute();
+    $recordCheck->store_result();
+
+    if ($recordCheck->num_rows > 0) {
+        $recordCheck->bind_result($evacuationId);
+        $recordCheck->fetch();
+        $recordUpdate->bind_param("iiii", $soloCount, $familyCount, $totalEvacuees, $evacuationId);
+        $recordUpdate->execute();
+    } else {
+        $recordInsert->bind_param("siii", $locationName, $soloCount, $familyCount, $totalEvacuees);
+        $recordInsert->execute();
+    }
+
+    $conn->commit();
+
+    echo json_encode([
+        'success' => true,
+        'success_count' => $successCount,
+        'skipped_members' => $skipped,
+        'message' => 'Registration complete.'
+    ]);
 } catch (Exception $e) {
-	if ($conn->errno) $conn->rollback();
-	error_log("Registration Error: " . $e->getMessage());
-	http_response_code(500);
-	echo json_encode([
-		'success' => false,
-		'error' => $e->getMessage()
-	]);
+    if ($conn->errno) {
+        $conn->rollback();
+    }
+
+    error_log("Register error: " . $e->getMessage());
+
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => "Server error: " . $e->getMessage()
+    ]);
 }
 
 $conn->close();
+?>

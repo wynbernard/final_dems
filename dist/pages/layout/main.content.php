@@ -327,66 +327,86 @@ GROUP BY classification";
         </div>
       </div>
     </div>
-    <?php
-    $query = "SELECT evacuation_location AS evacuation_center, start_date, end_date, total_evacuation AS total_evacuees 
+<?php
+$query = "SELECT 
+            evacuation_location AS evacuation_center, 
+            start_date, 
+            end_date, 
+            total_evacuation AS total_evacuees,
+            CASE 
+              WHEN end_date IS NULL OR end_date = '0000-00-00 00:00:00' THEN 'Ongoing'
+              ELSE 'Completed'
+            END AS event_status
           FROM evacuation_record_table 
-          ORDER BY start_date DESC 
+          ORDER BY start_date ASC 
           LIMIT 100";
 
-    $result = mysqli_query($conn, $query);
+$result = mysqli_query($conn, $query);
 
-    $analyticsByCenter = [];
+$analyticsByCenter = [];
 
-    while ($row = mysqli_fetch_assoc($result)) {
-      $center = $row['evacuation_center'];
-      $startDate = date('M d, Y', strtotime($row['start_date']));
-      $count = (int) $row['total_evacuees'];
-      $endDateRaw = $row['end_date'];
-      $endDate = $endDateRaw ? date('M d, Y', strtotime($endDateRaw)) : null;
+while ($row = mysqli_fetch_assoc($result)) {
+  $center = $row['evacuation_center'];
+  $startDate = date('M d, Y', strtotime($row['start_date']));
+  $count = (int) $row['total_evacuees'];
+  $status = $row['event_status']; // 'Ongoing' or 'Completed'
 
-      if (!isset($analyticsByCenter[$center])) {
-        $analyticsByCenter[$center] = [
-          'labels' => [],
-          'completed' => [],
-          'ongoing' => [],
-        ];
-      }
+  if (!isset($analyticsByCenter[$center])) {
+    $analyticsByCenter[$center] = [
+      'labels' => [],
+      'completed' => [],
+      'ongoing' => [],
+    ];
+  }
 
-      $analyticsByCenter[$center]['labels'][] = $startDate;
+  $analyticsByCenter[$center]['labels'][] = $startDate;
 
-      if ($endDate === null) {
-        $analyticsByCenter[$center]['ongoing'][] = $count;
-        $analyticsByCenter[$center]['completed'][] = null; // keep alignment
-      } else {
-        $analyticsByCenter[$center]['completed'][] = $count;
-        $analyticsByCenter[$center]['ongoing'][] = null; // keep alignment
-      }
-    }
-    ?>
+  if ($status === 'Ongoing') {
+    $analyticsByCenter[$center]['ongoing'][] = $count;
+    $analyticsByCenter[$center]['completed'][] = null;
+  } else {
+    $analyticsByCenter[$center]['completed'][] = $count;
+    $analyticsByCenter[$center]['ongoing'][] = null;
+  }
+}
+?>
 
-    <div class="row mb-4 mt-4">
-      <div class="col-12">
-        <div class="card shadow-sm border-0">
-          <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <span>Evacuation Statistics</span>
-            <select id="evacuationCenterSelect" class="form-select w-auto">
-              <option value="all">All Centers</option>
-              <?php foreach ($analyticsByCenter as $centerName => $data): ?>
-                <option value="<?= htmlspecialchars($centerName) ?>">
-                  <?= htmlspecialchars($centerName) ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-          <div class="card-body">
-            <canvas id="evacStatChart" height="100"></canvas>
-            <p id="evacuationLocationText" class="text-muted text-center mt-3">
-              Showing data for all evacuation centers.
-            </p>
-          </div>
-        </div>
+<script>
+  const ongoingEvents = <?= json_encode($ongoingDebug) ?>;
+
+  if (ongoingEvents.length > 0) {
+    let alertMessage = "Ongoing Evacuation Events:\n\n";
+    ongoingEvents.forEach(event => {
+      alertMessage += `📍 ${event.center}\n🗓️ Started: ${event.start_date}\n👥 Evacuees: ${event.evacuees}\n\n`;
+    });
+    alert(alertMessage);
+  }
+</script>
+
+
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <span>Evacuation Statistics</span>
+        <select id="evacuationCenterSelect" class="form-select w-auto">
+          <?php foreach ($analyticsByCenter as $centerName => $data): ?>
+            <option value="<?= htmlspecialchars($centerName) ?>">
+              <?= htmlspecialchars($centerName) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="card-body">
+        <canvas id="evacStatChart" height="100"></canvas>
+        <p id="evacuationLocationText" class="text-muted text-center mt-3">
+          Showing data for all evacuation centers.
+        </p>
       </div>
     </div>
+  </div>
+</div>
+
 
 
     <!-- Age Group and Evacuee Type Charts -->
@@ -457,135 +477,128 @@ GROUP BY classification";
       }
     }
     ?>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-      const analyticsByCenter = <?= json_encode($analyticsByCenter) ?>;
-      const ctxEvacStat = document.getElementById('evacStatChart').getContext('2d');
-      const locationText = document.getElementById('evacuationLocationText');
-      const centerSelect = document.getElementById('evacuationCenterSelect');
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const evacuationData = <?= json_encode($analyticsByCenter) ?>;
+const ctx = document.getElementById('evacStatChart').getContext('2d');
+const select = document.getElementById('evacuationCenterSelect');
+const labelDisplay = document.getElementById('evacuationLocationText');
 
-      let evacChart;
+let evacChart;
 
-      function renderChart(centerName) {
-        const dataSet = centerName === "all" ?
-          mergeAllCenters(analyticsByCenter) :
-          analyticsByCenter[centerName];
+function renderChart(centerName) {
+  const centerData = evacuationData[centerName];
+  const labels = centerData.labels;
+  const completed = centerData.completed;
+  const ongoing = centerData.ongoing;
 
-        if (evacChart) evacChart.destroy();
+  // Merge data into one array: pick non-null from completed or ongoing
+  const mergedData = completed.map((val, i) => val !== null ? val : ongoing[i]);
 
-        evacChart = new Chart(ctxEvacStat, {
-          type: 'line',
-          data: {
-            labels: dataSet.labels,
-            datasets: [{
-                label: 'Completed Events',
-                data: dataSet.completed,
-                fill: false,
-                borderColor: '#4dc9f6', // Blue
-                backgroundColor: '#4dc9f6',
-                tension: 0.3,
-                pointRadius: 5,
-                pointHoverRadius: 7,
-                borderWidth: 3,
-              },
-              {
-                label: 'Ongoing Events',
-                data: dataSet.ongoing,
-                fill: false,
-                borderColor: '#ffa726', // Orange
-                backgroundColor: '#ffa726',
-                tension: 0.3,
-                pointRadius: 5,
-                pointHoverRadius: 7,
-                borderWidth: 3,
-              }
-            ]
+  labelDisplay.textContent = `Showing data for: ${centerName}`;
+
+  if (evacChart) evacChart.destroy();
+
+  evacChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Evacuation Events',
+          data: mergedData,
+          borderColor: '#2980b9',
+          backgroundColor: 'rgba(46, 204, 113, 0.1)',  // greenish fill below
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true,
+          spanGaps: true,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          pointBackgroundColor: (ctx) => {
+            const index = ctx.dataIndex;
+            return ongoing[index] !== null ? '#2ecc71' : '#3498db';
           },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                display: true
-              },
-              title: {
-                display: true,
-                text: `Evacuation Statistics (${centerName === "all" ? "All Centers" : centerName})`
-              }
-            },
-            scales: {
-              x: {
-                ticks: {
-                  color: '#888',
-                  font: {
-                    size: 12
-                  }
-                },
-                grid: {
-                  display: false
-                }
-              },
-              y: {
-                beginAtZero: true,
-                ticks: {
-                  color: '#888',
-                  font: {
-                    size: 12
-                  },
-                  stepSize: 1000
-                },
-                grid: {
-                  color: '#eee'
-                }
-              }
-            }
+          pointBorderColor: (ctx) => {
+            const index = ctx.dataIndex;
+            return ongoing[index] !== null ? '#27ae60' : '#2980b9';
+          },
+          pointStyle: (ctx) => {
+            const index = ctx.dataIndex;
+            return ongoing[index] !== null ? 'triangle' : 'circle';
           }
-        });
-
-        // Update text
-        locationText.textContent =
-          centerName === "all" ?
-          "Showing data for all evacuation centers." :
-          `Location: ${centerName}`;
-      }
-
-      function mergeAllCenters(data) {
-        const merged = {};
-        const labelsSet = new Set();
-
-        // Collect all labels
-        for (const center in data) {
-          data[center].labels.forEach(l => labelsSet.add(l));
         }
-
-        const allLabels = Array.from(labelsSet).sort((a, b) => new Date(a) - new Date(b));
-        const completed = new Array(allLabels.length).fill(0);
-        const ongoing = new Array(allLabels.length).fill(0);
-
-        allLabels.forEach((label, i) => {
-          for (const center in data) {
-            const index = data[center].labels.indexOf(label);
-            if (index !== -1) {
-              if (data[center].completed[index]) completed[i] += data[center].completed[index];
-              if (data[center].ongoing[index]) ongoing[i] += data[center].ongoing[index];
+      ]
+    },
+    options: {
+  responsive: true,
+  plugins: {
+    legend: {
+      display: true,
+      labels: {
+        generateLabels: function(chart) {
+          return [
+            {
+              text: 'Completed Event',
+              fillStyle: '#3498db',
+              strokeStyle: '#2980b9',
+              pointStyle: 'circle',
+              lineWidth: 2
+            },
+            {
+              text: 'Ongoing Event',
+              fillStyle: '#2ecc71',
+              strokeStyle: '#27ae60',
+              pointStyle: 'triangle',
+              lineWidth: 2
             }
-          }
-        });
-
-        return {
-          labels: allLabels,
-          completed,
-          ongoing
-        };
+          ];
+        },
+        usePointStyle: true,
+        boxWidth: 12,
+        font: { size: 13 }
       }
+    },
+    title: {
+      display: true,
+      text: 'Evacuation Statistics',
+      color: '#2c3e50',
+      font: { size: 20 }
+    },
+    tooltip: {
+      callbacks: {
+        label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} evacuees`
+      }
+    }
+  },
+  scales: {
+    x: {
+      ticks: {
+        color: '#34495e',
+        font: { size: 12 }
+      },
+      grid: { display: false }
+    },
+    y: {
+      beginAtZero: true,
+      ticks: {
+        color: '#34495e',
+        font: { size: 12 }
+      },
+      grid: {
+        color: '#ecf0f1'
+      }
+    }
+  }
+}
+  });
+}
 
-      // Initial render
-      renderChart("all");
+renderChart(select.value);
+select.addEventListener('change', () => renderChart(select.value));
+</script>
 
-      // Dropdown change
-      centerSelect.addEventListener('change', function() {
-        renderChart(this.value);
-      });
-    </script>
+
 
     <script>
       const ageLabels = <?= json_encode(array_keys($ageGroups)) ?>;
@@ -769,7 +782,7 @@ GROUP BY classification";
         right: 0;
         top: 0;
         transition: transform 0.2s;
-      }
+      } 
 
       .small-box-footer:hover::after {
         transform: translateX(4px);
@@ -801,3 +814,8 @@ GROUP BY classification";
         color: #0a58ca;
       }
     </style>
+  </div>
+  <!--end::Container-->
+</div>
+<!--end::App Content-->
+ 
