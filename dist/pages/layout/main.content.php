@@ -327,22 +327,67 @@ GROUP BY classification";
         </div>
       </div>
     </div>
+    <?php
+    $query = "SELECT evacuation_location AS evacuation_center, start_date, end_date, total_evacuation AS total_evacuees 
+          FROM evacuation_record_table 
+          ORDER BY start_date DESC 
+          LIMIT 100";
 
-    <!-- Evacuation Statistics (Last 7 Records) -->
+    $result = mysqli_query($conn, $query);
+
+    $analyticsByCenter = [];
+
+    while ($row = mysqli_fetch_assoc($result)) {
+      $center = $row['evacuation_center'];
+      $startDate = date('M d, Y', strtotime($row['start_date']));
+      $count = (int) $row['total_evacuees'];
+      $endDateRaw = $row['end_date'];
+      $endDate = $endDateRaw ? date('M d, Y', strtotime($endDateRaw)) : null;
+
+      if (!isset($analyticsByCenter[$center])) {
+        $analyticsByCenter[$center] = [
+          'labels' => [],
+          'completed' => [],
+          'ongoing' => [],
+        ];
+      }
+
+      $analyticsByCenter[$center]['labels'][] = $startDate;
+
+      if ($endDate === null) {
+        $analyticsByCenter[$center]['ongoing'][] = $count;
+        $analyticsByCenter[$center]['completed'][] = null; // keep alignment
+      } else {
+        $analyticsByCenter[$center]['completed'][] = $count;
+        $analyticsByCenter[$center]['ongoing'][] = null; // keep alignment
+      }
+    }
+    ?>
+
     <div class="row mb-4 mt-4">
       <div class="col-12">
         <div class="card shadow-sm border-0">
-          <div class="card-header bg-primary text-white">Evacuation Statistics</div>
+          <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <span>Evacuation Statistics</span>
+            <select id="evacuationCenterSelect" class="form-select w-auto">
+              <option value="all">All Centers</option>
+              <?php foreach ($analyticsByCenter as $centerName => $data): ?>
+                <option value="<?= htmlspecialchars($centerName) ?>">
+                  <?= htmlspecialchars($centerName) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
           <div class="card-body">
-            <div class="row justify-content-center">
-              <div class="col-md-10">
-                <canvas id="evacStatChart" height="100"></canvas>
-              </div>
-            </div>
+            <canvas id="evacStatChart" height="100"></canvas>
+            <p id="evacuationLocationText" class="text-muted text-center mt-3">
+              Showing data for all evacuation centers.
+            </p>
           </div>
         </div>
       </div>
     </div>
+
 
     <!-- Age Group and Evacuee Type Charts -->
     <div class="row mt-4">
@@ -412,75 +457,136 @@ GROUP BY classification";
       }
     }
     ?>
-
-
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-      // Statistic Graph: Start Date - End Date as X-axis (Last 7 Records) - LINE CHART
-      const evacStatLabels = <?= json_encode($analyticsLabels) ?>;
-      const evacStatData = <?= json_encode($analyticsTrend) ?>;
+      const analyticsByCenter = <?= json_encode($analyticsByCenter) ?>;
       const ctxEvacStat = document.getElementById('evacStatChart').getContext('2d');
-      new Chart(ctxEvacStat, {
-        type: 'line',
-        data: {
-          labels: evacStatLabels,
-          datasets: [{
-            label: 'Total Evacuees',
-            data: evacStatData,
-            fill: false,
-            borderColor: '#4dc9f6',
-            backgroundColor: '#4dc9f6',
-            tension: 0.3,
-            pointBackgroundColor: '#fff',
-            pointBorderColor: '#4dc9f6',
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            borderWidth: 3
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: {
-              display: true
-            },
-            title: {
-              display: true,
-              text: 'Evacuation Statistics (Last 7 Records)'
-            }
-          },
-          scales: {
-            x: {
-              ticks: {
-                color: '#888',
-                font: {
-                  size: 12
-                },
-                maxRotation: 45,
-                minRotation: 0
+      const locationText = document.getElementById('evacuationLocationText');
+      const centerSelect = document.getElementById('evacuationCenterSelect');
+
+      let evacChart;
+
+      function renderChart(centerName) {
+        const dataSet = centerName === "all" ?
+          mergeAllCenters(analyticsByCenter) :
+          analyticsByCenter[centerName];
+
+        if (evacChart) evacChart.destroy();
+
+        evacChart = new Chart(ctxEvacStat, {
+          type: 'line',
+          data: {
+            labels: dataSet.labels,
+            datasets: [{
+                label: 'Completed Events',
+                data: dataSet.completed,
+                fill: false,
+                borderColor: '#4dc9f6', // Blue
+                backgroundColor: '#4dc9f6',
+                tension: 0.3,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                borderWidth: 3,
               },
-              grid: {
-                display: false
+              {
+                label: 'Ongoing Events',
+                data: dataSet.ongoing,
+                fill: false,
+                borderColor: '#ffa726', // Orange
+                backgroundColor: '#ffa726',
+                tension: 0.3,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                borderWidth: 3,
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                display: true
+              },
+              title: {
+                display: true,
+                text: `Evacuation Statistics (${centerName === "all" ? "All Centers" : centerName})`
               }
             },
-            y: {
-              beginAtZero: true,
-              ticks: {
-                stepSize: 1000,
-                color: '#888',
-                font: {
-                  size: 12
+            scales: {
+              x: {
+                ticks: {
+                  color: '#888',
+                  font: {
+                    size: 12
+                  }
+                },
+                grid: {
+                  display: false
                 }
               },
-              grid: {
-                color: '#eee'
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  color: '#888',
+                  font: {
+                    size: 12
+                  },
+                  stepSize: 1000
+                },
+                grid: {
+                  color: '#eee'
+                }
               }
             }
           }
+        });
+
+        // Update text
+        locationText.textContent =
+          centerName === "all" ?
+          "Showing data for all evacuation centers." :
+          `Location: ${centerName}`;
+      }
+
+      function mergeAllCenters(data) {
+        const merged = {};
+        const labelsSet = new Set();
+
+        // Collect all labels
+        for (const center in data) {
+          data[center].labels.forEach(l => labelsSet.add(l));
         }
+
+        const allLabels = Array.from(labelsSet).sort((a, b) => new Date(a) - new Date(b));
+        const completed = new Array(allLabels.length).fill(0);
+        const ongoing = new Array(allLabels.length).fill(0);
+
+        allLabels.forEach((label, i) => {
+          for (const center in data) {
+            const index = data[center].labels.indexOf(label);
+            if (index !== -1) {
+              if (data[center].completed[index]) completed[i] += data[center].completed[index];
+              if (data[center].ongoing[index]) ongoing[i] += data[center].ongoing[index];
+            }
+          }
+        });
+
+        return {
+          labels: allLabels,
+          completed,
+          ongoing
+        };
+      }
+
+      // Initial render
+      renderChart("all");
+
+      // Dropdown change
+      centerSelect.addEventListener('change', function() {
+        renderChart(this.value);
       });
     </script>
+
     <script>
       const ageLabels = <?= json_encode(array_keys($ageGroups)) ?>;
       const ageData = <?= json_encode(array_values($ageGroups)) ?>;

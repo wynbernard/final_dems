@@ -1,111 +1,143 @@
 <script>
-	let qrScanner;
-	let availableCameras = [];
-	let lastScannedId = null;
-	let debounceTimeout = null;
+	document.getElementById('ic_image').addEventListener('change', function() {
+		const file = this.files[0];
+		const fname = document.getElementById('f_name').value.trim().toLowerCase();
+		const mname = document.getElementById('m_name').value.trim().toLowerCase();
+		const lname = document.getElementById('l_name').value.trim().toLowerCase();
+		const ext = document.getElementById('name_extension').value.trim().toLowerCase();
+		const idSelect = document.getElementById('icp');
 
-	async function initCameraList() {
-		const select = document.getElementById("cameraSelect");
-		select.innerHTML = "";
-		availableCameras = await Html5Qrcode.getCameras();
-		availableCameras.forEach(cam => {
-			const option = document.createElement("option");
-			option.value = cam.id;
-			option.text = cam.label;
-			select.appendChild(option);
+		if (!file || !fname || !mname || !lname) {
+			Swal.fire({
+				icon: 'warning',
+				title: 'Missing Input',
+				text: 'Please fill out first, middle, and last name before uploading the ID.'
+			});
+			this.value = "";
+			return;
+		}
+
+		Swal.fire({
+			title: 'Checking ID...',
+			html: 'Extracting text from the ID image.<br><b>Please wait.</b>',
+			allowOutsideClick: false,
+			didOpen: () => Swal.showLoading()
 		});
-	}
 
-	async function startScanner() {
-		const cameraId = document.getElementById("cameraSelect").value;
-		qrScanner = new Html5Qrcode("qr-reader");
+		Tesseract.recognize(file, 'eng', {
+			logger: m => {
+				if (m.status === "recognizing text") {
+					Swal.update({
+						html: `Extracting text... <b>${Math.round(m.progress * 100)}%</b>`
+					});
+				}
+			}
+		}).then(({
+			data: {
+				text
+			}
+		}) => {
+			const normalize = str =>
+				str.toLowerCase().replace(/[^\w\s\-\/]/gi, '').replace(/\s+/g, ' ').trim();
+			const cleanText = normalize(text);
 
-		try {
-			await qrScanner.start(
-				cameraId, {
-					fps: 10,
-					qrbox: 300
-				},
-				async (decodedText) => {
-						const match = decodedText.trim().match(/pre_reg(?:_id)?:\s*(\d+)/i);
-						if (!match) {
-							console.warn("Invalid QR format");
-							return;
-						}
-						const preRegId = match[1];
+			// Match ID number
+			const idNumberMatch = cleanText.match(/\b([A-Z0-9]{3,}-[A-Z0-9]{2,}-[A-Z0-9]{3,}(?:-[A-Z0-9]+)?)\b|\b\d{4}-\d{4}-\d{4}-\d{4}\b/);
+			const extractedIdNumber = idNumberMatch ? idNumberMatch[0] : "";
+			document.getElementById('icn').value = extractedIdNumber;
 
-						// Debounce to avoid processing same QR repeatedly
-						if (preRegId === lastScannedId) return;
-						lastScannedId = preRegId;
+			// ID type detection
+			const idTypeMap = {
+				"philippine national id": "Philippine National ID",
+				"philsys": "Philippine National ID",
+				"passport": "Passport",
+				"driver": "Driver's License",
+				"lto": "Driver's License",
+				"umid": "UMID",
+				"sss": "SSS ID",
+				"prc": "PRC ID",
+				"voter": "Voter's ID",
+				"tin": "TIN ID",
+				"philhealth": "PhilHealth ID"
+			};
 
-						clearTimeout(debounceTimeout);
-						debounceTimeout = setTimeout(() => {
-							lastScannedId = null;
-						}, 3000); // allow next scan after 3 seconds
+			let detectedType = "Unknown";
+			for (const keyword in idTypeMap) {
+				if (cleanText.includes(keyword)) {
+					detectedType = idTypeMap[keyword];
+					break;
+				}
+			}
 
-						console.log("Scanned ID:", preRegId);
+			// Fallback detection based on format
+			if (detectedType === "Unknown") {
+				if (/^\d{4}-\d{4}-\d{4}-\d{4}$/.test(extractedIdNumber)) {
+					detectedType = "Philippine National ID";
+				} else if (/^[A-Z]{1,3}-\d{2}-\d{6,7}$/.test(extractedIdNumber)) {
+					detectedType = "Driver's License";
+				} else if (/^\d{2}-\d{9,10}$/.test(extractedIdNumber)) {
+					detectedType = "PhilHealth ID";
+				} else if (/^\d{9}$/.test(extractedIdNumber)) {
+					detectedType = "TIN ID";
+				} else if (/^\d{2}-\d{7,10}$/.test(extractedIdNumber)) {
+					detectedType = "SSS ID";
+				}
+			}
 
-						try {
-							const response = await fetch(`../fetch_data/get_family_data.php?pre_reg_id=${encodeURIComponent(preRegId)}`);
-							if (!response.ok) throw new Error(`Server error ${response.status}`);
+			// Update select dropdown
+			const matchOption = Array.from(idSelect.options).find(opt => opt.value === detectedType);
+			if (matchOption) {
+				idSelect.value = detectedType;
+			}
 
-							const data = await response.json();
+			// Name matching
+			const fnameMatch = cleanText.includes(normalize(fname));
+			const mnameMatch = cleanText.includes(normalize(mname));
+			const lnameMatch = cleanText.includes(normalize(lname));
+			const extMatch = ext ? cleanText.includes(normalize(ext)) : true;
 
-							if (data.success && Array.isArray(data.family_members) && data.family_members.length > 0) {
-								const member = data.family_members[0];
+			// Final validation
+			if (fnameMatch && mnameMatch && lnameMatch && extMatch) {
+				Swal.fire({
+					icon: extractedIdNumber ? 'success' : 'warning',
+					title: extractedIdNumber ? 'ID Number Detected' : 'ID Number Not Found',
+					html: `
+						<div><b>Detected ID Type:</b> ${detectedType}</div>
+						<div><b>ID Number:</b> ${extractedIdNumber || '<i>Not Detected</i>'}</div>
+						<div class="mt-2">✅ Name matched successfully!</div>
+					`,
+					confirmButtonColor: '#198754'
+				});
+			} else {
+				// Remove the uploaded image if names do not match
+				document.getElementById('ic_image').value = "";
 
-								// Show results
-								document.getElementById("family-name").textContent = member.name || "N/A";
-								document.getElementById("input-idp-id").value = data.family_id || "";
-								document.getElementById("family-info").classList.remove("d-none");
+				const unmatched = [];
+				if (!fnameMatch) unmatched.push("First Name");
+				if (!mnameMatch) unmatched.push("Middle Name");
+				if (!lnameMatch) unmatched.push("Last Name");
+				if (!extMatch) unmatched.push("Extension");
 
-								// Optional: Sound or visual indicator
-								console.log("Scan successful.");
-							} else {
-								throw new Error("No matching family found.");
-							}
-						} catch (e) {
-							console.error("Fetch error:", e.message);
-						}
-					},
-					(errorMessage) => {
-						console.warn("QR Scan error:", errorMessage);
-					}
-			);
-
-			document.getElementById("startScannerBtn").disabled = true;
-			document.getElementById("stopScannerBtn").disabled = false;
-		} catch (err) {
-			console.error("Scanner start failed:", err);
-			alert("Unable to start camera.");
-		}
-	}
-
-	async function stopScanner() {
-		if (qrScanner) {
-			await qrScanner.stop();
-			await qrScanner.clear();
-			qrScanner = null;
-		}
-		document.getElementById("startScannerBtn").disabled = false;
-		document.getElementById("stopScannerBtn").disabled = true;
-	}
-
-	// Event Listeners
-	document.getElementById("startScannerBtn").addEventListener("click", startScanner);
-	document.getElementById("stopScannerBtn").addEventListener("click", stopScanner);
-
-	// Modal-related reset
-	document.getElementById("scanQRModal")?.addEventListener("shown.bs.modal", async () => {
-		await initCameraList();
-		document.getElementById("family-info").classList.add("d-none");
-		document.getElementById("family-name").textContent = "";
-		document.getElementById("input-idp-id").value = "";
+				Swal.fire({
+					icon: 'error',
+					title: 'Name Mismatch',
+					html: `
+						<div><b>Detected ID Type:</b> ${detectedType}</div>
+						<div><b>ID Number:</b> ${extractedIdNumber || '<i>Not Detected</i>'}</div>
+						<div class="mt-2">❌ ${unmatched.join(", ")} not found on the ID.<br>The uploaded image has been cleared.</div>
+					`,
+					confirmButtonColor: '#dc3545'
+				});
+			}
+		}).catch(err => {
+			console.error(err);
+			document.getElementById('ic_image').value = "";
+			Swal.fire({
+				icon: 'error',
+				title: 'OCR Error',
+				text: 'There was an error reading the ID image. Please try again.',
+				confirmButtonColor: '#dc3545'
+			});
+		});
 	});
-	document.getElementById("scanQRModal")?.addEventListener("hidden.bs.modal", stopScanner);
 </script>
-
-
-list to deploy the changes.
-
-1.admin_page/pre_reg.php
