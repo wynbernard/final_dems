@@ -45,8 +45,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	}
 	$stmt->close();
 
-	// Determine age class
-	$age_class = ($age <= 2) ? 'Infant' : (($age <= 12) ? 'Child' : (($age <= 17) ? 'Teen' : (($age <= 59) ? 'Adult' : 'Senior')));
+	// Determine age class (Infant: 0-11 months, Toddler: 1-3, Pre-School: 4-5, School-Age: 6-12, Teenage: 13-19, Adult: 20-59, Senior: 60+)
+	$birthDateObj = DateTime::createFromFormat('Y-m-d', $birth_date);
+	$today = new DateTime();
+	$ageInterval = $birthDateObj->diff($today);
+	$years = $ageInterval->y;
+	$months = $ageInterval->m + ($ageInterval->y * 12);
+
+	if ($years < 1) {
+		$age_class = 'Infant';
+	} elseif ($years >= 1 && $years <= 3) {
+		$age_class = 'Toddler';
+	} elseif ($years >= 4 && $years <= 5) {
+		$age_class = 'Pre-School';
+	} elseif ($years >= 6 && $years <= 12) {
+		$age_class = 'School-Age';
+	} elseif ($years >= 13 && $years <= 19) {
+		$age_class = 'Teenage';
+	} elseif ($years >= 20 && $years <= 59) {
+		$age_class = 'Adult';
+	} else {
+		$age_class = 'Senior';
+	}
 
 	// Get or insert age_class_id
 	$stmt = $conn->prepare("SELECT age_class_id FROM age_class_table WHERE classification = ?");

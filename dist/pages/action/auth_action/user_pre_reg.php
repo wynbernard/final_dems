@@ -46,7 +46,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 	$birthDate = new DateTime($dob);
 	$today = new DateTime();
-	$age = $birthDate->diff($today)->y;
+	$ageInterval = $birthDate->diff($today);
+	$age = $ageInterval->y;
+	$months = $ageInterval->m + ($ageInterval->y * 12);
 
 	// if (empty($f_name) || empty($l_name) || empty($contact_no) || empty($email) || empty($password) || empty($gender) || empty($registration_type) || empty($dob)) {
 	// 	$_SESSION['error'] = "⚠️ All fields are required. Please complete the form.";
@@ -174,17 +176,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		exit();
 	}
 
-	if ($age <= 1) {
-		$age_class = 'Infant';
-	} elseif ($age <= 12) {
-		$age_class = 'Child';
-	} elseif ($age <= 17) {
-		$age_class = 'Teen';
-	} elseif ($age <= 59) {
-		$age_class = 'Adult';
-	} else {
-		$age_class = 'Senior';
-	}
+if ($age < 1) {
+	// 0-11 months
+	$age_class = 'Infant';
+} elseif ($age >= 1 && $age <= 3) {
+	$age_class = 'Toddler';
+} elseif ($age >= 4 && $age <= 5) {
+	$age_class = 'Pre-School';
+} elseif ($age >= 6 && $age <= 12) {
+	$age_class = 'School-Age';
+} elseif ($age >= 13 && $age <= 19) {
+	$age_class = 'Teenage';
+} elseif ($age >= 20 && $age <= 59) {
+	$age_class = 'Adult';
+} else {
+	$age_class = 'Senior';
+}
 
 	$checkClassSql = "SELECT age_class_id FROM age_class_table WHERE classification = ?";
 	$stmt = $conn->prepare($checkClassSql);
@@ -334,9 +341,9 @@ if (isset($_FILES['signature_file']) && $_FILES['signature_file']['error'] === U
 		header("Location: ../../auth/log_in.php");
 	} else {
 		if (!$stmt->execute()) {
-    $_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Database error: " . $stmt->error;
-    header("Location: ../../auth/log_in.php");
-    exit;
+	$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Database error: " . $stmt->error;
+	header("Location: ../../auth/log_in.php");
+	exit;
 		};
 	}
 	$conn->close();

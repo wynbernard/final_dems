@@ -255,10 +255,10 @@
     $femaleCount = 0;
 
     $genderQuery = "SELECT classification, COUNT(*) as count FROM evac_reg_table
-LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
-LEFT JOIN age_class_table ON pre_reg_table.pre_reg_id = age_class_table.age_class_id
-WHERE age_class_table.classification IS NOT NULL
-GROUP BY classification";
+          LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
+          LEFT JOIN age_class_table ON pre_reg_table.pre_reg_id = age_class_table.age_class_id
+          WHERE age_class_table.classification IS NOT NULL
+          GROUP BY classification";
     $genderResult = mysqli_query($conn, $genderQuery);
     if ($genderResult) {
       while ($row = mysqli_fetch_assoc($genderResult)) {
@@ -278,6 +278,8 @@ GROUP BY classification";
       $ageGroups[$label] = 0;
     }
 
+
+    // --- Age Classification Breakdown ---
     // Query based on selected source
     if ($selectedSource === 'evac') {
       $ageQuery = "
@@ -316,17 +318,26 @@ GROUP BY classification";
     $familyCount = ($familyResult) ? (int)mysqli_fetch_assoc($familyResult)['family_count'] : 0;
     ?>
 
-    <!-- Evacuation Locations Map (Moved to Top) -->
-    <div class="row mt-4">
-      <div class="col-12">
-        <div class="card shadow-sm border-0">
-          <div class="card-header bg-info text-dark">Evacuation Locations Map</div>
-          <div class="card-body" style="height: 500px;">
-            <div id="evacMap" style="height: 100%; width: 100%; min-height: 400px;"></div>
-          </div>
-        </div>
-      </div>
+
+
+<!-- EVACUATION LOCATION -->
+<!-- MAP SECTION -->
+
+<div class="card-body position-relative d-flex" style="height: 500px;">
+  <div id="evacMap" style="flex: 1 1 auto; height: 100%; position: relative;"></div>
+  <!-- Overlay for details and chart at the right side of the map area -->
+  <div id="evacDetails" class="bg-white shadow border rounded p-3" 
+       style="position: absolute; top: 50%; right: 0; transform: translateY(-50%); min-width: 400px; max-width: 90vw; display: none; z-index: 2000; box-shadow: 0 4px 24px rgba(0,0,0,0.15);">
+    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 24px; width: 100%;">
+      <div id="evacInfoContent" style="width: 100%; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;"></div>
+      <div id="evacStatsGraph" style="width: 100%; min-width: 320px; height: 350px;"></div>
     </div>
+    <button class="btn btn-sm btn-outline-danger mt-2" style="margin-left: auto; display: block;" onclick="closeEvacDetails()">Close</button>
+  </div>
+</div>
+
+
+
 <?php
 $query = "SELECT 
             evacuation_location AS evacuation_center, 
@@ -457,26 +468,53 @@ while ($row = mysqli_fetch_assoc($result)) {
       </div>
     </div>
 
-    <?php
-    // Fetch evacuation locations with coordinates
-    $evacMapLocations = [];
-    $mapQuery = "SELECT evac_loc_id, city, barangay_id, purok, name, total_capacity, longitude, latitude FROM evac_loc_table WHERE latitude IS NOT NULL AND longitude IS NOT NULL";
-    $mapResult = mysqli_query($conn, $mapQuery);
-    if ($mapResult) {
-      while ($row = mysqli_fetch_assoc($mapResult)) {
-        $evacMapLocations[] = [
-          'id' => $row['evac_loc_id'],
-          'name' => $row['name'],
-          'city' => $row['city'],
-          'barangay' => $row['barangay_id'],
-          'purok' => $row['purok'],
-          'capacity' => $row['total_capacity'],
-          'lat' => (float)$row['latitude'],
-          'lng' => (float)$row['longitude'],
-        ];
-      }
-    }
-    ?>
+<?php
+include '../../../database/conn.php';
+
+$evacMapLocations = [];
+$evacStats = [];
+
+// Get evacuation locations
+$locQuery = "
+  SELECT evac_loc_id, name, city, barangay_manegement_table.barangay_name AS barangay, purok, total_capacity, evc.longitude as longitude, evc.latitude as latitude
+  FROM evac_loc_table as evc
+  LEFT JOIN barangay_manegement_table ON evc.barangay_id = barangay_manegement_table.barangay_id
+  WHERE evc.latitude IS NOT NULL AND evc.longitude IS NOT NULL
+";
+$locResult = mysqli_query($conn, $locQuery);
+
+while ($row = mysqli_fetch_assoc($locResult)) {
+  $evacMapLocations[] = [
+    'id' => $row['evac_loc_id'],
+    'name' => $row['name'],
+    'city' => $row['city'],
+    'barangay' => $row['barangay'],
+    'purok' => $row['purok'],
+    'capacity' => $row['total_capacity'],
+    'lat' => (float)$row['latitude'],
+    'lng' => (float)$row['longitude'],
+  ];
+}
+
+// Get evacuation records
+$statsQuery = "
+  SELECT evacuation_location, start_date, end_date, total_evacuation
+  FROM evacuation_record_table
+  WHERE start_date IS NOT NULL
+  ORDER BY start_date ASC
+";
+$statsResult = mysqli_query($conn, $statsQuery);
+
+while ($row = mysqli_fetch_assoc($statsResult)) {
+  $locationName = $row['evacuation_location'];
+  $evacStats[$locationName][] = [
+    'date' => date('Y-m-d', strtotime($row['start_date'])),
+    'evacuation' => (int)$row['total_evacuation'],
+    'end' => ($row['end_date'] === '0000-00-00 00:00:00' || !$row['end_date']) ? 'Ongoing' : date('Y-m-d', strtotime($row['end_date']))
+  ];
+}
+?>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const evacuationData = <?= json_encode($analyticsByCenter) ?>;
@@ -525,7 +563,7 @@ function renderChart(centerName) {
           },
           pointStyle: (ctx) => {
             const index = ctx.dataIndex;
-            return ongoing[index] !== null ? 'triangle' : 'circle';
+            return ongoing[index] !== null ? 'circle' : 'circle';
           }
         }
       ]
@@ -549,7 +587,7 @@ function renderChart(centerName) {
               text: 'Ongoing Event',
               fillStyle: '#2ecc71',
               strokeStyle: '#27ae60',
-              pointStyle: 'triangle',
+              pointStyle: 'circle',
               lineWidth: 2
             }
           ];
@@ -655,36 +693,185 @@ select.addEventListener('change', () => renderChart(select.value));
       });
     </script>
 
-    <!-- Leaflet Map Script for Evacuation Locations -->
-    <script>
-      const evacLocations = <?= json_encode($evacMapLocations) ?>;
-      if (evacLocations.length > 0) {
-        // Center map on first location, or default if none
-        const mapCenter = [evacLocations[0].lat, evacLocations[0].lng];
-        const map = L.map('evacMap').setView(mapCenter, 12);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 18,
-          attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-        evacLocations.forEach(loc => {
-          const marker = L.marker([loc.lat, loc.lng]).addTo(map);
-          let popupHtml = `<b>${loc.name}</b>`;
-          popupHtml += `<br><span>City: ${loc.city || ''}</span>`;
-          popupHtml += `<br><span>Barangay: ${loc.barangay || ''}</span>`;
-          popupHtml += `<br><span>Purok: ${loc.purok || ''}</span>`;
-          popupHtml += `<br><span>Capacity: ${loc.capacity || ''}</span>`;
-          popupHtml += `<br><small>Lat: ${loc.lat}, Lng: ${loc.lng}</small>`;
-          marker.bindPopup(popupHtml);
-        });
-      } else {
-        // If no locations, show a blank map centered on the Philippines
-        const map = L.map('evacMap').setView([12.8797, 121.7740], 6);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 18,
-          attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+<script>
+
+  const evacLocations = <?= json_encode($evacMapLocations); ?>;
+  const evacStats = <?= json_encode($evacStats); ?>;
+
+  const map = L.map('evacMap');
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+  // Collect all marker positions
+  const markerPositions = [];
+  evacLocations.forEach(loc => {
+    const marker = L.marker([loc.lat, loc.lng]).addTo(map);
+    markerPositions.push([loc.lat, loc.lng]);
+
+    // Show popup with name on hover, but keep open if opened by click
+    let popupOpenedByClick = false;
+    marker.on('mouseover', function(e) {
+      if (!popupOpenedByClick) {
+        marker.bindPopup(`<b>${loc.name}</b>`, {closeButton: false, offset: L.point(0, -30)}).openPopup();
       }
-    </script>
+    });
+    marker.on('mouseout', function(e) {
+      if (!popupOpenedByClick) {
+        marker.closePopup();
+      }
+    });
+
+    marker.on('click', () => {
+      // Move the marker to the right side of the map (not centered), and zoom in
+      const mapWidth = map.getSize().x;
+      const overlayWidth = 400; // match min-width of #evacDetails
+      const targetZoom = 15;
+      const markerPoint = map.project([loc.lat, loc.lng], targetZoom);
+      // Offset so marker is at the right side (visible area = mapWidth - overlayWidth)
+      const offsetX = ((mapWidth - overlayWidth) / 2) - 40; // 40px padding from right
+      const newPoint = L.point(markerPoint.x + offsetX, markerPoint.y);
+      const newLatLng = map.unproject(newPoint, targetZoom);
+      map.setView(newLatLng, targetZoom); // Pan and zoom
+
+      // Show popup/tag with the location name above the marker and keep it open
+      popupOpenedByClick = true;
+      marker.bindPopup(`<b>${loc.name}</b>`, {closeButton: false, offset: L.point(0, -30)}).openPopup();
+
+      // Details as a single line at the top
+      let html = `
+        <h6 class="text-primary mb-0" style="font-size: 1.2rem;">${loc.name}</h6>
+        <span><strong>City:</strong> ${loc.city}</span>
+        <span><strong>Barangay:</strong> ${loc.barangay}</span>
+        <span><strong>Purok:</strong> ${loc.purok}</span>
+        <span><strong>Capacity:</strong> ${loc.capacity}</span>
+      `;
+      document.getElementById('evacInfoContent').innerHTML = html;
+      document.getElementById('evacDetails').style.display = 'block';
+
+      // Build chart data
+      const stats = evacStats[loc.name] || [];
+      const labels = stats.map(s => s.date);
+      const data = stats.map(s => s.evacuation);
+
+      // Move the graph below the details
+      const graphDiv = document.getElementById('evacStatsGraph');
+      graphDiv.parentNode.appendChild(graphDiv); // ensures it's after details
+      renderEvacChart(labels, data, loc.name);
+    });
+
+    // Close popup if map is clicked elsewhere
+    map.on('click', function(e) {
+      popupOpenedByClick = false;
+      marker.closePopup();
+    });
+  });
+
+  // Center and fit map to all markers
+  if (markerPositions.length > 0) {
+    const bounds = L.latLngBounds(markerPositions);
+    map.fitBounds(bounds, { padding: [30, 30] });
+  } else {
+    map.setView([10.3157, 123.8854], 10);
+  }
+
+  function renderEvacChart(labels, data, locationName) {
+    const ctxId = 'evacStatsChart';
+    document.getElementById('evacStatsGraph').innerHTML = `<canvas id="${ctxId}" style="height: 350px; width: 100%"></canvas>`;
+
+    // Find ongoing event indices (where evacStats[locationName][i].end === 'Ongoing')
+    const statsArr = evacStats[locationName] || [];
+    const ongoingIndices = statsArr.map((s, i) => s.end === 'Ongoing' ? i : -1).filter(i => i !== -1);
+
+    new Chart(document.getElementById(ctxId), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Total Evacuated',
+          data,
+          fill: true,
+          borderColor: '#2980b9',
+          backgroundColor: 'rgba(46, 204, 113, 0.15)', // light green fill
+          tension: 0.3,
+          pointBackgroundColor: labels.map((_, i) => ongoingIndices.includes(i) ? '#e67e22' : '#2980b9'),
+          pointBorderColor: labels.map((_, i) => ongoingIndices.includes(i) ? '#d35400' : '#2980b9'),
+          pointRadius: labels.map((_, i) => ongoingIndices.includes(i) ? 9 : 6),
+          pointStyle: labels.map((_, i) => ongoingIndices.includes(i) ? 'rectRot' : 'circle'),
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: `Evacuation Trend - ${locationName}`
+          },
+          legend: {
+            display: true,
+            labels: {
+              generateLabels: function(chart) {
+                return [
+                  {
+                    text: 'Ongoing Event',
+                    fillStyle: '#e67e22',
+                    strokeStyle: '#d35400',
+                    pointStyle: 'rectRot',
+                    lineWidth: 2
+                  },
+                  {
+                    text: 'Completed Event',
+                    fillStyle: '#2980b9',
+                    strokeStyle: '#2980b9',
+                    pointStyle: 'circle',
+                    lineWidth: 2
+                  }
+                ];
+              },
+              usePointStyle: true,
+              boxWidth: 12,
+              font: { size: 13 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                let label = `${ctx.dataset.label}: ${ctx.parsed.y} evacuees`;
+                if (ongoingIndices.includes(ctx.dataIndex)) label += ' (Ongoing)';
+                return label;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: '#ecf0f1' },
+            ticks: { color: '#34495e', font: { size: 12 } }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: '#34495e', font: { size: 12 } }
+          }
+        }
+      }
+    });
+  }
+
+  function closeEvacDetails() {
+    document.getElementById('evacDetails').style.display = 'none';
+    // Re-center and fit map to all markers
+    if (markerPositions && markerPositions.length > 0) {
+      const bounds = L.latLngBounds(markerPositions);
+      map.fitBounds(bounds, { padding: [30, 30] });
+    } else {
+      map.setView([10.3157, 123.8854], 10);
+    }
+  }
+</script>
+
+
 
     <style>
       .room-box-container {

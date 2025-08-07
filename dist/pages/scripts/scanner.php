@@ -480,7 +480,7 @@
 			// ✅ Alert specific pre_reg_ids if already registered
 			if (registeredMembers.length > 0) {
 				const registeredIds = registeredMembers.map(m => m.id).join(', ');
-				alert(`The following pre_reg_id(s) are already registered and will be skipped:\n${registeredIds}`);
+				// alert(`The following pre_reg_id(s) are already registered and will be skipped:\n${registeredIds}`);z
 			}
 
 			if (unregisteredMembers.length === 0) {
@@ -541,7 +541,7 @@
 				<td class="align-middle px-2">
 					<div class="small">
 						<span class="fw-medium">${member.age}</span>
-						<small class="text-muted ms-1">(${member.date_of_birth})</small>
+						<small class="text-muted ms-1">(${formatDate(member.date_of_birth)})</small>
 					</div>
 				</td>
 				<td class="align-middle text-end px-2">
@@ -550,6 +550,11 @@
 					</button>
 				</td>
 			`;
+			function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString(undefined, options); // Uses user's locale
+  }
 
 					tbody.appendChild(row);
 				});
@@ -645,7 +650,7 @@
                 const member = scannedMembers.find(m => m.id == id);
                 return `<li>
                     ${member.name}
-                    (Family ID: ${member.id})<br>
+    						<br>
                     ${member.idps?.length > 0 
                         ? `IDPs: ${member.idps.join(', ')}` 
                         : ' '}
@@ -674,7 +679,7 @@
 			console.log("Selected IDPs: ", selectedIDPs); // Debugging line
 
 			if (selectedIDPs.size === 0) {
-				container.innerHTML = `<p class="text-muted mb-0">No IDPs found in selected members</p>`;
+				container.innerHTML = `<p class="text-muted mb-0"></p>`;
 				return;
 			}
 
@@ -708,7 +713,7 @@
 			const memberIds = Array.from(selectedMembers); // Convert selectedMembers (Set) to array
 			const locationId = currentLocationId; // Assumes currentLocationId is set
 
-			alert("Selected Members: ", memberIds); // Debugging line to check the value of memberIds
+			// alert("Selected Members: ", memberIds); // Debugging line to check the value of memberIds
 
 			// Validate required fields
 			if (!roomId || memberIds.length === 0 || !locationId) {

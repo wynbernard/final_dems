@@ -30,6 +30,7 @@ if (!$admin || $admin['session_token'] !== $session_token) {
 }
 
 $_SESSION['username'] = $admin['username'];
+$_SESSION['admin_id'] = $admin['admin_id'];
 $_SESSION['f_name'] = $admin['f_name'];
 $_SESSION['l_name'] = $admin['l_name'];
 $_SESSION['role'] = $admin['role'];

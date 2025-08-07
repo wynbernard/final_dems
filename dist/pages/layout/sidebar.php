@@ -139,8 +139,8 @@
             <p>Resources Inventory</p>
           </a>
         </li>
-        <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'resource_inventory.php' ? 'menu-open' : ''; ?>">
-          <a href="#" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'resource_inventory.php' ? 'active' : ''; ?>">
+        <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'reports.php' ? 'menu-open' : ''; ?>">
+          <a href="./reports.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'reports.php' ? 'active' : ''; ?>">
             <i class="nav-icon bi bi-boxes"></i>
             <p>Reports</p>
           </a>
