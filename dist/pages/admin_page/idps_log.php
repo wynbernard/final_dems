@@ -2,8 +2,13 @@
 include '../../../database/session.php';
 include '../layout/head_links.php';
 
-// Query to fetch all logs and evacuation registration data
-$query = "SELECT 
+// Role-based log filtering
+$role = isset($_SESSION['role']) ? strtolower(trim($_SESSION['role'])) : '';
+$assigned_loc = isset($_SESSION['evac_loc_id']) ? $_SESSION['evac_loc_id'] : '';
+
+if ($role === 'staff' && $assigned_loc !== '') {
+	// Staff: show only logs for assigned location
+	$query = "SELECT 
 				evac_reg_table.*,
 				pre_reg_table.f_name,
 				pre_reg_table.l_name,
@@ -20,10 +25,30 @@ $query = "SELECT
 			ON evac_reg_table.room_id = room_table.room_id
 			LEFT JOIN evac_loc_table
 			ON evac_reg_table.evac_loc_id = evac_loc_table.evac_loc_id
-			ORDER BY logs_table.date_time DESC"; // Order by date_time in descending order
+			WHERE evac_reg_table.evac_loc_id = '" . mysqli_real_escape_string($conn, $assigned_loc) . "' 
+			";
+} else {
+	// Admin: show all logs
+	$query = "SELECT 
+				evac_reg_table.*,
+				pre_reg_table.f_name,
+				pre_reg_table.l_name,
+				logs_table.date_time,
+				room_table.room_name,
+				evac_loc_table.name,
+				logs_table.status
+			FROM evac_reg_table
+			LEFT JOIN logs_table 
+			ON evac_reg_table.evac_reg_id = logs_table.evac_reg_id
+			LEFT JOIN pre_reg_table 
+			ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
+			LEFT JOIN room_table 
+			ON evac_reg_table.room_id = room_table.room_id
+			LEFT JOIN evac_loc_table
+			ON evac_reg_table.evac_loc_id = evac_loc_table.evac_loc_id";
+}
 
 $result = mysqli_query($conn, $query);
-
 if (!$result) {
 	die("Query failed: " . mysqli_error($conn)); // Debugging for SQL errors
 }
@@ -37,6 +62,33 @@ if (!$result) {
 </head>
 
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+	<!-- QR Code Scanner Modal -->
+	<!-- QR Scanner Modal -->
+<div class="modal fade" id="scanQRModal" tabindex="-1" aria-labelledby="scanQRModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="scanQRModalLabel"><i class="bi bi-qr-code-scan"></i> QR Code Scanner</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="stopScanner()"></button>
+      </div>
+
+      <div class="modal-body text-center">
+        <select id="cameraSelect" class="form-select mb-2" style="max-width: 300px; margin: auto;"></select>
+        <div id="qr-reader" style="width: 100%; max-width: 500px; margin: auto;"></div>
+
+        <div class="mt-3">
+          <button id="startScannerBtn" class="btn btn-success">Start Scanner</button>
+          <button id="stopScannerBtn" class="btn btn-secondary" disabled>Stop Scanner</button>
+        </div>
+
+        <div id="family-info" class="alert alert-info d-none mt-3">
+          <strong>Family Name:</strong> <span id="family-name"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 	<div class="app-wrapper">
 		<?php include '../layout/header.php';
 		include '../layout/sidebar.php';
@@ -69,12 +121,18 @@ if (!$result) {
 				<div class="row">
 					<div class="col-md-12">
 						<div class="card">
+							<!-- Buttons + Mode Field -->
 							<div class="card-header d-flex align-items-center">
-								<input type="text" id="searchBox" class="form-control me-2" placeholder="Search....." style="max-width: 300px;">
-								<!-- <button type="button" class="btn btn-primary btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#addLogModal">
-									<i class="fas fa-plus-circle"></i> Add Log
-								</button> -->
-							</div>
+  <input type="text" id="searchBox" class="form-control me-2" placeholder="Search..." style="max-width: 300px;">
+  <button type="button" class="btn btn-success btn-sm ms-2" id="logInBtn" data-bs-toggle="modal" data-bs-target="#scanQRModal" data-mode="IN">
+    <i class="bi bi-box-arrow-in-right"></i> IN
+  </button>
+  <button type="button" class="btn btn-danger btn-sm ms-2" id="logOutBtn" data-bs-toggle="modal" data-bs-target="#scanQRModal" data-mode="OUT">
+    <i class="bi bi-box-arrow-right"></i> OUT
+  </button>
+</div>
+
+							<input type="hidden" id="scanMode" value="IN"> <!-- Default mode -->
 
 							<div class="card-body">
 								<div class="table-responsive log-table-scroll" style="max-height: 400px; overflow-y: auto;">
@@ -125,6 +183,132 @@ if (!$result) {
 		?>
 	</div>
 	<script src="../scripts/admin_script/idps_log.js"></script>
+	<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- QR Code Scanner -->
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+	let qrScanner;
+	let availableCameras = [];
+	let lastScannedId = null;
+	let debounceTimeout = null;
+	let currentScanType = "IN"; // Default mode
+
+	async function initCameraList() {
+		const select = document.getElementById("cameraSelect");
+		select.innerHTML = "";
+		availableCameras = await Html5Qrcode.getCameras();
+		availableCameras.forEach(cam => {
+			const option = document.createElement("option");
+			option.value = cam.id;
+			option.text = cam.label;
+			select.appendChild(option);
+		});
+	}
+
+	async function startScanner() {
+		const cameraId = document.getElementById("cameraSelect").value;
+		qrScanner = new Html5Qrcode("qr-reader");
+
+		try {
+			await qrScanner.start(
+				cameraId, {
+					fps: 10,
+					qrbox: 300
+				},
+				async (decodedText) => {
+					const match = decodedText.trim().match(/pre_reg(?:_id)?:\s*(\d+)/i);
+					if (!match) return;
+
+					const preRegId = match[1];
+					if (preRegId === lastScannedId) return;
+
+					lastScannedId = preRegId;
+					clearTimeout(debounceTimeout);
+					debounceTimeout = setTimeout(() => lastScannedId = null, 3000);
+
+					try {
+						// Send as FormData (NOT JSON)
+						const formData = new FormData();
+						formData.append("pre_reg_id", preRegId);
+						formData.append("logType", currentScanType);
+
+						const response = await fetch(`../action/log_family.php`, {
+							method: "POST",
+							body: formData
+						});
+
+						const data = await response.json();
+						const logTime = new Date().toLocaleTimeString();
+
+						if (data.success) {
+							Swal.fire({
+								icon: 'success',
+								title: `${currentScanType} logged!`,
+								text: `${data.name} (${data.type}) has been logged at ${logTime}.`,
+								timer: 1500,
+								timerProgressBar: true
+							});
+						} else {
+							Swal.fire({
+								icon: 'warning',
+								title: 'Scan Failed',
+								text: data.message || 'Unregistered or already scanned.',
+								timer: 1500,
+								timerProgressBar: true
+							});
+						}
+					} catch (err) {
+						console.error("Log error:", err);
+						Swal.fire({
+							icon: 'error',
+							title: 'Log Failed',
+							text: err.message,
+						});
+					}
+				},
+				(err) => console.warn("QR error:", err)
+			);
+
+			document.getElementById("startScannerBtn").disabled = true;
+			document.getElementById("stopScannerBtn").disabled = false;
+		} catch (err) {
+			console.error("Scanner failed to start:", err);
+			alert("Unable to access the camera.");
+		}
+	}
+
+	async function stopScanner() {
+		if (qrScanner) {
+			await qrScanner.stop();
+			await qrScanner.clear();
+			qrScanner = null;
+		}
+		document.getElementById("startScannerBtn").disabled = false;
+		document.getElementById("stopScannerBtn").disabled = true;
+	}
+
+	document.getElementById("logInBtn").addEventListener("click", () => {
+		currentScanType = "IN";
+		Swal.fire({ title: 'Mode: IN', icon: 'info', timer: 1000, showConfirmButton: false });
+	});
+	document.getElementById("logOutBtn").addEventListener("click", () => {
+		currentScanType = "OUT";
+		Swal.fire({ title: 'Mode: OUT', icon: 'info', timer: 1000, showConfirmButton: false });
+	});
+
+	document.getElementById("startScannerBtn").addEventListener("click", startScanner);
+	document.getElementById("stopScannerBtn").addEventListener("click", stopScanner);
+
+	document.getElementById("scanQRModal")?.addEventListener("shown.bs.modal", async () => {
+		await initCameraList();
+	});
+	document.getElementById("scanQRModal")?.addEventListener("hidden.bs.modal", stopScanner);
+</script>
+
+
+
+
 </body>
 
 </html>

@@ -6,8 +6,10 @@ $currentUser = $_SESSION['admin_id'];
 $userRole = $_SESSION['role'];
 $evacRegData = [];
 
+// Handle search for admin
+$searchLocation = isset($_GET['search_location']) ? trim($_GET['search_location']) : '';
+
 if (trim(strtolower($userRole)) === 'staff') {
-    // Fetch assigned evacuation location name for the current staff user
     $locQuery = $conn->prepare("SELECT name FROM admin_table 
         LEFT JOIN evac_loc_table ON admin_table.evac_loc_id = evac_loc_table.evac_loc_id
         WHERE admin_id = ?");
@@ -23,6 +25,7 @@ if (trim(strtolower($userRole)) === 'staff') {
             SELECT * FROM evac_reg_table
             LEFT JOIN evac_loc_table AS evc ON evac_reg_table.evac_loc_id = evc.evac_loc_id
             LEFT JOIN pre_reg_table AS pr ON evac_reg_table.pre_reg_id = pr.pre_reg_id
+            LEFT JOIN age_class_table AS ac ON pr.age_class_id = ac.age_class_id
             WHERE evc.name = ?
         ");
         $stmt->bind_param("s", $assignedEvacLocName);
@@ -32,13 +35,29 @@ if (trim(strtolower($userRole)) === 'staff') {
         $result = false;
     }
 } else {
-    // Admin can see all locations
-    $query = "
+    // Admin can see all locations, with optional search
+    if ($searchLocation !== '') {
+        $query = "
             SELECT * FROM evac_reg_table
             LEFT JOIN evac_loc_table AS evc ON evac_reg_table.evac_loc_id = evc.evac_loc_id
             LEFT JOIN pre_reg_table AS pr ON evac_reg_table.pre_reg_id = pr.pre_reg_id
-    ";
-    $result = mysqli_query($conn, $query);
+            LEFT JOIN age_class_table AS ac ON pr.age_class_id = ac.age_class_id
+            WHERE evc.name LIKE ?
+        ";
+        $stmt = $conn->prepare($query);
+        $likeSearch = "%$searchLocation%";
+        $stmt->bind_param("s", $likeSearch);
+        $stmt->execute();
+        $result = $stmt->get_result();
+    } else {
+        $query = "
+            SELECT * FROM evac_reg_table
+            LEFT JOIN evac_loc_table AS evc ON evac_reg_table.evac_loc_id = evc.evac_loc_id
+            LEFT JOIN pre_reg_table AS pr ON evac_reg_table.pre_reg_id = pr.pre_reg_id
+            LEFT JOIN age_class_table AS ac ON pr.age_class_id = ac.age_class_id
+        ";
+        $result = mysqli_query($conn, $query);
+    }
 }
 
 if ($result) {
@@ -77,19 +96,6 @@ foreach ($evacRegData as $row) {
         $preRegIdsByLoc[$locName][$preRegId] = true;
     }
 }
-
-// Prepare chart data
-$chartLabels = array_keys($locationCounts);
-$soloData = [];
-$familyData = [];
-$totalEvacueesPerLoc = [];
-
-foreach ($locationCounts as $locName => $counts) {
-    $soloData[] = $counts['Solo'];
-    $familyData[] = $counts['Family'];
-    $totalEvacueesPerLoc[] = count($preRegIdsByLoc[$locName] ?? []);
-}
-
 // Calculate total unique evacuees
 $uniquePreRegIds = [];
 foreach ($evacRegData as $row) {
@@ -97,7 +103,55 @@ foreach ($evacRegData as $row) {
         $uniquePreRegIds[$row['pre_reg_id']] = true;
     }
 }
+
+
+// Prepare chart data
+if (trim(strtolower($userRole)) === 'admin') {
+    if ($searchLocation !== '' && count($locationCounts) === 1) {
+        // If searching and only one location matches, show that location as a single bar
+        $chartLabels = array_keys($locationCounts);
+        $soloData = [reset($locationCounts)["Solo"]];
+        $familyData = [reset($locationCounts)["Family"]];
+        $totalEvacueesPerLoc = [count(reset($preRegIdsByLoc))];
+    } else {
+        // Merge all locations for admin: show only one bar for Solo and one for Family
+        $chartLabels = ['All Locations'];
+        $soloData = [array_sum(array_column($locationCounts, 'Solo'))];
+        $familyData = [array_sum(array_column($locationCounts, 'Family'))];
+        $totalEvacueesPerLoc = [count($uniquePreRegIds)];
+    }
+} else {
+    $chartLabels = array_keys($locationCounts);
+    $soloData = [];
+    $familyData = [];
+    $totalEvacueesPerLoc = [];
+    foreach ($locationCounts as $locName => $counts) {
+        $soloData[] = $counts['Solo'];
+        $familyData[] = $counts['Family'];
+        $totalEvacueesPerLoc[] = count($preRegIdsByLoc[$locName] ?? []);
+    }
+}
+
+
 $totalEvacuees = count($uniquePreRegIds);
+
+// Age classification aggregation based on age_class_name from DB
+$allAgeClasses = [
+    'Infant',
+    'Toddler',
+    'Pre-School',
+    'School-Age',
+    'Teenage',
+    'Adult',
+    'Senior'
+];
+$ageGroups = array_fill_keys($allAgeClasses, 0);
+foreach ($evacRegData as $row) {
+    $class = isset($row['classification']) ? $row['classification'] : 'Unknown';
+    if (isset($ageGroups[$class])) {
+        $ageGroups[$class]++;
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -105,16 +159,12 @@ $totalEvacuees = count($uniquePreRegIds);
 <head>
     <title>Evacuation Registration Records</title>
     <style>
-        .table-responsive {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        #evacRegTable thead th {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            background: #d1e7dd;
-        }
+        .card .shadow-sm:hover {
+    transform: translateY(-2px);
+    transition: 0.2s ease-in-out;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+     }
+
     </style>
 </head>
 
@@ -142,46 +192,134 @@ $totalEvacuees = count($uniquePreRegIds);
         </div>
 
         <div class="content">
+        <?php if (trim(strtolower($userRole)) === 'admin'): ?>
+        <?php
+            // Get all unique locations for datalist
+            $allLocations = array_unique(array_map(function($row) { return $row['name'] ?? ''; }, $evacRegData));
+            $allLocations = array_filter($allLocations, fn($v) => $v !== '');
+        ?>
+        <form id="searchForm" method="get" class="mb-3" autocomplete="off">
+            <div class="row justify-content-end">
+                <div class="col-md-4 col-lg-3 position-relative">
+                    <input type="text" name="search_location" id="search_location" class="form-control" placeholder="Search location..." value="<?php echo htmlspecialchars($searchLocation); ?>" autocomplete="off">
+                    <div id="locationSuggestions" class="list-group position-absolute w-100" style="z-index: 1000; display: none; max-height: 200px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </form>
+        <script>
+        // Live suggestions and real-time search for admin search box
+        const allLocations = <?php echo json_encode(array_values($allLocations)); ?>;
+        const input = document.getElementById('search_location');
+        const suggestions = document.getElementById('locationSuggestions');
+        const form = document.getElementById('searchForm');
+        let debounceTimer;
+
+        input.addEventListener('input', function() {
+            const value = this.value.trim().toLowerCase();
+            suggestions.innerHTML = '';
+            if (value.length === 0) {
+                suggestions.style.display = 'none';
+                clearTimeout(debounceTimer);
+                return;
+            }
+            const matches = allLocations.filter(loc => loc.toLowerCase().includes(value));
+            if (matches.length === 0) {
+                suggestions.style.display = 'none';
+            } else {
+                matches.forEach(loc => {
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'list-group-item list-group-item-action';
+                    item.textContent = loc;
+                    item.onclick = function() {
+                        input.value = loc;
+                        suggestions.style.display = 'none';
+                        form.submit(); // Submit immediately on suggestion click
+                    };
+                    suggestions.appendChild(item);
+                });
+                suggestions.style.display = 'block';
+            }
+            // Debounced real-time submit (2 seconds)
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                form.submit();
+            }, 2000);
+        });
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+                suggestions.style.display = 'none';
+            }
+        });
+        </script>
+        <?php endif; ?>
     <div class="row justify-content-center">
-        <div class="col-lg-10 col-xl-12">
-            <div class="card shadow border-0 rounded-4 overflow-hidden" style="background: linear-gradient(135deg, #f0f4f8 60%, #e3f2fd 100%);">
-                <!-- Header -->
-                <div class="card-header bg-white border-0 rounded-top-4 px-4 py-3 d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-bar-chart-fill fs-3 text-primary"></i>
-                        <span class="fw-semibold fs-5 text-dark">Evacuee Statistics</span>
-                    </div>
-                    <span class="badge bg-primary bg-opacity-25 text-primary fw-semibold px-3 py-2">Live Data</span>
+    <div class="col-lg-10 col-xl-12">
+        <div class="card shadow border-0 rounded-4 overflow-hidden" style="background: linear-gradient(135deg, #f0f4f8 60%, #e3f2fd 100%);">
+            <!-- Header -->
+            <div class="card-header bg-white border-0 rounded-top-4 px-4 py-3 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-bar-chart-fill fs-3 text-primary"></i>
+                    <span class="fw-semibold fs-5 text-dark">Evacuee Statistics</span>
+                </div>
+                <span class="badge bg-primary bg-opacity-25 text-primary fw-semibold px-3 py-2">Live Data</span>
+            </div>
+
+            <!-- Chart -->
+            <div class="card-body px-4 py-3">
+                <div class="chart-container mb-4" style="position: relative; height: 360px;">
+                    <canvas id="evacuationChart" style="height: 100%; width: 100%;"></canvas>
                 </div>
 
-                <!-- Total Evacuees -->
-                <!-- <div class="px-4 pt-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="fs-6 text-muted">Total Unique Evacuees:</span>
-                        <span class="fw-bold fs-4 text-success"><?php echo $totalEvacuees; ?></span>
+                <!-- Totals Section -->
+                <div class="row text-center g-3">
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3 bg-white shadow-sm border" style="border-left: 6px solid #4e73df;">
+                            <small class="text-muted">Total Solo Evacuees</small>
+                            <h4 class="fw-bold text-primary mb-0"><?php echo array_sum($soloData); ?></h4>
+                        </div>
                     </div>
-                </div> -->
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3 bg-white shadow-sm border" style="border-left: 6px solid #1cc88a;">
+                            <small class="text-muted">Total Family Evacuees</small>
+                            <h4 class="fw-bold text-success mb-0"><?php echo array_sum($familyData); ?></h4>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3 bg-white shadow-sm border" style="border-left: 6px solid #f6c23e;">
+                            <small class="text-muted">Total Unique Evacuees</small>
+                            <h4 class="fw-bold text-warning mb-0"><?php echo $totalEvacuees; ?></h4>
+                        </div>
+                    </div>
+                </div>
 
-                <!-- Chart -->
-                <div class="card-body px-4 py-3">
-                    <div class="chart-container" style="position: relative; height: 350px;">
-                        <canvas id="evacuationChart" style="height: 100%; width: 100%;"></canvas>
-                    </div>
-                    <!-- Totals below the bar chart, color-matched to bar colors -->
-                    <div class="d-flex justify-content-center align-items-center gap-3 mt-3">
-                        <span class="badge" style="background-color: #4e73df; color: #fff; font-size: 1rem; min-width: 120px;">Solo: <span class="fw-bold ms-1"><?php echo array_sum($soloData); ?></span></span>
-                        <span class="badge" style="background-color: #1cc88a; color: #fff; font-size: 1rem; min-width: 120px;">Family: <span class="fw-bold ms-1"><?php echo array_sum($familyData); ?></span></span>
-                        <span class="badge" style="background-color: #f6c23e; color: #fff; font-size: 1rem; min-width: 120px;">Total Evacuess: <span class="fw-bold ms-1"><?php echo $totalEvacuees; ?></span></span>
+                <!-- Age Classification Graph -->
+                <div class="mt-5">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-0 d-flex align-items-center gap-2">
+                            <i class="bi bi-people-fill fs-5 text-primary"></i>
+                            <span class="fw-semibold fs-5 text-dark">Evacuee Age Classification</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-3">This chart shows the distribution of evacuees by age group.</p>
+                            <div style="height: 260px;">
+                                <canvas id="ageClassificationChart" aria-label="Age Classification Chart" role="img" style="height: 100%; width: 100%;"></canvas>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+</div>
   
     </main>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // Main Evacuation Chart
     const chartLabels = <?php echo json_encode($chartLabels); ?>;
     const soloData = <?php echo json_encode($soloData); ?>;
     const familyData = <?php echo json_encode($familyData); ?>;
@@ -263,6 +401,44 @@ $totalEvacuees = count($uniquePreRegIds);
                 tooltip: {
                     mode: 'nearest',
                     intersect: true
+                }
+            }
+        }
+    });
+
+    // Age Classification Chart
+    const ageLabels = <?php echo json_encode(array_keys($ageGroups)); ?>;
+    const ageData = <?php echo json_encode(array_values($ageGroups)); ?>;
+    const ageMax = Math.max(...ageData, 10);
+    const ageStep = ageMax <= 10 ? 1 : (ageMax <= 50 ? 5 : 10);
+    const ageLimit = ageMax <= 10 ? 10 : (ageMax <= 50 ? Math.ceil((ageMax + 5) / 5) * 5 : Math.ceil((ageMax + 10) / 10) * 10);
+
+    const ageCtx = document.getElementById('ageClassificationChart').getContext('2d');
+    new Chart(ageCtx, {
+        type: 'bar',
+        data: {
+            labels: ageLabels,
+            datasets: [{
+                label: 'Evacuees',
+                data: ageData,
+                backgroundColor: ['#36b9cc', '#4e73df', '#1cc88a', '#f6c23e']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: { mode: 'nearest', intersect: true }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'Age Group' }
+                },
+                y: {
+                    beginAtZero: true,
+                    max: ageLimit,
+                    ticks: { stepSize: ageStep },
+                    title: { display: true, text: 'Evacuee Count' }
                 }
             }
         }
