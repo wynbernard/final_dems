@@ -278,7 +278,7 @@ foreach ($evacRegData as $row) {
                     <i class="bi bi-people-fill fs-3 text-success"></i>
                     <span class="fw-semibold fs-5 text-dark">Total Evacuees & Age Classification</span>
                     <span class="badge bg-success bg-opacity-25 text-success fw-semibold px-3 py-2 ms-auto">Summary</span>
-                    <button type="button" class="btn btn-outline-primary btn-sm ms-3" id="generateReportBtn">
+                   <button type="button" class="btn btn-outline-primary btn-sm ms-3" id="generateReportBtn">
                         <i class="bi bi-file-earmark-arrow-down"></i> Generate Report
                     </button>
                 </div>
@@ -372,24 +372,38 @@ foreach ($evacRegData as $row) {
     </div>
 </div>
 <!-- Report Preview Modal -->
-<div class="modal fade" id="reportPreviewModal" tabindex="-1" aria-labelledby="reportPreviewLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="reportPreviewLabel">Report Preview</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body" id="reportPreviewContent" style="min-height: 400px; overflow-y: auto;">
-        <!-- Report content will be inserted here -->
-      </div>
-      <div class="modal-footer">
-        <button type="button" id="printReportBtn" class="btn btn-primary">Print</button>
-        <button type="button" id="downloadExcelBtn" class="btn btn-success">Download Excel</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
+<!-- Report Preview Modal -->
+<div class="modal fade" id="reportPreviewModal" tabindex="-1" aria-labelledby="reportPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="reportPreviewModalLabel">
+                    <i class="bi bi-file-earmark-text"></i> Evacuation Report Preview
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body" id="reportPreviewContent">
+                <!-- Dynamic table content will be injected here -->
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Close
+                </button>
+                <button type="button" class="btn btn-success" id="downloadPdfBtn">
+                    <i class="bi bi-file-earmark-arrow-down"></i> Download PDF
+                </button>
+                <button type="button" class="btn btn-primary" id="printReportBtn">
+                    <i class="bi bi-printer"></i> Print PDF
+                </button>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
+
+
 </div>
   
     </main>
@@ -528,58 +542,124 @@ foreach ($evacRegData as $row) {
 <script src="../scripts/scripts.js"></script>
 <!-- html2pdf.js CDN for PDF export -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script>
-    // Section navigation logic
-    document.addEventListener('DOMContentLoaded', function () {
-        const sections = [
-            document.getElementById('totalsSection'),
-            document.getElementById('distributionSection'),
-            document.getElementById('logsSection')
-        ];
-        function showSection(id) {
-            sections.forEach(sec => {
-                if (sec) sec.style.display = (sec.id === id) ? '' : 'none';
-            });
-        }
-        // Default: show distribution
-        showSection('totalsSection');
-        // Nav click handler
-        document.querySelectorAll('.navbar-nav .nav-link').forEach(link => {
-            link.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = this.getAttribute('href').replace('#', '');
-                showSection(target);
-                // Optionally scroll to top of section
-                document.getElementById(target).scrollIntoView({ behavior: 'smooth', block: 'start' });
-            });
-        });
 
-        // Generate Report button handler
-        const generateBtn = document.getElementById('generateReportBtn');
-        if (generateBtn) {
-            generateBtn.addEventListener('click', function () {
-                const totalsSection = document.getElementById('totalsSection');
-                // Clone section to avoid hidden elements
-                const clone = totalsSection.cloneNode(true);
-                // Remove the button from the clone
-                const btn = clone.querySelector('#generateReportBtn');
-                if (btn) btn.remove();
-                // Optional: Remove navigation bar if present
-                const nav = clone.querySelector('nav');
-                if (nav) nav.remove();
-                // Set up PDF options
-                const opt = {
-                    margin:       0.5,
-                    filename:     'Total_Evacuees_Report.pdf',
-                    image:        { type: 'jpeg', quality: 0.98 },
-                    html2canvas:  { scale: 2 },
-                    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-                };
-                html2pdf().set(opt).from(clone).save();
-            });
-        }
+<script>
+document.getElementById('generateReportBtn').addEventListener('click', function () {
+    const chartLabels = <?php echo json_encode($chartLabels); ?>;
+    const soloData = <?php echo json_encode($soloData); ?>;
+    const familyData = <?php echo json_encode($familyData); ?>;
+    const totalEvacueesPerLoc = <?php echo json_encode($totalEvacueesPerLoc); ?>;
+    const ageGroups = <?php echo json_encode($ageGroups); ?>;
+
+    const totalSolo = soloData.reduce((a, b) => a + b, 0);
+    const totalFamily = familyData.reduce((a, b) => a + b, 0);
+    const totalEvacuees = totalEvacueesPerLoc.reduce((a, b) => a + b, 0);
+
+    let html = `
+        <h5 class="mb-3">Evacuation Summary</h5>
+        <table class="table table-bordered text-center align-middle">
+            <thead class="table-primary">
+                <tr>
+                    <th>Category</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Total Solo</td><td>${totalSolo}</td></tr>
+                <tr><td>Total Family</td><td>${totalFamily}</td></tr>
+                <tr class="fw-bold table-light"><td>Total Evacuees</td><td>${totalEvacuees}</td></tr>
+            </tbody>
+        </table>
+
+        <h5 class="mt-4">Evacuation Center Breakdown</h5>
+        <table class="table table-bordered text-center align-middle">
+            <thead class="table-primary">
+                <tr>
+                    <th>Evacuation Center</th>
+                    <th>Solo Evacuees</th>
+                    <th>Family Evacuees</th>
+                    <th>Total Evacuees</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    chartLabels.forEach((label, i) => {
+        html += `<tr>
+            <td>${label}</td>
+            <td>${soloData[i]}</td>
+            <td>${familyData[i]}</td>
+            <td>${totalEvacueesPerLoc[i]}</td>
+        </tr>`;
     });
+    html += `</tbody></table>`;
+
+    html += `
+        <h5 class="mt-4">Age Classification Statistics</h5>
+        <table class="table table-bordered text-center align-middle">
+            <thead class="table-primary">
+                <tr>
+                    <th>Age Group</th>
+                    <th>Number of Evacuees</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    for (let group in ageGroups) {
+        html += `<tr><td>${group}</td><td>${ageGroups[group]}</td></tr>`;
+    }
+    html += `
+            </tbody>
+            <tfoot class="fw-bold table-light">
+                <tr>
+                    <td>Total</td>
+                    <td>${Object.values(ageGroups).reduce((a, b) => a + b, 0)}</td>
+                </tr>
+            </tfoot>
+        </table>
+    `;
+
+    document.getElementById('reportPreviewContent').innerHTML = html;
+    new bootstrap.Modal(document.getElementById('reportPreviewModal')).show();
+});
+
+// Download PDF directly
+document.getElementById('downloadPdfBtn').addEventListener('click', function () {
+    const content = document.getElementById('reportPreviewContent');
+    html2pdf().set({
+        margin: 0.5,
+        filename: 'Evacuation_Report.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    }).from(content).save();
+});
+
+// Print PDF via browser dialog
+document.getElementById('printReportBtn').addEventListener('click', function () {
+    const content = document.getElementById('reportPreviewContent').innerHTML;
+    const printWindow = window.open('', '', 'width=900,height=650');
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>Evacuation Report</title>
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+            </head>
+            <body>
+                ${content}
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        window.close();
+                    }
+                <\/script>
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
+});
 </script>
+
+
 <script>
     // Search filter
     document.getElementById('searchBox').addEventListener('keyup', function () {
