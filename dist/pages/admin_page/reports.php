@@ -256,64 +256,140 @@ foreach ($evacRegData as $row) {
         <?php endif; ?>
     <div class="row justify-content-center">
     <div class="col-lg-10 col-xl-12">
-        <div class="card shadow border-0 rounded-4 overflow-hidden" style="background: linear-gradient(135deg, #f0f4f8 60%, #e3f2fd 100%);">
-            <!-- Header -->
-            <div class="card-header bg-white border-0 rounded-top-4 px-4 py-3 d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-bar-chart-fill fs-3 text-primary"></i>
-                    <span class="fw-semibold fs-5 text-dark">Evacuee Statistics</span>
+        <!-- Top Navigation Bar -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white rounded-top-4 shadow-sm mb-2 px-4 py-2">
+            <ul class="navbar-nav flex-row gap-3">
+                <li class="nav-item">
+                    <a class="nav-link fw-semibold text-success" href="#totalsSection"><i class="bi bi-people-fill"></i> Total Evacuees</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link fw-semibold text-primary" href="#distributionSection"><i class="bi bi-bar-chart-fill"></i> Distribution</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link fw-semibold text-warning" href="#logsSection"><i class="bi bi-journal-text"></i> Logs</a>
+                </li>
+            </ul>
+            <span class="badge bg-primary bg-opacity-25 text-primary fw-semibold px-3 py-2 ms-auto">Live Data</span>
+        </nav>
+        <!-- Total Evacuees Section -->
+        <section id="totalsSection" class="mb-4">
+            <div class="card shadow border-0 rounded-4 overflow-hidden">
+                <div class="card-header bg-white border-0 rounded-top-4 px-4 py-3 d-flex align-items-center gap-2">
+                    <i class="bi bi-people-fill fs-3 text-success"></i>
+                    <span class="fw-semibold fs-5 text-dark">Total Evacuees & Age Classification</span>
+                    <span class="badge bg-success bg-opacity-25 text-success fw-semibold px-3 py-2 ms-auto">Summary</span>
+                    <button type="button" class="btn btn-outline-primary btn-sm ms-3" id="generateReportBtn">
+                        <i class="bi bi-file-earmark-arrow-down"></i> Generate Report
+                    </button>
                 </div>
-                <span class="badge bg-primary bg-opacity-25 text-primary fw-semibold px-3 py-2">Live Data</span>
-            </div>
-
-            <!-- Chart -->
-            <div class="card-body px-4 py-3">
-                <div class="chart-container mb-4" style="position: relative; height: 360px;">
-                    <canvas id="evacuationChart" style="height: 100%; width: 100%;"></canvas>
-                </div>
-
-                <!-- Totals Section -->
-                <div class="row text-center g-3">
-                    <div class="col-md-4">
-                        <div class="p-3 rounded-3 bg-white shadow-sm border" style="border-left: 6px solid #4e73df;">
-                            <small class="text-muted">Total Solo Evacuees</small>
-                            <h4 class="fw-bold text-primary mb-0"><?php echo array_sum($soloData); ?></h4>
+                <div class="card-body px-4 py-3">
+                    <div class="row text-center g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="p-3 rounded-3 bg-white shadow-sm border" style="border-left: 6px solid #4e73df;">
+                                <small class="text-muted">Total Solo Evacuees</small>
+                                <h4 class="fw-bold text-primary mb-0"><?php echo array_sum($soloData); ?></h4>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 rounded-3 bg-white shadow-sm border" style="border-left: 6px solid #1cc88a;">
+                                <small class="text-muted">Total Family Evacuees</small>
+                                <h4 class="fw-bold text-success mb-0"><?php echo array_sum($familyData); ?></h4>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 rounded-3 bg-white shadow-sm border" style="border-left: 6px solid #f6c23e;">
+                                <small class="text-muted">Total Unique Evacuees</small>
+                                <h4 class="fw-bold text-warning mb-0"><?php echo $totalEvacuees; ?></h4>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="p-3 rounded-3 bg-white shadow-sm border" style="border-left: 6px solid #1cc88a;">
-                            <small class="text-muted">Total Family Evacuees</small>
-                            <h4 class="fw-bold text-success mb-0"><?php echo array_sum($familyData); ?></h4>
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white border-0 d-flex align-items-center gap-2">
+                                    <i class="bi bi-bar-chart-fill fs-5 text-primary"></i>
+                                    <span class="fw-semibold fs-5 text-dark">Total Evacuees Chart</span>
+                                </div>
+                                <div class="card-body">
+                                    <div style="height: 260px;">
+                                        <canvas id="evacuationChart" style="height: 100%; width: 100%;"></canvas>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="p-3 rounded-3 bg-white shadow-sm border" style="border-left: 6px solid #f6c23e;">
-                            <small class="text-muted">Total Unique Evacuees</small>
-                            <h4 class="fw-bold text-warning mb-0"><?php echo $totalEvacuees; ?></h4>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Age Classification Graph -->
-                <div class="mt-5">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white border-0 d-flex align-items-center gap-2">
-                            <i class="bi bi-people-fill fs-5 text-primary"></i>
-                            <span class="fw-semibold fs-5 text-dark">Evacuee Age Classification</span>
-                        </div>
-                        <div class="card-body">
-                            <p class="text-muted mb-3">This chart shows the distribution of evacuees by age group.</p>
-                            <div style="height: 260px;">
-                                <canvas id="ageClassificationChart" aria-label="Age Classification Chart" role="img" style="height: 100%; width: 100%;"></canvas>
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white border-0 d-flex align-items-center gap-2">
+                                    <i class="bi bi-people-fill fs-5 text-primary"></i>
+                                    <span class="fw-semibold fs-5 text-dark">Evacuee Age Classification</span>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted mb-3">This chart shows the distribution of evacuees by age group.</p>
+                                    <div style="height: 260px;">
+                                        <canvas id="ageClassificationChart" aria-label="Age Classification Chart" role="img" style="height: 100%; width: 100%;"></canvas>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
+
+        <!-- Logs Section -->
+        <section id="logsSection" class="mb-4">
+            <div class="card shadow border-0 rounded-4 overflow-hidden">
+                <div class="card-header bg-white border-0 rounded-top-4 px-4 py-3 d-flex align-items-center gap-2">
+                    <i class="bi bi-journal-text fs-3 text-warning"></i>
+                    <span class="fw-semibold fs-5 text-dark">Evacuee IN/OUT Logs Report</span>
+                    <span class="badge bg-warning bg-opacity-25 text-warning fw-semibold px-3 py-2 ms-auto">Logs</span>
+                </div>
+                <div class="card-body px-4 py-3">
+                    <p class="text-muted mb-3">This table summarizes the IN and OUT logs per evacuation center.</p>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <thead class="table-success">
+                                <tr>
+                                    <th>Evacuation Center</th>
+                                    <th>IN Logs</th>
+                                    <th>OUT Logs</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($logsReport as $loc => $counts): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($loc); ?></td>
+                                        <td><?php echo $counts['IN']; ?></td>
+                                        <td><?php echo $counts['OUT']; ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 </div>
-
+<!-- Report Preview Modal -->
+<div class="modal fade" id="reportPreviewModal" tabindex="-1" aria-labelledby="reportPreviewLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="reportPreviewLabel">Report Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="reportPreviewContent" style="min-height: 400px; overflow-y: auto;">
+        <!-- Report content will be inserted here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="printReportBtn" class="btn btn-primary">Print</button>
+        <button type="button" id="downloadExcelBtn" class="btn btn-success">Download Excel</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 </div>
   
     </main>
@@ -450,6 +526,60 @@ foreach ($evacRegData as $row) {
 </div>
 
 <script src="../scripts/scripts.js"></script>
+<!-- html2pdf.js CDN for PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+    // Section navigation logic
+    document.addEventListener('DOMContentLoaded', function () {
+        const sections = [
+            document.getElementById('totalsSection'),
+            document.getElementById('distributionSection'),
+            document.getElementById('logsSection')
+        ];
+        function showSection(id) {
+            sections.forEach(sec => {
+                if (sec) sec.style.display = (sec.id === id) ? '' : 'none';
+            });
+        }
+        // Default: show distribution
+        showSection('totalsSection');
+        // Nav click handler
+        document.querySelectorAll('.navbar-nav .nav-link').forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = this.getAttribute('href').replace('#', '');
+                showSection(target);
+                // Optionally scroll to top of section
+                document.getElementById(target).scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+
+        // Generate Report button handler
+        const generateBtn = document.getElementById('generateReportBtn');
+        if (generateBtn) {
+            generateBtn.addEventListener('click', function () {
+                const totalsSection = document.getElementById('totalsSection');
+                // Clone section to avoid hidden elements
+                const clone = totalsSection.cloneNode(true);
+                // Remove the button from the clone
+                const btn = clone.querySelector('#generateReportBtn');
+                if (btn) btn.remove();
+                // Optional: Remove navigation bar if present
+                const nav = clone.querySelector('nav');
+                if (nav) nav.remove();
+                // Set up PDF options
+                const opt = {
+                    margin:       0.5,
+                    filename:     'Total_Evacuees_Report.pdf',
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2 },
+                    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+                };
+                html2pdf().set(opt).from(clone).save();
+            });
+        }
+    });
+</script>
 <script>
     // Search filter
     document.getElementById('searchBox').addEventListener('keyup', function () {

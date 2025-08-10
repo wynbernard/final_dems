@@ -135,7 +135,7 @@
           </svg>
           <a
             href="#"
-            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover bg-primary">
+            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
             More info <i class="bi bi-link-45deg"></i>
           </a>
         </div>
@@ -169,7 +169,7 @@
 
           <a
             href="../admin_page/pre_reg.php"
-            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover bg-primary">
+            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
             More info <i class="bi bi-link-45deg"></i>
           </a>
         </div>
@@ -201,7 +201,7 @@
           </svg>
           <a
             href="../admin_page/idps_user.php"
-            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover bg-primary">
+            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
             More info <i class="bi bi-link-45deg"></i>
           </a>
         </div>
@@ -238,7 +238,7 @@
 
           <a
             href="../admin_page/loc_management.php"
-            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover bg-primary">
+            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
             More info <i class="bi bi-link-45deg"></i>
           </a>
         </div>
@@ -322,12 +322,24 @@
 
 <!-- EVACUATION LOCATION -->
 <!-- MAP SECTION -->
-
 <div class="card-body position-relative d-flex" style="height: 500px;">
   <div id="evacMap" style="flex: 1 1 auto; height: 100%; position: relative;"></div>
-  <!-- Overlay for details and chart at the right side of the map area -->
-  <div id="evacDetails" class="bg-white shadow border rounded p-3" 
-       style="position: absolute; top: 50%; right: 0; transform: translateY(-50%); min-width: 400px; max-width: 90vw; display: none; z-index: 2000; box-shadow: 0 4px 24px rgba(0,0,0,0.15);">
+    <!-- Overlay for details and chart at the right side of the map area -->
+    <div id="evacDetails" class="bg-white shadow border rounded p-3" 
+      style="
+        position: absolute; 
+        top: 50%; 
+        right: 0; 
+        transform: translateY(-50%);
+        width:800px;            /* fixed width */
+        max-width: 90vw;         /* max width responsive */
+        min-width: 350px;        /* prevent too narrow on small screens */
+        display: none; 
+        z-index: 2000; 
+        box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+        overflow-y: auto;        /* in case content is tall */
+        max-height: 90vh;        /* prevent overflow vertically */
+      ">
     <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 24px; width: 100%;">
       <div id="evacInfoContent" style="width: 100%; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;"></div>
       <div id="evacStatsGraph" style="width: 100%; min-width: 320px; height: 350px;"></div>
@@ -335,9 +347,6 @@
     <button class="btn btn-sm btn-outline-danger mt-2" style="margin-left: auto; display: block;" onclick="closeEvacDetails()">Close</button>
   </div>
 </div>
-
-
-
 <?php
 $query = "SELECT 
             evacuation_location AS evacuation_center, 
@@ -393,32 +402,39 @@ while ($row = mysqli_fetch_assoc($result)) {
     alert(alertMessage);
   }
 </script>
-
-
 <div class="row mt-4">
   <div class="col-12">
     <div class="card shadow-sm border-0">
       <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-        <span>Evacuation Statistics</span>
-        <select id="evacuationCenterSelect" class="form-select w-auto">
-          <?php foreach ($analyticsByCenter as $centerName => $data): ?>
-            <option value="<?= htmlspecialchars($centerName) ?>">
-              <?= htmlspecialchars($centerName) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
+        <span class="fw-bold">Evacuation Statistics</span>
       </div>
       <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+          <label for="evacuationCenterSelect" class="me-2 fw-semibold text-primary">
+            Location:
+          </label>
+          <select id="evacuationCenterSelect" class="form-select w-auto">
+            <?php 
+              $firstCenter = true;
+              foreach ($analyticsByCenter as $centerName => $data): 
+            ?>
+              <option value="<?= htmlspecialchars($centerName) ?>" <?= $firstCenter ? 'selected' : '' ?>>
+                <?= htmlspecialchars($centerName) ?>
+              </option>
+            <?php 
+              $firstCenter = false;
+              endforeach; 
+            ?>
+          </select>
+        </div>
         <canvas id="evacStatChart" height="100"></canvas>
         <p id="evacuationLocationText" class="text-muted text-center mt-3">
-          Showing data for all evacuation centers.
+          Showing data for <span id="currentCenterText"><?= htmlspecialchars(array_key_first($analyticsByCenter)) ?></span>.
         </p>
       </div>
     </div>
   </div>
 </div>
-
-
 
     <!-- Age Group and Evacuee Type Charts -->
     <div class="row mt-4">
@@ -467,25 +483,70 @@ while ($row = mysqli_fetch_assoc($result)) {
         </div>
       </div>
     </div>
-
 <?php
 include '../../../database/conn.php';
 
 $evacMapLocations = [];
-$evacStats = [];
 
-// Get evacuation locations
+// Query to get evacuation locations with coordinates
 $locQuery = "
-  SELECT evac_loc_id, name, city, barangay_manegement_table.barangay_name AS barangay, purok, total_capacity, evc.longitude as longitude, evc.latitude as latitude
-  FROM evac_loc_table as evc
-  LEFT JOIN barangay_manegement_table ON evc.barangay_id = barangay_manegement_table.barangay_id
+  SELECT 
+    evc.evac_loc_id, 
+    evc.name, 
+    evc.city, 
+    barangay_manegement_table.barangay_name AS barangay, 
+    evc.purok, 
+    evc.total_capacity, 
+    evc.longitude, 
+    evc.latitude
+  FROM evac_loc_table AS evc
+  LEFT JOIN barangay_manegement_table 
+    ON evc.barangay_id = barangay_manegement_table.barangay_id
   WHERE evc.latitude IS NOT NULL AND evc.longitude IS NOT NULL
 ";
+
 $locResult = mysqli_query($conn, $locQuery);
 
 while ($row = mysqli_fetch_assoc($locResult)) {
+  $locId = (int)$row['evac_loc_id'];
+
+  // Get total solo evacuees (registered as Solo or no family)
+  $soloQuery = "
+    SELECT COUNT(*) AS total_solo 
+    FROM evac_reg_table 
+    LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
+    WHERE evac_loc_id = $locId 
+      AND (registered_as = 'Solo' OR family_id IS NULL OR family_id = 0)
+  ";
+  $soloResult = mysqli_query($conn, $soloQuery);
+  $soloCount = ($soloResult && $rowSolo = mysqli_fetch_assoc($soloResult)) ? intval($rowSolo['total_solo']) : 0;
+
+  // Get total family members (all evacuees registered as family)
+  $familyMembersQuery = "
+    SELECT COUNT(*) AS total_family_members 
+    FROM evac_reg_table 
+    LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
+    WHERE evac_loc_id = $locId 
+      AND registered_as = 'Family' 
+      AND family_id IS NOT NULL 
+      AND family_id > 0
+  ";
+
+  $totalEvacueesQuery = "
+    SELECT COUNT(*) AS total_evacuees 
+    FROM evac_reg_table 
+    LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
+    WHERE evac_loc_id = $locId
+  ";
+
+  $totalEvacueesResult = mysqli_query($conn, $totalEvacueesQuery);
+  $totalEvacueesCount = ($totalEvacueesResult && $rowTotal = mysqli_fetch_assoc($totalEvacueesResult)) ? intval($rowTotal['total_evacuees']) : 0;
+
+  $familyMembersResult = mysqli_query($conn, $familyMembersQuery);
+  $familyMembersCount = ($familyMembersResult && $rowFamily = mysqli_fetch_assoc($familyMembersResult)) ? intval($rowFamily['total_family_members']) : 0;
+
   $evacMapLocations[] = [
-    'id' => $row['evac_loc_id'],
+    'id' => $locId,
     'name' => $row['name'],
     'city' => $row['city'],
     'barangay' => $row['barangay'],
@@ -493,150 +554,78 @@ while ($row = mysqli_fetch_assoc($locResult)) {
     'capacity' => $row['total_capacity'],
     'lat' => (float)$row['latitude'],
     'lng' => (float)$row['longitude'],
+    'total_solo' => $soloCount,
+    'total_family' => $familyMembersCount,
+    'total_evacuees' => $totalEvacueesCount
   ];
 }
 
-// Get evacuation records
+// --- PHP: build analyticsByCenter ---
+$analyticsByCenter = [];
+
 $statsQuery = "
-  SELECT evacuation_location, start_date, end_date, total_evacuation
+  SELECT evacuation_location, start_date, end_date, total_evacuation, total_family, total_solo
   FROM evacuation_record_table
   WHERE start_date IS NOT NULL
   ORDER BY start_date ASC
 ";
 $statsResult = mysqli_query($conn, $statsQuery);
-
+if (!$statsResult) {
+    error_log("Query failed: " . mysqli_error($conn));
+    $statsResult = [];
+}
 while ($row = mysqli_fetch_assoc($statsResult)) {
-  $locationName = $row['evacuation_location'];
-  $evacStats[$locationName][] = [
-    'date' => date('Y-m-d', strtotime($row['start_date'])),
-    'evacuation' => (int)$row['total_evacuation'],
-    'end' => ($row['end_date'] === '0000-00-00 00:00:00' || !$row['end_date']) ? 'Ongoing' : date('Y-m-d', strtotime($row['end_date']))
-  ];
-}
+    $center = $row['evacuation_location'] ?? 'Unknown';
+    $startDateFormatted = date('M d, Y', strtotime($row['start_date']));
+    $endDateFormatted = (empty($row['end_date']) || $row['end_date'] === '0000-00-00 00:00:00')
+        ? 'Ongoing'
+        : date('M d, Y', strtotime($row['end_date']));
+
+    if (!isset($analyticsByCenter[$center])) {
+        $analyticsByCenter[$center] = [
+            'labels'           => [],
+            'endDates'         => [],
+            'completedFamily'  => [],
+            'ongoingFamily'    => [],
+            'completedSolo'    => [],
+            'ongoingSolo'      => [],
+            'completedTotal'   => [],
+            'ongoingTotal'     => []
+        ];
+    }
+
+    $analyticsByCenter[$center]['labels'][] = $startDateFormatted;
+    $analyticsByCenter[$center]['endDates'][] = $endDateFormatted;
+
+    // Use DB's total_evacuees field (not sum)
+    $countFamily = (int)($row['total_family'] ?? 0);
+    $countSolo   = (int)($row['total_solo'] ?? 0);
+    $countTotal  = (int)($row['total_evacuation'] ?? 0);
+
+    if ($endDateFormatted === 'Ongoing') {
+        $analyticsByCenter[$center]['completedFamily'][] = null;
+        $analyticsByCenter[$center]['completedSolo'][]   = null;
+        $analyticsByCenter[$center]['completedTotal'][]  = null;
+
+        $analyticsByCenter[$center]['ongoingFamily'][] = $countFamily;
+        $analyticsByCenter[$center]['ongoingSolo'][]   = $countSolo;
+        $analyticsByCenter[$center]['ongoingTotal'][]  = $countTotal;
+    } else {
+        $analyticsByCenter[$center]['completedFamily'][] = $countFamily;
+        $analyticsByCenter[$center]['completedSolo'][]   = $countSolo;
+        $analyticsByCenter[$center]['completedTotal'][]  = $countTotal;
+
+        $analyticsByCenter[$center]['ongoingFamily'][] = null;
+        $analyticsByCenter[$center]['ongoingSolo'][]   = null;
+        $analyticsByCenter[$center]['ongoingTotal'][]  = null;
+    }
+} 
 ?>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-const evacuationData = <?= json_encode($analyticsByCenter) ?>;
-const ctx = document.getElementById('evacStatChart').getContext('2d');
-const select = document.getElementById('evacuationCenterSelect');
-const labelDisplay = document.getElementById('evacuationLocationText');
 
-let evacChart;
-
-function renderChart(centerName) {
-  const centerData = evacuationData[centerName];
-  const labels = centerData.labels;
-  const completed = centerData.completed;
-  const ongoing = centerData.ongoing;
-
-  // Merge data into one array: pick non-null from completed or ongoing
-  const mergedData = completed.map((val, i) => val !== null ? val : ongoing[i]);
-
-  labelDisplay.textContent = `Showing data for: ${centerName}`;
-
-  if (evacChart) evacChart.destroy();
-
-  evacChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: 'Evacuation Events',
-          data: mergedData,
-          borderColor: '#2980b9',
-          backgroundColor: 'rgba(46, 204, 113, 0.1)',  // greenish fill below
-          borderWidth: 3,
-          tension: 0.4,
-          fill: true,
-          spanGaps: true,
-          pointRadius: 6,
-          pointHoverRadius: 8,
-          pointBackgroundColor: (ctx) => {
-            const index = ctx.dataIndex;
-            return ongoing[index] !== null ? '#2ecc71' : '#3498db';
-          },
-          pointBorderColor: (ctx) => {
-            const index = ctx.dataIndex;
-            return ongoing[index] !== null ? '#27ae60' : '#2980b9';
-          },
-          pointStyle: (ctx) => {
-            const index = ctx.dataIndex;
-            return ongoing[index] !== null ? 'circle' : 'circle';
-          }
-        }
-      ]
-    },
-    options: {
-  responsive: true,
-  plugins: {
-    legend: {
-      display: true,
-      labels: {
-        generateLabels: function(chart) {
-          return [
-            {
-              text: 'Completed Event',
-              fillStyle: '#3498db',
-              strokeStyle: '#2980b9',
-              pointStyle: 'circle',
-              lineWidth: 2
-            },
-            {
-              text: 'Ongoing Event',
-              fillStyle: '#2ecc71',
-              strokeStyle: '#27ae60',
-              pointStyle: 'circle',
-              lineWidth: 2
-            }
-          ];
-        },
-        usePointStyle: true,
-        boxWidth: 12,
-        font: { size: 13 }
-      }
-    },
-    title: {
-      display: true,
-      text: 'Evacuation Statistics',
-      color: '#2c3e50',
-      font: { size: 20 }
-    },
-    tooltip: {
-      callbacks: {
-        label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} evacuees`
-      }
-    }
-  },
-  scales: {
-    x: {
-      ticks: {
-        color: '#34495e',
-        font: { size: 12 }
-      },
-      grid: { display: false }
-    },
-    y: {
-      beginAtZero: true,
-      ticks: {
-        color: '#34495e',
-        font: { size: 12 }
-      },
-      grid: {
-        color: '#ecf0f1'
-      }
-    }
-  }
-}
-  });
-}
-
-renderChart(select.value);
-select.addEventListener('change', () => renderChart(select.value));
-</script>
-
-
+<?php include '../scripts/dashboard_admin/analytics_locations.php';
+  include '../scripts/dashboard_admin/graph_data_maps.php';
+?>
 
     <script>
       const ageLabels = <?= json_encode(array_keys($ageGroups)) ?>;
@@ -692,194 +681,15 @@ select.addEventListener('change', () => renderChart(select.value));
         }
       });
     </script>
-
-<script>
-
-  const evacLocations = <?= json_encode($evacMapLocations); ?>;
-  const evacStats = <?= json_encode($evacStats); ?>;
-
-  const map = L.map('evacMap');
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-}).addTo(map);
-
-  // Collect all marker positions
-  const markerPositions = [];
-  evacLocations.forEach(loc => {
-    const marker = L.marker([loc.lat, loc.lng]).addTo(map);
-    markerPositions.push([loc.lat, loc.lng]);
-
-    // Show popup with name on hover, but keep open if opened by click
-    let popupOpenedByClick = false;
-    marker.on('mouseover', function(e) {
-      if (!popupOpenedByClick) {
-        marker.bindPopup(`<b>${loc.name}</b>`, {closeButton: false, offset: L.point(0, -30)}).openPopup();
-      }
-    });
-    marker.on('mouseout', function(e) {
-      if (!popupOpenedByClick) {
-        marker.closePopup();
-      }
-    });
-
-    marker.on('click', () => {
-      // Move the marker to the right side of the map (not centered), and zoom in
-      const mapWidth = map.getSize().x;
-      const overlayWidth = 400; // match min-width of #evacDetails
-      const targetZoom = 15;
-      const markerPoint = map.project([loc.lat, loc.lng], targetZoom);
-      // Offset so marker is at the right side (visible area = mapWidth - overlayWidth)
-      const offsetX = ((mapWidth - overlayWidth) / 2) - 40; // 40px padding from right
-      const newPoint = L.point(markerPoint.x + offsetX, markerPoint.y);
-      const newLatLng = map.unproject(newPoint, targetZoom);
-      map.setView(newLatLng, targetZoom); // Pan and zoom
-
-      // Show popup/tag with the location name above the marker and keep it open
-      popupOpenedByClick = true;
-      marker.bindPopup(`<b>${loc.name}</b>`, {closeButton: false, offset: L.point(0, -30)}).openPopup();
-
-      // Details as a single line at the top
-      let html = `
-        <h6 class="text-primary mb-0" style="font-size: 1.2rem;">${loc.name}</h6>
-        <span><strong>City:</strong> ${loc.city}</span>
-        <span><strong>Barangay:</strong> ${loc.barangay}</span>
-        <span><strong>Purok:</strong> ${loc.purok}</span>
-        <span><strong>Capacity:</strong> ${loc.capacity}</span>
-      `;
-      document.getElementById('evacInfoContent').innerHTML = html;
-      document.getElementById('evacDetails').style.display = 'block';
-
-      // Build chart data
-      const stats = evacStats[loc.name] || [];
-      const labels = stats.map(s => s.date);
-      const data = stats.map(s => s.evacuation);
-
-      // Move the graph below the details
-      const graphDiv = document.getElementById('evacStatsGraph');
-      graphDiv.parentNode.appendChild(graphDiv); // ensures it's after details
-      renderEvacChart(labels, data, loc.name);
-    });
-
-    // Close popup if map is clicked elsewhere
-    map.on('click', function(e) {
-      popupOpenedByClick = false;
-      marker.closePopup();
-    });
-  });
-
-  // Center and fit map to all markers
-  if (markerPositions.length > 0) {
-    const bounds = L.latLngBounds(markerPositions);
-    map.fitBounds(bounds, { padding: [30, 30] });
-  } else {
-    map.setView([10.3157, 123.8854], 10);
-  }
-
-  function renderEvacChart(labels, data, locationName) {
-    const ctxId = 'evacStatsChart';
-    document.getElementById('evacStatsGraph').innerHTML = `<canvas id="${ctxId}" style="height: 350px; width: 100%"></canvas>`;
-
-    // Find ongoing event indices (where evacStats[locationName][i].end === 'Ongoing')
-    const statsArr = evacStats[locationName] || [];
-    const ongoingIndices = statsArr.map((s, i) => s.end === 'Ongoing' ? i : -1).filter(i => i !== -1);
-
-    new Chart(document.getElementById(ctxId), {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Total Evacuated',
-          data,
-          fill: true,
-          borderColor: '#2980b9',
-          backgroundColor: 'rgba(46, 204, 113, 0.15)', // light green fill
-          tension: 0.3,
-          pointBackgroundColor: labels.map((_, i) => ongoingIndices.includes(i) ? '#e67e22' : '#2980b9'),
-          pointBorderColor: labels.map((_, i) => ongoingIndices.includes(i) ? '#d35400' : '#2980b9'),
-          pointRadius: labels.map((_, i) => ongoingIndices.includes(i) ? 9 : 6),
-          pointStyle: labels.map((_, i) => ongoingIndices.includes(i) ? 'rectRot' : 'circle'),
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          title: {
-            display: true,
-            text: `Evacuation Trend - ${locationName}`
-          },
-          legend: {
-            display: true,
-            labels: {
-              generateLabels: function(chart) {
-                return [
-                  {
-                    text: 'Ongoing Event',
-                    fillStyle: '#e67e22',
-                    strokeStyle: '#d35400',
-                    pointStyle: 'rectRot',
-                    lineWidth: 2
-                  },
-                  {
-                    text: 'Completed Event',
-                    fillStyle: '#2980b9',
-                    strokeStyle: '#2980b9',
-                    pointStyle: 'circle',
-                    lineWidth: 2
-                  }
-                ];
-              },
-              usePointStyle: true,
-              boxWidth: 12,
-              font: { size: 13 }
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: function(ctx) {
-                let label = `${ctx.dataset.label}: ${ctx.parsed.y} evacuees`;
-                if (ongoingIndices.includes(ctx.dataIndex)) label += ' (Ongoing)';
-                return label;
-              }
-            }
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: { color: '#ecf0f1' },
-            ticks: { color: '#34495e', font: { size: 12 } }
-          },
-          x: {
-            grid: { display: false },
-            ticks: { color: '#34495e', font: { size: 12 } }
-          }
-        }
-      }
-    });
-  }
-
-  function closeEvacDetails() {
-    document.getElementById('evacDetails').style.display = 'none';
-    // Re-center and fit map to all markers
-    if (markerPositions && markerPositions.length > 0) {
-      const bounds = L.latLngBounds(markerPositions);
-      map.fitBounds(bounds, { padding: [30, 30] });
-    } else {
-      map.setView([10.3157, 123.8854], 10);
-    }
-  }
-</script>
-
-
-
+<!-- Include Select2 CSS & JS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <style>
       .room-box-container {
         display: flex;
         flex-wrap: wrap;
         gap: 1rem;
       }
-
       .room-box {
         border-radius: 10px;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
@@ -894,87 +704,16 @@ select.addEventListener('change', () => renderChart(select.value));
         font-size: 1.1rem;
         margin-bottom: 0.5rem;
       }
-
       .room-capacity {
         font-size: 0.95rem;
         margin-bottom: 0.5rem;
       }
-
       .room-status {
         font-size: 0.9rem;
         font-weight: 600;
       }
     </style>
 
-    <style>
-      .small-box {
-        background: linear-gradient(135deg, #ffffff, #f8f9fa);
-        border: 1px solid #e5e7eb;
-        padding: 20px 24px;
-        color: #2f2f2f;
-        position: relative;
-        font-size: 14px;
-        transition: all 0.3s ease;
-        overflow: hidden;
-        border-radius: 12px;
-        /* ✅ Rounded corners */
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-        /* ✅ black shadow */
-      }
-
-      .small-box:hover {
-        box-shadow: 0 14px 28px rgba(0, 0, 0, 0.2);
-        transform: translateY(-2px);
-      }
-
-      .small-box .inner h3 {
-        font-size: 32px;
-        font-weight: 800;
-        color: #1f1f1f;
-        margin: 0 0 6px 0;
-        line-height: 1.2;
-      }
-
-      .small-box .inner p {
-        font-size: 15px;
-        color: #6b7280;
-        margin: 0;
-        font-weight: 500;
-      }
-
-      .small-box-icon {
-        position: absolute;
-        top: 16px;
-        right: 16px;
-        width: 56px;
-        height: 56px;
-        color: rgba(0, 0, 0, 0.08);
-        opacity: 1;
-      }
-
-      .small-box-footer {
-        display: inline-block;
-        margin-top: 16px;
-        font-size: 13px;
-        font-weight: 600;
-        color: #0d6efd;
-        text-decoration: none;
-        position: relative;
-        padding-right: 18px;
-      }
-
-      .small-box-footer::after {
-        content: '→';
-        position: absolute;
-        right: 0;
-        top: 0;
-        transition: transform 0.2s;
-      } 
-
-      .small-box-footer:hover::after {
-        transform: translateX(4px);
-      }
-    </style>
 
     <style>
       .custom-nav-pills .nav-link {

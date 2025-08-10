@@ -29,15 +29,24 @@ try {
     $soloCount = 0;
     $familyCount = 0;
     $skipped = [];
-
+    $ageClassCounts = [
+        'Infant' => 0,
+        'Toddler' => 0,
+        'Pre-School' => 0,
+        'School-Age' => 0,
+        'Teenage' => 0,	
+        'Adult' => 0,
+        'Senior' => 0
+    ];
+    $ageClassStmt = $conn->prepare("SELECT ac.classification FROM pre_reg_table pr LEFT JOIN age_class_table ac ON pr.age_class_id = ac.age_class_id WHERE pr.pre_reg_id = ?");
     // Prepare statements
     $checkStmt = $conn->prepare("SELECT pre_reg_id FROM evac_reg_table WHERE pre_reg_id = ?");
     $insertStmt = $conn->prepare("INSERT INTO evac_reg_table (room_id, pre_reg_id, evac_loc_id, date_reg, status) VALUES (?, ?, ?, CURDATE(), 'Evacuated')");
     $logStmt = $conn->prepare("INSERT INTO logs_table (evac_reg_id, status, date_time) VALUES (?, ?, NOW())");
     $typeStmt = $conn->prepare("SELECT registered_as FROM pre_reg_table WHERE pre_reg_id = ?");
     $recordCheck = $conn->prepare("SELECT evacuation_id FROM evacuation_record_table WHERE evacuation_location = ? AND end_date IS NULL");
-    $recordInsert = $conn->prepare("INSERT INTO evacuation_record_table (evacuation_location, start_date, total_solo, total_family, total_evacuation) VALUES (?, NOW(), ?, ?, ?)");
-    $recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = total_solo + ?, total_family = total_family + ?, total_evacuation = total_evacuation + ? WHERE evacuation_id = ?");
+$recordInsert = $conn->prepare("INSERT INTO evacuation_record_table (evacuation_location, start_date, total_solo, total_family, total_evacuation, total_infant, total_toddler, total_pre_school, total_school_age, total_teenage, total_adult, total_senior) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+$recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = total_solo + ?, total_family = total_family + ?, total_evacuation = total_evacuation + ?, total_infant = total_infant + ?, total_toddler = total_toddler + ?, total_pre_school = total_pre_school + ?, total_school_age = total_school_age + ?, total_teenage = total_teenage + ?, total_adult = total_adult + ?, total_senior = total_senior + ? WHERE evacuation_id = ?");
     $locationStmt = $conn->prepare("SELECT name FROM evac_loc_table WHERE evac_loc_id = ?");
 
     if (!$checkStmt || !$insertStmt || !$logStmt || !$typeStmt || !$recordCheck || !$recordInsert || !$recordUpdate || !$locationStmt) {
@@ -75,6 +84,17 @@ try {
                 }
             }
 
+            // Count age classification
+            $ageClassStmt->bind_param("i", $memberId);
+            $ageClassStmt->execute();
+            $ageClassResult = $ageClassStmt->get_result();
+            if ($ageClassResult && $ageClassRow = $ageClassResult->fetch_assoc()) {
+                $class = $ageClassRow['classification'];
+                if (isset($ageClassCounts[$class])) {
+                    $ageClassCounts[$class]++;
+                }
+            }
+
             $successCount++;
         } else {
             $skipped[] = $memberId;
@@ -102,11 +122,41 @@ try {
     if ($recordCheck->num_rows > 0) {
         $recordCheck->bind_result($evacuationId);
         $recordCheck->fetch();
-        $recordUpdate->bind_param("iiii", $soloCount, $familyCount, $totalEvacuees, $evacuationId);
-        $recordUpdate->execute();
+        $recordUpdate->bind_param(
+            "iiiiiiiiiii",
+            $soloCount,
+            $familyCount,
+            $totalEvacuees,
+            $ageClassCounts['Infant'],
+            $ageClassCounts['Toddler'],
+            $ageClassCounts['Pre-School'],
+            $ageClassCounts['School-Age'],
+            $ageClassCounts['Teenage'],
+            $ageClassCounts['Adult'],
+            $ageClassCounts['Senior'],
+            $evacuationId
+        );
+        if (!$recordUpdate->execute()) {
+            throw new Exception("Evacuation record update failed: " . $recordUpdate->error);
+        }
     } else {
-        $recordInsert->bind_param("siii", $locationName, $soloCount, $familyCount, $totalEvacuees);
-        $recordInsert->execute();
+        $recordInsert->bind_param(
+            "siiiiiiiiiii",
+            $locationName,
+            $soloCount,
+            $familyCount,
+            $totalEvacuees,
+            $ageClassCounts['Infant'],
+            $ageClassCounts['Toddler'],
+            $ageClassCounts['Pre-School'],
+            $ageClassCounts['School-Age'],
+            $ageClassCounts['Teenage'],
+            $ageClassCounts['Adult'],
+            $ageClassCounts['Senior']
+        );
+        if (!$recordInsert->execute()) {
+            throw new Exception("Evacuation record insert failed: " . $recordInsert->error);
+        }
     }
 
     $conn->commit();
@@ -115,6 +165,7 @@ try {
         'success' => true,
         'success_count' => $successCount,
         'skipped_members' => $skipped,
+        'age_classification_counts' => $ageClassCounts,
         'message' => 'Registration complete.'
     ]);
 } catch (Exception $e) {
