@@ -121,3 +121,8 @@ Stack trace:
 [11-Aug-2025 07:20:44 Europe/Berlin] Register error: Statement preparation failed: 
 [11-Aug-2025 07:22:02 Europe/Berlin] Register error: Statement preparation failed: 
 >>>>>>> 4de07581494a1ed39232b9a1bbb76d03cfb23d93
+[11-Aug-2025 15:48:14 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of variables must match the number of parameters in the prepared statement in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iiii', 0, 2, 2, 6)
+#1 {main}
+  thrown in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php on line 114

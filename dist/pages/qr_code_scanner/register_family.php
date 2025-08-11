@@ -29,24 +29,14 @@ try {
     $soloCount = 0;
     $familyCount = 0;
     $skipped = [];
-    $ageClassCounts = [
-        'Infant' => 0,
-        'Toddler' => 0,
-        'Pre-School' => 0,
-        'School-Age' => 0,
-        'Teenage' => 0,
-        'Adult' => 0,
-        'Senior' => 0
-    ];
-
     // Prepare statements
     $checkStmt = $conn->prepare("SELECT pre_reg_id FROM evac_reg_table WHERE pre_reg_id = ?");
     $insertStmt = $conn->prepare("INSERT INTO evac_reg_table (room_id, pre_reg_id, evac_loc_id, date_reg, status) VALUES (?, ?, ?, CURDATE(), 'Evacuated')");
     $logStmt = $conn->prepare("INSERT INTO logs_table (evac_reg_id, status, date_time) VALUES (?, ?, NOW())");
     $typeStmt = $conn->prepare("SELECT registered_as FROM pre_reg_table WHERE pre_reg_id = ?");
-    $recordCheck = $conn->prepare("SELECT evacuation_record_id FROM evacuation_record_table WHERE evacuation_location = ? AND end_date IS NULL");
-    $recordInsert = $conn->prepare("INSERT INTO evacuation_record_table (evacuation_location, start_date, total_solo, total_family, total_evacuation, total_infant, total_toddler, total_pre_school, total_school_age, total_teenage, total_adult, total_seniors) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = total_solo + ?, total_family = total_family + ?, total_evacuation = total_evacuation + ?, total_infant = total_infant + ?, total_toddler = total_toddler + ?, total_pre_school = total_pre_school + ?, total_school_age = total_school_age + ?, total_teenage = total_teenage + ?, total_adult = total_adult + ?, total_seniors = total_seniors + ? WHERE evacuation_record_id = ?");
+    $recordCheck = $conn->prepare("SELECT evacuation_id FROM evacuation_record_table WHERE evacuation_location = ? AND end_date IS NULL");
+    $recordInsert = $conn->prepare("INSERT INTO evacuation_record_table (evacuation_location, start_date, total_solo, total_family, total_evacuation) VALUES (?, NOW(), ?, ?, ?)");
+    $recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = total_solo + ?, total_family = total_family + ?, total_evacuation = total_evacuation + ? WHERE evacuation_id = ?");
     $locationStmt = $conn->prepare("SELECT name FROM evac_loc_table WHERE evac_loc_id = ?");
 
     if (!$checkStmt || !$insertStmt || !$logStmt || !$typeStmt || !$recordCheck || !$recordInsert || !$recordUpdate || !$locationStmt) {
@@ -141,4 +131,3 @@ try {
 }
 
 $conn->close();
-?>
