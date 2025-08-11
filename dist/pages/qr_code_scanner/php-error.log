@@ -28,6 +28,7 @@ Stack trace:
 Stack trace:
 #0 {main}
   thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 91
+<<<<<<< HEAD
 [11-Aug-2025 05:38:50 Europe/Berlin] Register error: Unknown column 'evacuation_id' in 'field list'
 [11-Aug-2025 05:40:10 Europe/Berlin] Register error: Unknown column 'total_senior' in 'field list'
 [11-Aug-2025 05:40:27 Europe/Berlin] Register error: Unknown column 'total_senior' in 'field list'
@@ -89,3 +90,34 @@ Stack trace:
 [11-Aug-2025 13:50:23 Europe/Berlin] Register error: Unknown column 'evacuation_id' in 'field list'
 [11-Aug-2025 13:50:30 Europe/Berlin] Register error: Unknown column 'evacuation_id' in 'field list'
 [11-Aug-2025 13:51:37 Europe/Berlin] Register error: Unknown column 'evacuation_id' in 'field list'
+=======
+[11-Aug-2025 06:55:16 Europe/Berlin] RAW INPUT: {"room_id":"19","member_ids":["96"],"location_id":"21"}
+[11-Aug-2025 06:55:16 Europe/Berlin] Register error: Statement preparation failed: 
+[11-Aug-2025 06:57:53 Europe/Berlin] RAW INPUT: {"room_id":"19","member_ids":["96"],"location_id":"21"}
+[11-Aug-2025 06:57:53 Europe/Berlin] Register error: Statement preparation failed: 
+[11-Aug-2025 06:58:16 Europe/Berlin] RAW INPUT: {"room_id":"19","member_ids":["96"],"location_id":"21"}
+[11-Aug-2025 06:58:16 Europe/Berlin] Register error: Statement preparation failed: 
+[11-Aug-2025 07:01:55 Europe/Berlin] RAW INPUT: {"room_id":"19","member_ids":["96"],"location_id":"21"}
+[11-Aug-2025 07:01:55 Europe/Berlin] Register error: Statement preparation failed: 
+[11-Aug-2025 07:08:27 Europe/Berlin] RAW INPUT: {"room_id":"19","member_ids":["96"],"location_id":"21"}
+[11-Aug-2025 07:08:27 Europe/Berlin] Register error: Statement preparation failed: 
+[11-Aug-2025 07:11:16 Europe/Berlin] RAW INPUT: {"room_id":"19","member_ids":["96"],"location_id":"21"}
+[11-Aug-2025 07:11:16 Europe/Berlin] Register error: Statement preparation failed: 
+[11-Aug-2025 07:11:41 Europe/Berlin] RAW INPUT: {"room_id":"19","member_ids":["96"],"location_id":"21"}
+[11-Aug-2025 07:11:41 Europe/Berlin] Register error: Statement preparation failed: 
+[11-Aug-2025 07:12:28 Europe/Berlin] RAW INPUT: 
+[11-Aug-2025 07:12:28 Europe/Berlin] Register error: Invalid JSON: Syntax error
+[11-Aug-2025 07:14:24 Europe/Berlin] RAW INPUT: {"room_id":"19","member_ids":["96"],"location_id":"21"}
+[11-Aug-2025 07:14:24 Europe/Berlin] Register error: Statement preparation failed: 
+[11-Aug-2025 07:18:29 Europe/Berlin] RAW INPUT: {"room_id":"19","member_ids":["96"],"location_id":"21"}
+[11-Aug-2025 07:18:29 Europe/Berlin] Register error: Statement preparation failed: 
+[11-Aug-2025 07:18:38 Europe/Berlin] RAW INPUT: {"room_id":"19","member_ids":["96"],"location_id":"21"}
+[11-Aug-2025 07:18:38 Europe/Berlin] Register error: Statement preparation failed: 
+[11-Aug-2025 07:19:18 Europe/Berlin] RAW INPUT: {"room_id":"19","member_ids":["96"],"location_id":"21"}
+[11-Aug-2025 07:19:18 Europe/Berlin] Register error: Statement preparation failed: 
+[11-Aug-2025 07:19:45 Europe/Berlin] RAW INPUT: {"room_id":"19","member_ids":["96"],"location_id":"21"}
+[11-Aug-2025 07:19:45 Europe/Berlin] Register error: Statement preparation failed: 
+[11-Aug-2025 07:20:44 Europe/Berlin] RAW INPUT: {"room_id":"19","member_ids":["96"],"location_id":"21"}
+[11-Aug-2025 07:20:44 Europe/Berlin] Register error: Statement preparation failed: 
+[11-Aug-2025 07:22:02 Europe/Berlin] Register error: Statement preparation failed: 
+>>>>>>> 4de07581494a1ed39232b9a1bbb76d03cfb23d93
