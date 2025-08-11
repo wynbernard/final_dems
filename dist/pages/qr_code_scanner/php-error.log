@@ -86,3 +86,6 @@ Stack trace:
 #0 C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php(146): mysqli_stmt->bind_param('siiiiiiiiiii', 'Bago City Colle...', 0, 2, 2, 0, 0, 0, 0, 0, 0, 0)
 #1 {main}
   thrown in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php on line 146
+[11-Aug-2025 13:50:23 Europe/Berlin] Register error: Unknown column 'evacuation_id' in 'field list'
+[11-Aug-2025 13:50:30 Europe/Berlin] Register error: Unknown column 'evacuation_id' in 'field list'
+[11-Aug-2025 13:51:37 Europe/Berlin] Register error: Unknown column 'evacuation_id' in 'field list'

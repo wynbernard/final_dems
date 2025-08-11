@@ -333,14 +333,14 @@
         transform: translateY(-50%);
         width:800px;            /* fixed width */
         max-width: 90vw;         /* max width responsive */
-        min-width: 350px;        /* prevent too narrow on small screens */
+        min-width: 300px;        /* prevent too narrow on small screens */
         display: none; 
         z-index: 2000; 
         box-shadow: 0 4px 24px rgba(0,0,0,0.15);
         overflow-y: auto;        /* in case content is tall */
         max-height: 90vh;        /* prevent overflow vertically */
       ">
-        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 24px; width: 100%;">
+        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 24px; width:90%;">
           <div id="evacInfoContent" style="width: 100%; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;"></div>
           <div id="evacStatsGraph" style="width: 100%; min-width: 320px; height: 350px;"></div>
         </div>
@@ -490,19 +490,33 @@
 
     // Query to get evacuation locations with coordinates
     $locQuery = "
-  SELECT 
-    evc.evac_loc_id, 
-    evc.name, 
-    evc.city, 
-    barangay_manegement_table.barangay_name AS barangay, 
-    evc.purok, 
-    evc.total_capacity, 
-    evc.longitude, 
-    evc.latitude
-  FROM evac_loc_table AS evc
-  LEFT JOIN barangay_manegement_table 
-    ON evc.barangay_id = barangay_manegement_table.barangay_id
-  WHERE evc.latitude IS NOT NULL AND evc.longitude IS NOT NULL
+SELECT
+    rm.room_capacity,
+    evc.evac_loc_id,
+    evc.name,
+    evc.city,
+    bmt.barangay_name AS barangay,
+    evc.purok,
+    evc.total_capacity,
+    evc.longitude,
+    evc.latitude,
+    rm.room_id,
+    rm.room_name,
+    COUNT(ert.evac_loc_id) AS occupied_count,
+    COUNT(rm.room_id) OVER (PARTITION BY evc.evac_loc_id) AS room_count, 
+    (rm.room_capacity - COUNT(ert.evac_reg_id)) AS available_space
+FROM room_table rm
+JOIN evac_loc_table evc 
+    ON rm.evac_loc_id = evc.evac_loc_id
+LEFT JOIN barangay_manegement_table bmt
+    ON evc.barangay_id = bmt.barangay_id
+LEFT JOIN evac_reg_table ert
+    ON rm.room_id = ert.room_id
+    AND ert.status = 'IN' -- ✅ optional: only count people currently inside
+WHERE evc.latitude IS NOT NULL 
+  AND evc.longitude IS NOT NULL
+GROUP BY rm.room_id
+ORDER BY evc.name, rm.room_name;
 ";
 
     $locResult = mysqli_query($conn, $locQuery);
@@ -556,7 +570,11 @@
         'lng' => (float)$row['longitude'],
         'total_solo' => $soloCount,
         'total_family' => $familyMembersCount,
-        'total_evacuees' => $totalEvacueesCount
+        'total_evacuees' => $totalEvacueesCount,
+        'occupied_count' => $row['occupied_count'],
+        'room_capacity' => $row['room_capacity'],
+        'available_space' => $row['available_space'],
+        'room_count' => $row['room_count']
       ];
     }
 
