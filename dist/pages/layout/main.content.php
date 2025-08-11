@@ -310,23 +310,23 @@
     // Count solo evacuees with solo_address_id > 0
     $soloQuery = "SELECT COUNT(*) AS solo_count FROM pre_reg_table WHERE registered_as = 'Solo'";
     $soloResult = mysqli_query($conn, $soloQuery);
-    $soloCount = ($soloResult) ? (int)mysqli_fetch_assoc($soloResult)['solo_count'] : 0;
+    $soloCount1 = ($soloResult) ? (int)mysqli_fetch_assoc($soloResult)['solo_count'] : 0;
 
     // Count family evacuees with family_id > 0
     $familyQuery = "SELECT COUNT(*) AS family_count FROM pre_reg_table WHERE registered_as = 'Family'";
     $familyResult = mysqli_query($conn, $familyQuery);
-    $familyCount = ($familyResult) ? (int)mysqli_fetch_assoc($familyResult)['family_count'] : 0;
+    $familyCount1 = ($familyResult) ? (int)mysqli_fetch_assoc($familyResult)['family_count'] : 0;
     ?>
 
 
 
-<!-- EVACUATION LOCATION -->
-<!-- MAP SECTION -->
-<div class="card-body position-relative d-flex" style="height: 500px;">
-  <div id="evacMap" style="flex: 1 1 auto; height: 100%; position: relative;"></div>
-    <!-- Overlay for details and chart at the right side of the map area -->
-    <div id="evacDetails" class="bg-white shadow border rounded p-3" 
-      style="
+    <!-- EVACUATION LOCATION -->
+    <!-- MAP SECTION -->
+    <div class="card-body position-relative d-flex" style="height: 500px;">
+      <div id="evacMap" style="flex: 1 1 auto; height: 100%; position: relative;"></div>
+      <!-- Overlay for details and chart at the right side of the map area -->
+      <div id="evacDetails" class="bg-white shadow border rounded p-3"
+        style="
         position: absolute; 
         top: 50%; 
         right: 0; 
@@ -340,15 +340,15 @@
         overflow-y: auto;        /* in case content is tall */
         max-height: 90vh;        /* prevent overflow vertically */
       ">
-    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 24px; width: 100%;">
-      <div id="evacInfoContent" style="width: 100%; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;"></div>
-      <div id="evacStatsGraph" style="width: 100%; min-width: 320px; height: 350px;"></div>
+        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 24px; width: 100%;">
+          <div id="evacInfoContent" style="width: 100%; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;"></div>
+          <div id="evacStatsGraph" style="width: 100%; min-width: 320px; height: 350px;"></div>
+        </div>
+        <button class="btn btn-sm btn-outline-danger mt-2" style="margin-left: auto; display: block;" onclick="closeEvacDetails()">Close</button>
+      </div>
     </div>
-    <button class="btn btn-sm btn-outline-danger mt-2" style="margin-left: auto; display: block;" onclick="closeEvacDetails()">Close</button>
-  </div>
-</div>
-<?php
-$query = "SELECT 
+    <?php
+    $query = "SELECT 
             evacuation_location AS evacuation_center, 
             start_date, 
             end_date, 
@@ -361,80 +361,80 @@ $query = "SELECT
           ORDER BY start_date ASC 
           LIMIT 100";
 
-$result = mysqli_query($conn, $query);
+    $result = mysqli_query($conn, $query);
 
-$analyticsByCenter = [];
+    $analyticsByCenter = [];
 
-while ($row = mysqli_fetch_assoc($result)) {
-  $center = $row['evacuation_center'];
-  $startDate = date('M d, Y', strtotime($row['start_date']));
-  $count = (int) $row['total_evacuees'];
-  $status = $row['event_status']; // 'Ongoing' or 'Completed'
+    while ($row = mysqli_fetch_assoc($result)) {
+      $center = $row['evacuation_center'];
+      $startDate = date('M d, Y', strtotime($row['start_date']));
+      $count = (int) $row['total_evacuees'];
+      $status = $row['event_status']; // 'Ongoing' or 'Completed'
 
-  if (!isset($analyticsByCenter[$center])) {
-    $analyticsByCenter[$center] = [
-      'labels' => [],
-      'completed' => [],
-      'ongoing' => [],
-    ];
-  }
+      if (!isset($analyticsByCenter[$center])) {
+        $analyticsByCenter[$center] = [
+          'labels' => [],
+          'completed' => [],
+          'ongoing' => [],
+        ];
+      }
 
-  $analyticsByCenter[$center]['labels'][] = $startDate;
+      $analyticsByCenter[$center]['labels'][] = $startDate;
 
-  if ($status === 'Ongoing') {
-    $analyticsByCenter[$center]['ongoing'][] = $count;
-    $analyticsByCenter[$center]['completed'][] = null;
-  } else {
-    $analyticsByCenter[$center]['completed'][] = $count;
-    $analyticsByCenter[$center]['ongoing'][] = null;
-  }
-}
-?>
+      if ($status === 'Ongoing') {
+        $analyticsByCenter[$center]['ongoing'][] = $count;
+        $analyticsByCenter[$center]['completed'][] = null;
+      } else {
+        $analyticsByCenter[$center]['completed'][] = $count;
+        $analyticsByCenter[$center]['ongoing'][] = null;
+      }
+    }
+    ?>
 
-<script>
-  const ongoingEvents = <?= json_encode($ongoingDebug) ?>;
+    <script>
+      const ongoingEvents = <?= json_encode($ongoingDebug) ?>;
 
-  if (ongoingEvents.length > 0) {
-    let alertMessage = "Ongoing Evacuation Events:\n\n";
-    ongoingEvents.forEach(event => {
-      alertMessage += `📍 ${event.center}\n🗓️ Started: ${event.start_date}\n👥 Evacuees: ${event.evacuees}\n\n`;
-    });
-    alert(alertMessage);
-  }
-</script>
-<div class="row mt-4">
-  <div class="col-12">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-        <span class="fw-bold">Evacuation Statistics</span>
-      </div>
-      <div class="card-body">
-        <div class="d-flex align-items-center mb-3">
-          <label for="evacuationCenterSelect" class="me-2 fw-semibold text-primary">
-            Location:
-          </label>
-          <select id="evacuationCenterSelect" class="form-select w-auto">
-            <?php 
-              $firstCenter = true;
-              foreach ($analyticsByCenter as $centerName => $data): 
-            ?>
-              <option value="<?= htmlspecialchars($centerName) ?>" <?= $firstCenter ? 'selected' : '' ?>>
-                <?= htmlspecialchars($centerName) ?>
-              </option>
-            <?php 
-              $firstCenter = false;
-              endforeach; 
-            ?>
-          </select>
+      if (ongoingEvents.length > 0) {
+        let alertMessage = "Ongoing Evacuation Events:\n\n";
+        ongoingEvents.forEach(event => {
+          alertMessage += `📍 ${event.center}\n🗓️ Started: ${event.start_date}\n👥 Evacuees: ${event.evacuees}\n\n`;
+        });
+        alert(alertMessage);
+      }
+    </script>
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <span class="fw-bold">Evacuation Statistics</span>
+          </div>
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-3">
+              <label for="evacuationCenterSelect" class="me-2 fw-semibold text-primary">
+                Location:
+              </label>
+              <select id="evacuationCenterSelect" class="form-select w-auto">
+                <?php
+                $firstCenter = true;
+                foreach ($analyticsByCenter as $centerName => $data):
+                ?>
+                  <option value="<?= htmlspecialchars($centerName) ?>" <?= $firstCenter ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($centerName) ?>
+                  </option>
+                <?php
+                  $firstCenter = false;
+                endforeach;
+                ?>
+              </select>
+            </div>
+            <canvas id="evacStatChart" height="100"></canvas>
+            <p id="evacuationLocationText" class="text-muted text-center mt-3">
+              Showing data for <span id="currentCenterText"><?= htmlspecialchars(array_key_first($analyticsByCenter)) ?></span>.
+            </p>
+          </div>
         </div>
-        <canvas id="evacStatChart" height="100"></canvas>
-        <p id="evacuationLocationText" class="text-muted text-center mt-3">
-          Showing data for <span id="currentCenterText"><?= htmlspecialchars(array_key_first($analyticsByCenter)) ?></span>.
-        </p>
       </div>
     </div>
-  </div>
-</div>
 
     <!-- Age Group and Evacuee Type Charts -->
     <div class="row mt-4">
@@ -474,7 +474,7 @@ while ($row = mysqli_fetch_assoc($result)) {
       </div>
       <div class="col-lg-6">
         <div class="card shadow-sm border-0">
-          <div class="card-header bg-warning text-dark">Evacuee Type</div>
+          <div class="card-header bg-warning text-dark">Pre-Registration Registered Type</div>
           <div class="card-body text-center">
             <div style="max-width: 300px; margin: auto;">
               <canvas id="evacTypeChart"></canvas>
@@ -483,13 +483,13 @@ while ($row = mysqli_fetch_assoc($result)) {
         </div>
       </div>
     </div>
-<?php
-include '../../../database/conn.php';
+    <?php
+    include '../../../database/conn.php';
 
-$evacMapLocations = [];
+    $evacMapLocations = [];
 
-// Query to get evacuation locations with coordinates
-$locQuery = "
+    // Query to get evacuation locations with coordinates
+    $locQuery = "
   SELECT 
     evc.evac_loc_id, 
     evc.name, 
@@ -505,24 +505,24 @@ $locQuery = "
   WHERE evc.latitude IS NOT NULL AND evc.longitude IS NOT NULL
 ";
 
-$locResult = mysqli_query($conn, $locQuery);
+    $locResult = mysqli_query($conn, $locQuery);
 
-while ($row = mysqli_fetch_assoc($locResult)) {
-  $locId = (int)$row['evac_loc_id'];
+    while ($row = mysqli_fetch_assoc($locResult)) {
+      $locId = (int)$row['evac_loc_id'];
 
-  // Get total solo evacuees (registered as Solo or no family)
-  $soloQuery = "
+      // Get total solo evacuees (registered as Solo or no family)
+      $soloQuery = "
     SELECT COUNT(*) AS total_solo 
     FROM evac_reg_table 
     LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
     WHERE evac_loc_id = $locId 
       AND (registered_as = 'Solo' OR family_id IS NULL OR family_id = 0)
   ";
-  $soloResult = mysqli_query($conn, $soloQuery);
-  $soloCount = ($soloResult && $rowSolo = mysqli_fetch_assoc($soloResult)) ? intval($rowSolo['total_solo']) : 0;
+      $soloResult = mysqli_query($conn, $soloQuery);
+      $soloCount = ($soloResult && $rowSolo = mysqli_fetch_assoc($soloResult)) ? intval($rowSolo['total_solo']) : 0;
 
-  // Get total family members (all evacuees registered as family)
-  $familyMembersQuery = "
+      // Get total family members (all evacuees registered as family)
+      $familyMembersQuery = "
     SELECT COUNT(*) AS total_family_members 
     FROM evac_reg_table 
     LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
@@ -532,77 +532,77 @@ while ($row = mysqli_fetch_assoc($locResult)) {
       AND family_id > 0
   ";
 
-  $totalEvacueesQuery = "
+      $totalEvacueesQuery = "
     SELECT COUNT(*) AS total_evacuees 
     FROM evac_reg_table 
     LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
     WHERE evac_loc_id = $locId
   ";
 
-  $totalEvacueesResult = mysqli_query($conn, $totalEvacueesQuery);
-  $totalEvacueesCount = ($totalEvacueesResult && $rowTotal = mysqli_fetch_assoc($totalEvacueesResult)) ? intval($rowTotal['total_evacuees']) : 0;
+      $totalEvacueesResult = mysqli_query($conn, $totalEvacueesQuery);
+      $totalEvacueesCount = ($totalEvacueesResult && $rowTotal = mysqli_fetch_assoc($totalEvacueesResult)) ? intval($rowTotal['total_evacuees']) : 0;
 
-  $familyMembersResult = mysqli_query($conn, $familyMembersQuery);
-  $familyMembersCount = ($familyMembersResult && $rowFamily = mysqli_fetch_assoc($familyMembersResult)) ? intval($rowFamily['total_family_members']) : 0;
+      $familyMembersResult = mysqli_query($conn, $familyMembersQuery);
+      $familyMembersCount = ($familyMembersResult && $rowFamily = mysqli_fetch_assoc($familyMembersResult)) ? intval($rowFamily['total_family_members']) : 0;
 
-  $evacMapLocations[] = [
-    'id' => $locId,
-    'name' => $row['name'],
-    'city' => $row['city'],
-    'barangay' => $row['barangay'],
-    'purok' => $row['purok'],
-    'capacity' => $row['total_capacity'],
-    'lat' => (float)$row['latitude'],
-    'lng' => (float)$row['longitude'],
-    'total_solo' => $soloCount,
-    'total_family' => $familyMembersCount,
-    'total_evacuees' => $totalEvacueesCount
-  ];
-}
+      $evacMapLocations[] = [
+        'id' => $locId,
+        'name' => $row['name'],
+        'city' => $row['city'],
+        'barangay' => $row['barangay'],
+        'purok' => $row['purok'],
+        'capacity' => $row['total_capacity'],
+        'lat' => (float)$row['latitude'],
+        'lng' => (float)$row['longitude'],
+        'total_solo' => $soloCount,
+        'total_family' => $familyMembersCount,
+        'total_evacuees' => $totalEvacueesCount
+      ];
+    }
 
-// --- PHP: build analyticsByCenter ---
-$analyticsByCenter = [];
+    // --- PHP: build analyticsByCenter ---
+    $analyticsByCenter = [];
 
-$statsQuery = "
+    $statsQuery = "
   SELECT evacuation_location, start_date, end_date, total_evacuation, total_family, total_solo
   FROM evacuation_record_table
   WHERE start_date IS NOT NULL
   ORDER BY start_date ASC
 ";
-$statsResult = mysqli_query($conn, $statsQuery);
-if (!$statsResult) {
-    error_log("Query failed: " . mysqli_error($conn));
-    $statsResult = [];
-}
-while ($row = mysqli_fetch_assoc($statsResult)) {
-    $center = $row['evacuation_location'] ?? 'Unknown';
-    $startDateFormatted = date('M d, Y', strtotime($row['start_date']));
-    $endDateFormatted = (empty($row['end_date']) || $row['end_date'] === '0000-00-00 00:00:00')
+    $statsResult = mysqli_query($conn, $statsQuery);
+    if (!$statsResult) {
+      error_log("Query failed: " . mysqli_error($conn));
+      $statsResult = [];
+    }
+    while ($row = mysqli_fetch_assoc($statsResult)) {
+      $center = $row['evacuation_location'] ?? 'Unknown';
+      $startDateFormatted = date('M d, Y', strtotime($row['start_date']));
+      $endDateFormatted = (empty($row['end_date']) || $row['end_date'] === '0000-00-00 00:00:00')
         ? 'Ongoing'
         : date('M d, Y', strtotime($row['end_date']));
 
-    if (!isset($analyticsByCenter[$center])) {
+      if (!isset($analyticsByCenter[$center])) {
         $analyticsByCenter[$center] = [
-            'labels'           => [],
-            'endDates'         => [],
-            'completedFamily'  => [],
-            'ongoingFamily'    => [],
-            'completedSolo'    => [],
-            'ongoingSolo'      => [],
-            'completedTotal'   => [],
-            'ongoingTotal'     => []
+          'labels'           => [],
+          'endDates'         => [],
+          'completedFamily'  => [],
+          'ongoingFamily'    => [],
+          'completedSolo'    => [],
+          'ongoingSolo'      => [],
+          'completedTotal'   => [],
+          'ongoingTotal'     => []
         ];
-    }
+      }
 
-    $analyticsByCenter[$center]['labels'][] = $startDateFormatted;
-    $analyticsByCenter[$center]['endDates'][] = $endDateFormatted;
+      $analyticsByCenter[$center]['labels'][] = $startDateFormatted;
+      $analyticsByCenter[$center]['endDates'][] = $endDateFormatted;
 
-    // Use DB's total_evacuees field (not sum)
-    $countFamily = (int)($row['total_family'] ?? 0);
-    $countSolo   = (int)($row['total_solo'] ?? 0);
-    $countTotal  = (int)($row['total_evacuation'] ?? 0);
+      // Use DB's total_evacuees field (not sum)
+      $countFamily = (int)($row['total_family'] ?? 0);
+      $countSolo   = (int)($row['total_solo'] ?? 0);
+      $countTotal  = (int)($row['total_evacuation'] ?? 0);
 
-    if ($endDateFormatted === 'Ongoing') {
+      if ($endDateFormatted === 'Ongoing') {
         $analyticsByCenter[$center]['completedFamily'][] = null;
         $analyticsByCenter[$center]['completedSolo'][]   = null;
         $analyticsByCenter[$center]['completedTotal'][]  = null;
@@ -610,7 +610,7 @@ while ($row = mysqli_fetch_assoc($statsResult)) {
         $analyticsByCenter[$center]['ongoingFamily'][] = $countFamily;
         $analyticsByCenter[$center]['ongoingSolo'][]   = $countSolo;
         $analyticsByCenter[$center]['ongoingTotal'][]  = $countTotal;
-    } else {
+      } else {
         $analyticsByCenter[$center]['completedFamily'][] = $countFamily;
         $analyticsByCenter[$center]['completedSolo'][]   = $countSolo;
         $analyticsByCenter[$center]['completedTotal'][]  = $countTotal;
@@ -618,14 +618,14 @@ while ($row = mysqli_fetch_assoc($statsResult)) {
         $analyticsByCenter[$center]['ongoingFamily'][] = null;
         $analyticsByCenter[$center]['ongoingSolo'][]   = null;
         $analyticsByCenter[$center]['ongoingTotal'][]  = null;
+      }
     }
-} 
-?>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    ?>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<?php include '../scripts/dashboard_admin/analytics_locations.php';
-  include '../scripts/dashboard_admin/graph_data_maps.php';
-?>
+    <?php include '../scripts/dashboard_admin/analytics_locations.php';
+    include '../scripts/dashboard_admin/graph_data_maps.php';
+    ?>
 
     <script>
       const ageLabels = <?= json_encode(array_keys($ageGroups)) ?>;
@@ -675,21 +675,22 @@ while ($row = mysqli_fetch_assoc($statsResult)) {
           labels: ['Solo', 'Family'],
           datasets: [{
             label: 'Evacuee Type',
-            data: [<?php echo $soloCount; ?>, <?php echo $familyCount; ?>],
+            data: [<?php echo $soloCount1; ?>, <?php echo $familyCount1; ?>],
             backgroundColor: ['#9b59b6', '#2ecc71']
           }]
         }
       });
     </script>
-<!-- Include Select2 CSS & JS -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- Include Select2 CSS & JS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <style>
       .room-box-container {
         display: flex;
         flex-wrap: wrap;
         gap: 1rem;
       }
+
       .room-box {
         border-radius: 10px;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
@@ -704,10 +705,12 @@ while ($row = mysqli_fetch_assoc($statsResult)) {
         font-size: 1.1rem;
         margin-bottom: 0.5rem;
       }
+
       .room-capacity {
         font-size: 0.95rem;
         margin-bottom: 0.5rem;
       }
+
       .room-status {
         font-size: 0.9rem;
         font-weight: 600;
@@ -744,4 +747,3 @@ while ($row = mysqli_fetch_assoc($statsResult)) {
   <!--end::Container-->
 </div>
 <!--end::App Content-->
- 

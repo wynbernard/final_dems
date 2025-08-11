@@ -28,3 +28,49 @@ Stack trace:
 Stack trace:
 #0 {main}
   thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 91
+[11-Aug-2025 05:38:50 Europe/Berlin] Register error: Unknown column 'evacuation_id' in 'field list'
+[11-Aug-2025 05:40:10 Europe/Berlin] Register error: Unknown column 'total_senior' in 'field list'
+[11-Aug-2025 05:40:27 Europe/Berlin] Register error: Unknown column 'total_senior' in 'field list'
+[11-Aug-2025 05:42:11 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php:143
+Stack trace:
+#0 C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php(143): mysqli_stmt->bind_param('siiiiiiiiiii', 'Bago City Colle...', 0, 2, 2, 0, 0, 0, 0, 0, 0, 0)
+#1 {main}
+  thrown in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php on line 143
+[11-Aug-2025 05:42:45 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php:143
+Stack trace:
+#0 C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php(143): mysqli_stmt->bind_param('siiiiiiiiiii', 'Bago City Colle...', 0, 2, 2, 0, 0, 0, 0, 0, 0, 0)
+#1 {main}
+  thrown in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php on line 143
+[11-Aug-2025 05:44:27 Europe/Berlin] PHP Warning:  Undefined variable $ageClassStmt in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php on line 88
+[11-Aug-2025 05:44:27 Europe/Berlin] PHP Fatal error:  Uncaught Error: Call to a member function bind_param() on null in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php:88
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php on line 88
+[11-Aug-2025 05:48:05 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php:143
+Stack trace:
+#0 C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php(143): mysqli_stmt->bind_param('siiiiiiiiiii', 'Bago City Colle...', 0, 2, 2, 0, 0, 0, 0, 0, 0, 0)
+#1 {main}
+  thrown in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php on line 143
+[11-Aug-2025 05:51:18 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php:143
+Stack trace:
+#0 C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php(143): mysqli_stmt->bind_param('siiiiiiiiiii', 'Bago City Colle...', 0, 2, 2, 0, 0, 0, 0, 0, 0, 0)
+#1 {main}
+  thrown in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php on line 143
+[11-Aug-2025 05:54:45 Europe/Berlin] RAW INPUT: {"room_id":"16","member_ids":["88","93"],"location_id":"16"}
+[11-Aug-2025 05:54:45 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php:146
+Stack trace:
+#0 C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php(146): mysqli_stmt->bind_param('siiiiiiiiiii', 'Bago City Colle...', 0, 2, 2, 0, 0, 0, 0, 0, 0, 0)
+#1 {main}
+  thrown in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php on line 146
+[11-Aug-2025 06:00:38 Europe/Berlin] RAW INPUT: {"room_id":"16","member_ids":["88","93"],"location_id":"16"}
+[11-Aug-2025 06:00:39 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php:146
+Stack trace:
+#0 C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php(146): mysqli_stmt->bind_param('siiiiiiiiiii', 'Bago City Colle...', 0, 2, 2, 0, 0, 0, 0, 0, 0, 0)
+#1 {main}
+  thrown in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php on line 146
+[11-Aug-2025 06:07:23 Europe/Berlin] RAW INPUT: {"room_id":"16","member_ids":["88","93"],"location_id":"16"}
+[11-Aug-2025 06:07:23 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php:146
+Stack trace:
+#0 C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php(146): mysqli_stmt->bind_param('siiiiiiiiiii', 'Bago City Colle...', 0, 2, 2, 0, 0, 0, 0, 0, 0, 0)
+#1 {main}
+  thrown in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php on line 146

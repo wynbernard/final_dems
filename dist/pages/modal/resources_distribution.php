@@ -28,19 +28,20 @@
 							<form id="resource-selection-form">
 								<?php
 								include '../../../database/conn.php';
-								$resourceQuery = "SELECT resource_id, resource_name FROM resource_allocation_table ORDER BY resource_name ASC";
+								$resourceQuery = "SELECT resource_id, resource_name ,measurement_unit FROM resource_allocation_table ORDER BY resource_name ASC";
 								$result = $conn->query($resourceQuery);
 
 								if ($result && $result->num_rows > 0):
 									while ($row = $result->fetch_assoc()):
 										$resourceId = (int)$row['resource_id'];
 										$resourceLabel = htmlspecialchars($row['resource_name']);
+										$unit = htmlspecialchars($row['measurement_unit']);
 								?>
 										<div class="form-check d-flex align-items-center mb-2">
 											<input class="form-check-input me-2" type="checkbox" name="resources[]" value="<?= $resourceId ?>" id="res-<?= $resourceId ?>">
 											<label class="form-check-label me-3" for="res-<?= $resourceId ?>"><?= $resourceLabel ?></label>
 											<input type="number" name="quantity[<?= $resourceId ?>]" class="form-control form-control-sm w-auto" value="1" min="1" style="width: 80px;">
-											
+											<span class="ms-2"><?= $unit ?></span>
 										</div>
 								<?php
 									endwhile;
