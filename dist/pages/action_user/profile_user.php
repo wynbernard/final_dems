@@ -84,7 +84,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 	} elseif (isset($_POST['date_of_birth'])) {
 		$query = "UPDATE pre_reg_table SET date_of_birth = ? WHERE pre_reg_id = ?";
 		$params = [$_POST['date_of_birth'], $pre_reg_id];
-		$update_qr = true;
 
 		
 	} elseif (isset($_POST['registered_as']) && $_POST['registered_as'] == "Solo") {
