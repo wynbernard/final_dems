@@ -550,11 +550,16 @@
 					</button>
 				</td>
 			`;
-			function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return date.toLocaleDateString(undefined, options); // Uses user's locale
-  }
+
+					function formatDate(dateStr) {
+						const date = new Date(dateStr);
+						const options = {
+							year: 'numeric',
+							month: 'long',
+							day: 'numeric'
+						};
+						return date.toLocaleDateString(undefined, options); // Uses user's locale
+					}
 
 					tbody.appendChild(row);
 				});
@@ -713,7 +718,7 @@
 			const memberIds = Array.from(selectedMembers); // Convert selectedMembers (Set) to array
 			const locationId = currentLocationId; // Assumes currentLocationId is set
 
-			// alert("Selected Members: ", memberIds); // Debugging line to check the value of memberIds
+			alert("Selected Members: ", memberIds); // Debugging line to check the value of memberIds
 
 			// Validate required fields
 			if (!roomId || memberIds.length === 0 || !locationId) {
@@ -736,11 +741,19 @@
 					body: JSON.stringify(data)
 				});
 
-				const result = await response.json();
+				const text = await response.text(); // Get raw text
+				console.log("RAW RESPONSE:", text);
+
+				let result;
+				try {
+					result = JSON.parse(text);
+				} catch (e) {
+					console.error("JSON parse error:", e);
+					throw new Error("Server did not return valid JSON");
+				}
 
 				if (result.success) {
 					showAlert(`${result.success_count} members registered successfully!`, "success");
-					// Clear selected members and refresh data
 					scannedMembers = [];
 					selectedMembers.clear();
 					await fetchExistingFamilyMembers();
@@ -748,11 +761,11 @@
 				} else {
 					showAlert(result.error || "Registration failed.", "danger");
 				}
-
 			} catch (error) {
 				console.error("Registration error:", error);
-		showAlert("Failed to complete registration: " + error.message, "danger");
+				showAlert("Failed to complete registration: " + error.message, "danger");
 			}
+
 		}
 
 		// Helper Functions

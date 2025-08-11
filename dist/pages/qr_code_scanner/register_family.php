@@ -5,11 +5,19 @@ ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/php-error.log');
 error_reporting(E_ALL);
 
-include '../../../database/session.php'; // $conn must be available
+include '../../../database/session.php'; // Ensure this doesn't echo/redirect for API calls
 
 try {
-    $data = json_decode(file_get_contents("php://input"), true);
+    // Read and decode JSON
+    $rawInput = file_get_contents("php://input");
+    error_log("RAW INPUT: " . $rawInput); // Debug
 
+    $data = json_decode($rawInput, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        throw new Exception("Invalid JSON: " . json_last_error_msg());
+    }
+
+    // Extract and validate
     $roomId = $data['room_id'] ?? null;
     $memberIds = $data['member_ids'] ?? [];
     $locationId = $data['location_id'] ?? null;
@@ -34,19 +42,20 @@ try {
         'Toddler' => 0,
         'Pre-School' => 0,
         'School-Age' => 0,
-        'Teenage' => 0,	
+        'Teenage' => 0,
         'Adult' => 0,
         'Senior' => 0
     ];
-    $ageClassStmt = $conn->prepare("SELECT ac.classification FROM pre_reg_table pr LEFT JOIN age_class_table ac ON pr.age_class_id = ac.age_class_id WHERE pr.pre_reg_id = ?");
+
     // Prepare statements
+    $ageClassStmt = $conn->prepare("SELECT ac.classification FROM pre_reg_table pr LEFT JOIN age_class_table ac ON pr.age_class_id = ac.age_class_id WHERE pr.pre_reg_id = ?");
     $checkStmt = $conn->prepare("SELECT pre_reg_id FROM evac_reg_table WHERE pre_reg_id = ?");
     $insertStmt = $conn->prepare("INSERT INTO evac_reg_table (room_id, pre_reg_id, evac_loc_id, date_reg, status) VALUES (?, ?, ?, CURDATE(), 'Evacuated')");
     $logStmt = $conn->prepare("INSERT INTO logs_table (evac_reg_id, status, date_time) VALUES (?, ?, NOW())");
     $typeStmt = $conn->prepare("SELECT registered_as FROM pre_reg_table WHERE pre_reg_id = ?");
-    $recordCheck = $conn->prepare("SELECT evacuation_id FROM evacuation_record_table WHERE evacuation_location = ? AND end_date IS NULL");
-$recordInsert = $conn->prepare("INSERT INTO evacuation_record_table (evacuation_location, start_date, total_solo, total_family, total_evacuation, total_infant, total_toddler, total_pre_school, total_school_age, total_teenage, total_adult, total_senior) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-$recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = total_solo + ?, total_family = total_family + ?, total_evacuation = total_evacuation + ?, total_infant = total_infant + ?, total_toddler = total_toddler + ?, total_pre_school = total_pre_school + ?, total_school_age = total_school_age + ?, total_teenage = total_teenage + ?, total_adult = total_adult + ?, total_senior = total_senior + ? WHERE evacuation_id = ?");
+    $recordCheck = $conn->prepare("SELECT evacuation_record_id FROM evacuation_record_table WHERE evacuation_location = ? AND end_date IS NULL");
+    $recordInsert = $conn->prepare("INSERT INTO evacuation_record_table (evacuation_location, start_date, total_solo, total_family, total_evacuation, total_infant, total_toddler, total_pre_school, total_school_age, total_teenage, total_adult, total_seniors) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = total_solo + ?, total_family = total_family + ?, total_evacuation = total_evacuation + ?, total_infant = total_infant + ?, total_toddler = total_toddler + ?, total_pre_school = total_pre_school + ?, total_school_age = total_school_age + ?, total_teenage = total_teenage + ?, total_adult = total_adult + ?, total_seniors = total_seniors + ? WHERE evacuation_record_id = ?");
     $locationStmt = $conn->prepare("SELECT name FROM evac_loc_table WHERE evac_loc_id = ?");
 
     if (!$checkStmt || !$insertStmt || !$logStmt || !$typeStmt || !$recordCheck || !$recordInsert || !$recordUpdate || !$locationStmt) {
@@ -59,7 +68,7 @@ $recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = 
         $checkStmt->store_result();
 
         if ($checkStmt->num_rows === 0) {
-            // Insert new registration
+            // Insert registration
             $insertStmt->bind_param("iii", $roomId, $memberId, $locationId);
             if (!$insertStmt->execute()) {
                 throw new Exception("Insert failed for member ID $memberId: " . $insertStmt->error);
@@ -74,14 +83,10 @@ $recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = 
             $typeStmt->bind_param("i", $memberId);
             $typeStmt->execute();
             $typeResult = $typeStmt->get_result();
-
             if ($typeResult && $typeRow = $typeResult->fetch_assoc()) {
                 $groupType = strtolower($typeRow['registered_as']);
-                if ($groupType === 'solo') {
-                    $soloCount++;
-                } else if ($groupType === 'family') {
-                    $familyCount++;  // This counts family members individually
-                }
+                if ($groupType === 'solo') $soloCount++;
+                else if ($groupType === 'family') $familyCount++;
             }
 
             // Count age classification
@@ -90,9 +95,7 @@ $recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = 
             $ageClassResult = $ageClassStmt->get_result();
             if ($ageClassResult && $ageClassRow = $ageClassResult->fetch_assoc()) {
                 $class = $ageClassRow['classification'];
-                if (isset($ageClassCounts[$class])) {
-                    $ageClassCounts[$class]++;
-                }
+                if (isset($ageClassCounts[$class])) $ageClassCounts[$class]++;
             }
 
             $successCount++;
@@ -101,7 +104,7 @@ $recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = 
         }
     }
 
-    // Final individual count
+    // Final count
     $totalEvacuees = $successCount;
 
     // Get location name
@@ -114,7 +117,7 @@ $recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = 
         throw new Exception("Location name not found for ID: $locationId");
     }
 
-    // Update or insert evacuation record
+    // Update/insert evacuation record
     $recordCheck->bind_param("s", $locationName);
     $recordCheck->execute();
     $recordCheck->store_result();
@@ -172,9 +175,7 @@ $recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = 
     if ($conn->errno) {
         $conn->rollback();
     }
-
     error_log("Register error: " . $e->getMessage());
-
     http_response_code(500);
     echo json_encode([
         'success' => false,
@@ -183,4 +184,3 @@ $recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = 
 }
 
 $conn->close();
-?>
