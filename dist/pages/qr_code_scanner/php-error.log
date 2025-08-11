@@ -28,3 +28,8 @@ Stack trace:
 Stack trace:
 #0 {main}
   thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 91
+[11-Aug-2025 06:39:28 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:155
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(155): mysqli_stmt->bind_param('siiiiiiiiiii', 'Bago City Colle...', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 155
