@@ -141,3 +141,12 @@
 		});
 	});
 </script>
+
+
+
+⦁	add pagination for the logs record
+⦁	make the scanner in the logs make it one only for the IN and OUT
+⦁	Get the nearest route for the evacuation
+⦁	add room capacity didnot affect to the location capacity total
+⦁	add evacuation location didnot affect to the dashboard map
+⦁	adjust the camera for the distrib8ution
