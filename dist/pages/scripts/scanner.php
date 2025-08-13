@@ -721,7 +721,7 @@
 			alert("Selected Members: ", memberIds); // Debugging line to check the value of memberIds
 
 			// Validate required fields
-			if (!roomId || memberIds.length === 0 || !locationId) {
+			if (!roomId && memberIds.length === 0 && !locationId) {
 				showAlert("Please select a room, at least one member, and a location", "warning");
 				return;
 			}
