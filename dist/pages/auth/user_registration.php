@@ -362,7 +362,6 @@
 							</div>
 						</div>
 						<!-- ID Upload Input -->
-
 						<script>
 							function previewIdCard(event) {
 								const input = event.target;
@@ -414,13 +413,13 @@
 								</div>
 							</div>
 						</div>
-						<!-- <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script> -->
+						<script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script>
 						<!-- SweetAlert2 CSS -->
 						<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 						<!-- SweetAlert2 JS -->
 						<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 						<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-						<script src="tesseract.js"></script>
+						<!-- <script src="tesseract.js"></script> -->
 						<div class="col-md-2">
 							<div class="mb-3">
 								<label class="form-label">Others</label>

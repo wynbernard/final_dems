@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<meta name="title" content="AdminLTE v4 | Dashboard" />
 	<meta name="author" content="ColorlibHQ" />
-	<link rel="icon" href="../../../src/images/logo/logo.png" type="image/png" />
+	<link rel="icon" href="../../../src/images/logo/side_logo.png" type="image/png" />
 	<meta
 		name="description"
 		content="AdminLTE is a Free Bootstrap 5 Admin Dashboard, 30 example pages using Vanilla JS." />

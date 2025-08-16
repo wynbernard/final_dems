@@ -132,7 +132,7 @@
 	<nav class="navbar navbar-expand-lg navbar-dark fixed-top shadow-sm" style="background-color: transparent;">
 		<div class="container">
 			<a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="#">
-				<img src="src/images/logo/logo.png" alt="DEMS Logo" height="30">
+				<img src="src/images/logo/side_logo.png" alt="DEMS Logo" height="50" width="50">
 				<span>DEMS</span>
 			</a>
 

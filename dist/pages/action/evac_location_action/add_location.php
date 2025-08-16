@@ -7,12 +7,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	$city = isset($_POST['city']) ? trim($_POST['city']) : '';
 	$barangay = isset($_POST['barangay']) ? trim($_POST['barangay']) : '';
 	$purok = isset($_POST['purok']) ? trim($_POST['purok']) : '';
-	$total_capacity = isset($_POST['total_capacity']) ? intval($_POST['total_capacity']) : 0;
+	$total_capacity = 0;
 	$latitude = $_POST['latitude'];
 	$longitude = $_POST['longitude'];
 
 	// Validate input data
-	if (empty($location_name) || empty($city) || empty($barangay) || empty($purok) || $total_capacity <= 0) {
+	if (empty($location_name) || empty($city) || empty($barangay) ) {
 		$_SESSION['error'] = "<span style='color:white;'><i class='bi bi-exclamation-circle-fill'></i> Please fill in all fields correctly.</span>";
 		header("Location: ../../admin_page/loc_management.php");
 		exit();

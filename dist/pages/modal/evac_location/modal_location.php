@@ -48,12 +48,6 @@
 								<input type="text" class="form-control rounded-3 shadow-sm" id="purokLocation" name="purok" required>
 							</div>
 
-							<!-- Capacity -->
-							<div class="mb-3">
-								<label for="totalCapacity" class="form-label fw-medium">👥 Total Capacity</label>
-								<input type="number" class="form-control rounded-3 shadow-sm" id="totalCapacity" name="total_capacity" required>
-							</div>
-
 							<!-- Hidden Fields for Latitude & Longitude -->
 							<input type="hidden" id="latitude" name="latitude">
 							<input type="hidden" id="longitude" name="longitude">
@@ -151,8 +145,7 @@
 							</div>
 
 							<div class="mb-3">
-								<label for="editTotalCapacity" class="form-label">Total Capacity</label>
-								<input type="number" class="form-control" id="editTotalCapacity" name="total_capacity" required>
+								<input type="number" class="form-control" id="editTotalCapacity" name="total_capacity" hidden>
 							</div>
 						</div>
 					</div>

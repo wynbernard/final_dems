@@ -164,7 +164,42 @@
 					return;
 				}
 				const preRegId = match[1];
+				fetchRegistrationDetails(preRegId);
+				// const preRegCell = document.getElementById("preRegIdCell");
+				// if (preRegCell) {
+				// 	preRegCell.textContent = preRegId;
+				// }
+				async function fetchRegistrationDetails(preRegId) {
+					try {
+						const response = await fetch(`../qr_code_scanner/get_registration_details.php?pre_reg_id=${preRegId}`);
+						if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
 
+						const resp = await response.json();
+						if (!resp.success) throw new Error(resp.error || "Failed to fetch data");
+
+						const data = resp.data;
+
+						// Update table dynamically
+						// document.getElementById('preRegIdCell').textContent = data.pre_reg_id;
+						document.getElementById('householdHeadCell').textContent = data.name;
+						document.getElementById('memberCountCell').textContent = data.solo_member_count || data.family_member_count || 0;
+
+						// Update table cell
+						document.getElementById('addressCell').textContent = data.solo_address || data.family_address || 'N/A';
+						document.getElementById('collectionPointCell').textContent = data.solo_barangay || data.family_barangay || 'N/A';
+						// document.getElementById('evacuationCenterCell').textContent = data.assigned_location;
+						document.getElementById('phoneNumberCell').textContent = data.contact_number;
+						const qrImg = document.getElementById('qrCodeImg');
+							if (qrImg) {
+								qrImg.src = '../../../' + data.qr_code.replace(/^\/+/, '');
+								qrImg.alt = 'QR Code';
+							}
+
+					} catch (error) {
+						console.error("Error fetching registration details:", error);
+						showAlert("Failed to load registration data", "danger");
+					}
+				}
 				// Alert once if the same QR code is steady in the scanner
 				const now = Date.now();
 				if (lastScannedId === preRegId && now - lastScanTime < SCAN_INTERVAL) {
@@ -448,7 +483,7 @@
 						});
 					});
 				});
-
+				
 				updateFamilyDisplay();
 
 			} catch (error) {
@@ -718,14 +753,11 @@
 			const memberIds = Array.from(selectedMembers); // Convert selectedMembers (Set) to array
 			const locationId = currentLocationId; // Assumes currentLocationId is set
 
-			alert("Selected Members: ", memberIds); // Debugging line to check the value of memberIds
-
 			// Validate required fields
 			if (!roomId && memberIds.length === 0 && !locationId) {
 				showAlert("Please select a room, at least one member, and a location", "warning");
 				return;
 			}
-
 			const data = {
 				room_id: roomId,
 				member_ids: memberIds,
