@@ -157,6 +157,9 @@
 					<li class="nav-item">
 						<a class="nav-link" href="./dist/pages/auth/user_registration.php">Register</a>
 					</li>
+					<li class="nav-item">
+						<a class="nav-link" href="./dist/pages/auth/digital_id.php">Digital ID</a>
+					</li>
 				</ul>
 			</div>
 		</div>
