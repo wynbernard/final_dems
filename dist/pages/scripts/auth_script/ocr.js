@@ -28,18 +28,28 @@ document.getElementById('ic_image').addEventListener('change', function() {
 										const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 										const qrCode = jsQR(imageData.data, canvas.width, canvas.height);
 
+
 										if (qrCode) {
-											const qrText = qrCode.data.toLowerCase();
-											const isFnameMatch = qrText.includes(fname);
-											const isMnameMatch = qrText.includes(mname);
-											const isLnameMatch = qrText.includes(lname);
-											const isExtMatch = ext ? qrText.includes(ext) : true;
+											let qrData;
+											qrData = JSON.parse(qrCode.data);
+
+											const qrFname  = (qrData.subject?.fName || "").trim().toLowerCase();
+											const qrMname  = (qrData.subject?.mName || "").trim().toLowerCase();
+											const qrLname  = (qrData.subject?.lName || "").trim().toLowerCase();
+											const qrSuffix = (qrData.subject?.Suffix || "").trim().toLowerCase();
+
+											 // Compare each field (middle name & suffix optional if left blank)
+											const isFnameMatch = fname === qrFname;
+											const isMnameMatch = mname ? mname === qrMname : true;
+											const isLnameMatch = lname === qrLname;
+											const isExtMatch   = ext   ? ext === qrSuffix : true;
+
 
 											// Extract PCN (PhilSys number format: ####-####-####-####)
-											const pcnMatch = qrText.match(/\b\d{4}-\d{4}-\d{4}-\d{4}\b/);
-											if (pcnMatch) {
-												document.getElementById('icn').value = pcnMatch[0];
-												// console.log(isFnameMatch);
+											 if (qrData.subject?.PCN) {
+												document.getElementById('icn').value = qrData.subject.PCN;
+												console.log("PCN:", qrData.subject.PCN);
+												console.log(qrFname);
 											}
 
 											if (isFnameMatch && isMnameMatch && isLnameMatch && isExtMatch) {
@@ -49,7 +59,7 @@ document.getElementById('ic_image').addEventListener('change', function() {
 													title: 'QR Name Match',
 													text: 'QR code successfully verified.',
 													confirmButtonColor: '#198754'
-												});
+												});5
 											} else {
 												document.getElementById('ic_image').value = "";
 												Swal.fire({

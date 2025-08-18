@@ -64,7 +64,6 @@ if (!$result) {
 											<tr>
 												<th> No.</th>
 												<th><i class="bi bi-exclamation-triangle-fill"></i> Disaster Type</th>
-												<th><i class="bi bi-bar-chart-fill"></i> Severity Level</th>
 												<th><i class="bi bi-calendar-event-fill"></i> Date</th>
 												<th><i class="bi bi-gear-fill"></i> Actions</th>
 
@@ -79,7 +78,6 @@ if (!$result) {
 													<tr>
 														<td class="cell-number"><?php echo $counter++; ?>.</td>
 														<td class="cell-disaster-name"><?php echo htmlspecialchars($disaster['disaster_name']); ?></td>
-														<td class="cell-severity"><?php echo htmlspecialchars($disaster['level']); ?></td>
 														<td class="cell-date"><?php echo htmlspecialchars($disaster['date']); ?></td>
 
 														<td>

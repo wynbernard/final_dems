@@ -158,3 +158,10 @@
 </body>
 
 </html>
+
+
+action/disaster/add_disaster.php
+action/disaster/edit_disaster.php
+admin_page/disaster.php
+modal/disaster.php
+script/auth_script/ocr.js

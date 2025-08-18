@@ -5,14 +5,13 @@ include '../../../../database/session.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	// Sanitize and validate input
 	$disaster_name = trim($_POST['disaster_name'] ?? '');
-	$level = trim($_POST['level'] ?? '');
 	$date = trim($_POST['date'] ?? '');
 
-	if ($disaster_name !== '' && $level !== '' && $date !== '') {
-		$stmt = $conn->prepare("INSERT INTO disaster_table (disaster_name, level, date) VALUES (?, ?, ?)");
+	if ($disaster_name !== '' && $date !== '') {
+		$stmt = $conn->prepare("INSERT INTO disaster_table (disaster_name,date) VALUES (?,?)");
 
 		if ($stmt) {
-			$stmt->bind_param("sss", $disaster_name, $level, $date);
+			$stmt->bind_param("ss", $disaster_name, $date);
 
 			if ($stmt->execute()) {
 				$_SESSION['success'] = "<span style='color: green;'><i class='bi bi-check-circle-fill'></i></span> Disaster added successfully!";

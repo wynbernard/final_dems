@@ -12,12 +12,6 @@
 						<label for="disaster_name" class="form-label">Disaster Type</label>
 						<input type="text" class="form-control" id="disaster_name" name="disaster_name" required>
 					</div>
-
-					<div class="mb-3">
-						<label for="level" class="form-label">Level</label>
-						<input type="text" class="form-control" id="level" name="level" required>
-					</div>
-
 					<div class="mb-3">
 						<label for="date" class="form-label">Date</label>
 						<input type="date" class="form-control" id="date" name="date" required>
@@ -46,10 +40,6 @@
 					<div class="mb-3">
 						<label for="edit-disaster-name" class="form-label">Disaster Name</label>
 						<input type="text" class="form-control" id="edit-disaster-type" name="disaster_name">
-					</div>
-					<div class="mb-3">
-						<label for="edit-disaster-level" class="form-label">Severity</label>
-						<input type="text" class="form-control" id="edit-disaster-level" name="level">
 					</div>
 					<div class="mb-3">
 						<label for="edit-disaster-date" class="form-label">Date</label>
@@ -96,13 +86,11 @@
 				// get the data
 				const disasterId = this.getAttribute('data-id');
 				const disasterType = this.getAttribute('data-type');
-				const disasterLevel = this.getAttribute('data-level');
 				const disasterDate = this.getAttribute('data-date');
 
 				// Field Modal 
 				document.getElementById('edit-disaster-id').value = disasterId;
 				document.getElementById('edit-disaster-type').value = disasterType;
-				document.getElementById('edit-disaster-level').value = disasterLevel;
 				document.getElementById('edit-disaster-date').value = disasterDate;
 			});
 		});
