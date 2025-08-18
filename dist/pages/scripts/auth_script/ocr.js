@@ -39,6 +39,7 @@ document.getElementById('ic_image').addEventListener('change', function() {
 											const pcnMatch = qrText.match(/\b\d{4}-\d{4}-\d{4}-\d{4}\b/);
 											if (pcnMatch) {
 												document.getElementById('icn').value = pcnMatch[0];
+												// console.log(isFnameMatch);
 											}
 
 											if (isFnameMatch && isMnameMatch && isLnameMatch && isExtMatch) {

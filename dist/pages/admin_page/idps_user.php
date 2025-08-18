@@ -131,10 +131,9 @@ LEFT JOIN age_class_table ON pre_reg_table.age_class_id = age_class_table.age_cl
 									$ageResult = mysqli_query($conn, $ageQuery);
 									$ageData = mysqli_fetch_assoc($ageResult);
 									?>
-
 									<!-- Age Classification Counts -->
 									<div class="age-classification ms-2 mb-2 d-flex align-items-center">
-										<div class="badge bg-info me-1" title="Children (0-12)">
+										<!-- <div class="badge bg-info me-1" title="Children (0-12)">
 											<i class="fas fa-child me-1"></i>Children: <?= $ageData['Child'] ?? 0 ?>
 										</div>
 										<div class="badge bg-primary me-1" title="Teens (13-17)">
@@ -145,7 +144,7 @@ LEFT JOIN age_class_table ON pre_reg_table.age_class_id = age_class_table.age_cl
 										</div>
 										<div class="badge bg-warning me-1" title="Seniors (60+)">
 											<i class="fas fa-user-tie me-1"></i>Senior: <?= $ageData['Senior'] ?? 0 ?>
-										</div>
+										</div> -->
 										<div class="badge bg-dark" title="Total">
 											<i class="fas fa-users me-1"></i>Total: <?= $ageData['total'] ?? 0 ?>
 										</div>
@@ -153,6 +152,10 @@ LEFT JOIN age_class_table ON pre_reg_table.age_class_id = age_class_table.age_cl
 
 									<!-- Search Box -->
 									<input type="text" id="searchBox" class="form-control me-2 ms-auto" placeholder="Search IDPs..." style="max-width: 240px;">
+									<!-- Print/Download Button -->
+									<button type="button" class="btn btn-info mb-2" data-bs-toggle="modal" data-bs-target="#idCardModal">
+										<i class="fas fa-id-card me-1"></i> View ID Card
+									</button>
 								</form>
 
 							</div>
@@ -228,7 +231,7 @@ LEFT JOIN age_class_table ON pre_reg_table.age_class_id = age_class_table.age_cl
 															<td><?= htmlspecialchars($row['f_name'] . " " . $row['m_name'] . " " . $row['l_name']) ?></td>
 															<td><?= htmlspecialchars($row['location_name']) ?></td>
 															<td><?= htmlspecialchars($row['room_name']) ?></td>
-															<td><?= htmlspecialchars($row['date_reg']) ?></td>
+															<td><?= date("F j, Y g:i A", strtotime($row['date_reg'])) ?></td>
 															<td>
 																<button
 																	class="btn btn-sm btn-info view-idp-btn"
@@ -265,6 +268,652 @@ LEFT JOIN age_class_table ON pre_reg_table.age_class_id = age_class_table.age_cl
 	</div>
 	<script src="../scripts/scripts.js"></script>
 	<script src="../scripts/admin_script/idps_user.js"></script>
+	<div class="modal fade" id="idCardModal" tabindex="-1" aria-labelledby="idCardModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+
+  <!-- Modal Header -->
+  <div class="modal-header">
+    <h5 class="modal-title" id="idCardModalLabel">ID Card Layout Preview (4 Copies)</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  </div>
+  <?php
+include '../../../database/conn.php';
+
+// Fetch full details for last 4 registrations
+$sql = "SELECT 
+    prt.registered_as AS type,
+    prt.family_id,
+	qr.code AS qr_code,
+    prt.solo_address_id,
+    prt.relation_to_family,
+	CONCAT(ft.purok, ', ', bmt2.barangay_name, ', ', ft.city_municipality) AS family_address,
+	bmt2.barangay_name AS family_barangay,
+	CONCAT(sat.purok, ', ', bmt.barangay_name, ', ', sat.city_municipality) AS solo_address,
+	bmt.barangay_name AS solo_barangay,
+    -- Count members for each family
+    (
+        SELECT COUNT(*) 
+        FROM pre_reg_table prt2
+        WHERE prt2.family_id = prt.family_id
+    ) AS member_count,
+   CONCAT(prt.f_name, ' ', prt.l_name) AS full_name,
+    prt.contact_no AS contact_number,
+    evc.name AS evacuation_center,
+    DATE(MAX(ert.date_reg)) AS reg_date
+FROM evac_reg_table ert
+LEFT JOIN pre_reg_table prt ON ert.pre_reg_id = prt.pre_reg_id
+LEFT JOIN qr_table qr ON prt.qr_id = qr.qr_id
+LEFT JOIN evac_loc_table evc ON ert.evac_loc_id = evc.evac_loc_id
+LEFT JOIN pre_reg_table prt2 ON ert.pre_reg_id = prt2.pre_reg_id
+LEFT JOIN solo_address_table sat ON prt.solo_address_id = sat.solo_address_id
+LEFT JOIN family_table ft ON prt2.family_id = ft.family_id
+LEFT JOIN barangay_manegement_table bmt ON sat.barangay_id = bmt.barangay_id
+LEFT JOIN barangay_manegement_table bmt2 ON ft.barangay_id = bmt2.barangay_id
+WHERE prt.relation_to_family = 'Head of Family'
+GROUP BY prt.family_id
+ORDER BY MAX(ert.date_reg) DESC";
+
+$result = $conn->query($sql);
+$registrations = $result->fetch_all(MYSQLI_ASSOC);
+
+// Close connection
+$conn->close();
+?>
+
+  <!-- Modal Body -->
+<div class="modal-body" id="idCardContent">
+            <div class="container-fluid">
+                <div class="row g-3">
+                    <?php foreach ($registrations as $index => $reg): 
+						$isFamily = $reg['type'] == 'Family';
+						// $stayInCenter = $reg['stay_in_center'] == 'yes';
+					?>
+                        <!-- Start new row after every 2 cards -->
+                        <?php if ($index % 2 == 0): ?>
+                            <div class="w-100"></div>
+                        <?php endif; ?>
+                        
+                        <div class="col-md-6">
+                            <div class="id-card <?= $isFamily ? 'family-card' : 'solo-card' ?>">
+                                <!-- Header -->
+                                <div class="card-header">
+                                    <div class="card-title">KANLAON EVACUATION PLAN</div>
+                                    <div class="card-subtitle">BAKWIT CARD</div>
+                                    <div class="registration-type">
+                                        <?= $isFamily ? 'FAMILY' : 'INDIVIDUAL' ?>
+                                    </div>
+                                </div>
+
+                                <!-- Main Information Section -->	
+                                <div class="form-section">
+                                    <table class="form-table">
+                                        <tr>
+                                            <td>
+                                                <?= $isFamily ? 'HOUSEHOLD HEAD:' : 'HOUSEHOLD HEAD:' ?>
+                                                <span class="form-label-local">(<?= $isFamily ? '(PANGULO SANG PANIMALAY)' : '(PANGULO SANG PANIMALAY)' ?>)</span>
+                                            </td>
+                                            <td><?= htmlspecialchars(string: $reg['full_name']) ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <?= $isFamily ? 'NO. OF HOUSEHOLD MEMBER:' : 'NO. OF HOUSEHOLD MEMBER:' ?>
+                                                <span class="form-label-local">(<?= $isFamily ? '(KADAMUON/KADAGHANON SA PANIMALAY)' : '(KADAMUON/KADAGHANON SA PANIMALAY)' ?>)</span>
+                                            </td>
+                                            <td>
+                                                <?= $isFamily ? $reg['member_count'] : '1' ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+											<td>
+												ADDRESS:
+												<span class="form-label-local">(PULOY-AN/PUY-ANAN)</span>
+											</td>
+											<td>
+												<?php
+													if (!empty($reg['solo_address'])) {
+														echo htmlspecialchars($reg['solo_address']);
+													} elseif (!empty($reg['family_address'])) {
+														echo htmlspecialchars($reg['family_address']);
+													} else {
+														echo 'N/A';
+													}
+												?>
+											</td>
+										</tr>
+										<tr>
+                                            <td>
+                                                COLLECTION POINT/PICKUP POINT:
+                                                <span class="form-label-local">(TILIPUNAN PARA SA BAKWIT)</span>
+                                            </td>
+                                            <td>
+												<?php
+													if (!empty($reg['solo_barangay'])) {
+														echo htmlspecialchars($reg['solo_barangay']);
+													} elseif (!empty($reg['family_barangay'])) {
+														echo htmlspecialchars($reg['family_barangay']);
+													} else {
+														echo 'N/A';
+													}
+												?>
+											</td>
+									   <tr>
+                                            <td>
+                                                ASSIGNED EVACUATION CENTER:
+                                                <span class="form-label-local">(GINTALANA NGA EVACUATION CENTER)</span>
+                                            </td>
+                                            <td><?= htmlspecialchars($reg['evacuation_center']) ?></td>
+                                        </tr>
+                                        <tr>
+											<td>
+                                                PHONE NUMBER OF FAMILY LEADER:
+                                                <span class="form-label-local">(NUMERO SA SELPON SANG PANGULO SANG PANIMALAY)</span>
+                                            </td>
+                                            <td><?= htmlspecialchars($reg['contact_number']) ?></td>
+												</tr>
+                                        <tr>
+                                            <td>
+                                                PERSONS WITH SPECIAL NEEDS:
+                                                <span class="form-label-local">(MIYEMBRO NGA MAY ESPESYAL NGA PANGINAHANGLANON)</span>
+                                            </td>
+                                            <td></td>
+                                        </tr>
+                                        <tr>
+										<td>
+											STAYING INSIDE EVACUATION CENTER?:
+											<span class="form-label-local">(MUSULOD BA MO SA EVACUATION CENTER?)</span>
+										</td>
+										<td colspan="2">
+											<div class="checkbox-group" style="display: flex; gap: 20px; align-items: center;">
+												<!-- YES -->
+												<div class="checkbox-item" style="display: flex; align-items: center; gap: 5px;">
+													<div class="checkbox-box <?=!$stayInCenter ? 'checked' : '' ?>"></div>
+													<span>YES (Oo)</span>
+												</div>
+
+												<!-- NO -->
+												<div class="checkbox-item" style="display: flex; align-items: center; gap: 5px;">
+													<div class="checkbox-box <?= $stayInCenter ? 'checked' : '' ?>"></div>
+													<span>NO (Indi)</span>
+												</div>
+
+												<!-- Divider Line -->
+												<div style="border-left: 2px solid #000; height: 40px; margin: 0 10px;"></div>
+
+												<!-- QR Code Label & Image -->
+												<span>QR CODE:</span>
+												<div class="checkbox-item" style="display: flex; align-items: center; gap: 5px;">
+													<img src="<?= htmlspecialchars('../../../' . ltrim($reg['qr_code'])) ?>" alt="QR Code" style="width: 100px; height: 100px;">
+												</div>
+											</div>
+										</td>
+									</tr>
+                                </table>
+
+                                    <!-- Control Number Section -->
+                                    <!-- <div class="control-number-section">
+                                        <table class="control-number-table">
+                                            <tr>
+                                                <td>CONTROL NUMBER:</td>
+                                                <td>
+                                                    <div class="control-number-box">
+                                                        <?= htmlspecialchars($reg['control_number']) ?> 
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div> -->
+                                </div>
+								<!-- Authority Section -->
+								<div class="authority-section">
+									<div class="logo-placeholder">
+										Place LGU logo here
+									</div>
+									
+									<div class="authority-list">
+										<div class="authority-item">
+											<div class="authority-name">LDRRMO</div>
+											<div class="authority-line"></div>
+										</div>
+										<div class="authority-item">
+											<div class="authority-name">PUNONG BARANGAY</div>
+											<div class="authority-line"></div>
+										</div>
+										<div class="authority-item">
+											<div class="authority-name">PUROK LEADER</div>
+											<div class="authority-line"></div>
+										</div>
+										<div class="authority-item">
+											<div class="authority-name">LOCAL POLICE STATION</div>
+											<div class="authority-line"></div>
+										</div>
+										<div class="authority-item">
+											<div class="authority-name">OFFICE OF CIVIL DEFENSE NIR</div>
+											<div class="authority-line">
+												<span class="authority-phone">09956112342 / 09177040134</span>
+											</div>
+										</div>
+									</div>
+								</div>
+
+                                <!-- Footer -->
+                                <div class="footer">
+                                    <div class="footer-content">
+                                        <div class="footer-text">REGIONAL TASK FORCE KANLAON</div>
+                                        <div class="volcano-logo"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div><style>
+       .container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.preview-header {
+    text-align: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.preview-header h1 {
+    color: #333;
+    margin-bottom: 5px;
+    font-size: 1.2rem;
+}
+
+.preview-header p {
+    color: #666;
+    margin: 3px 0;
+    font-size: 0.9rem;
+}
+
+.id-card {
+    background: white;
+    color: black;
+    padding: 1rem;
+    border: 2px solid #000;
+    border-radius: 0;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    position: relative;
+    margin-bottom: 20px;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.card-header {
+    text-align: center;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #000;
+    padding-bottom: 0.5rem;
+}
+
+.card-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin: 0;
+    color: #000;
+    text-transform: uppercase;
+}
+
+.card-subtitle {
+    font-size: 1rem;
+    font-weight: bold;
+    margin: 0.3rem 0 0 0;
+    color: #dc3545;
+    text-transform: uppercase;
+}
+
+.form-section {
+    margin-bottom: 1rem;
+	height: 400px;
+}
+
+.form-table {
+    width: 100%;
+    border-collapse: collapse;
+	border: 1px solid #000;
+}
+
+.form-table td {
+    padding: 0rem 0;
+    vertical-align: top;
+}
+
+
+.form-table td:first-child {
+    width: 25%;
+    font-size: 7px;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 2px;
+    text-align: center;
+    vertical-align: middle;
+    border-right: 1px solid #000; /* Added vertical line between columns */
+    border-bottom: 1px solid #000; /* Added horizontal line */
+}
+
+.form-table td:last-child {
+    width: 75%; /* Adjusted to total 100% with first-child */
+    font-size: 9px;
+    padding: 2px 2px 2px 5px; /* Added padding */
+    border-bottom: 1px solid #000; /* Added horizontal line */
+    vertical-align: middle; /* Ensure consistent vertical alignment */
+}
+
+.form-label-local {
+    font-size: 0.4rem;
+    color: #666;
+    font-style: italic;
+    text-transform: none;
+    font-weight: normal;
+    display: block;
+    margin-top: 0.1rem;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.checkbox-box {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #000;
+    display: inline-block;
+    position: relative;
+}
+
+.checkbox-box.checked {
+    background: #000;
+}
+
+.checkbox-box.checked::after {
+    content: '✓';
+    position: absolute;
+    top: -2px;
+    left: 1px;
+    font-weight: bold;
+    color: white;
+    font-size: 0.8rem;
+}
+
+.control-number-section {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #ccc;
+}
+
+.control-number-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.control-number-table td {
+    padding: 0.3rem 0;
+    vertical-align: middle;
+}
+
+.control-number-table td:first-child {
+    width: 30%;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding-right: 0.5rem;
+}
+
+.control-number-table td:last-child {
+    width: 70%;
+}
+
+.control-number-box {
+    border: 1px solid #000;
+    padding: 0.3rem 0.5rem;
+    text-align: center;
+    font-weight: bold;
+    background: #f8f9fa;
+    display: inline-block;
+    min-width: 150px;
+    font-size: 0.9rem;
+}
+
+.authority-section {
+    display: flex;
+    justify-content: space-between;
+    margin-top: -100px;
+    padding: 0.8rem;
+    background: #f4a460;
+    border: 1px solid #000;
+}
+
+.logo-placeholder {
+    width: 80px;
+    height: 80px;
+    border: 1px dashed #8b4513;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #deb887;
+    font-size: 0.6rem;
+    color: #8b4513;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.authority-list {
+    flex-grow: 1;
+    margin-left: 1rem;
+}
+
+.authority-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.3rem;
+}
+
+.authority-name {
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+}
+
+.authority-line {
+    border-bottom: 1px solid #000;
+    flex-grow: 1;
+    margin-left: 0.5rem;
+    min-width: 100px;
+}
+
+.authority-phone {
+    font-size: 0.6rem;
+    color: #666;
+}
+
+.footer {
+    margin-top: 0.5rem;
+	border-radius: 20px ;
+	border-right:60px solid white;
+	border-top:20px solid white;
+	border-bottom:20px solid white;
+    border-left: 30px solid white;
+    background-color: lightblue;
+    padding: 0; /* Remove all internal padding */
+    box-sizing: border-box; /* Include border in width calculation */
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0; /* Ensures no gap between items */
+}
+
+.footer-text {
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    text-align: center;
+    flex-grow: 1;
+    padding-right: 0; /* Removed padding */
+    /* margin-right: -10px; Pulls logo closer by negative margin */
+}
+
+.volcano-logo {
+    width: 80px;
+    height: 80px;
+    border: 1px solid #000;
+    border-radius: 50%;
+    background: #ff8c00;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0; /* Removed margin */
+    transform: translateX(4px); /* Fine-tune positioning */
+	/* margin-right:100px; */
+}
+
+/* Keep volcano logo details the same */
+.volcano-logo::before {
+    content: '🌋';
+    position: absolute;
+    font-size: 3rem;
+}
+
+.volcano-logo::after {
+    content: 'TASK FORCE\A KANLAON';
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.3rem;
+    text-align: center;
+    line-height: 1;
+    white-space: pre-line;
+
+}
+
+.print-info {
+    background: #e9ecef;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 12px;
+}
+
+.print-info h3 {
+    margin-top: 0;
+    color: #333;
+    font-size: 1rem;
+}
+
+.print-info ul {
+    margin: 8px 0;
+    padding-left: 15px;
+}
+
+.print-info li {
+    margin: 3px 0;
+    font-size: 0.8rem;
+}
+@media print {
+    .footer{
+        background-color: turquoise;
+    }
+}
+    </style>
+            </div>
+        </div> 
+		 <!-- Modal Footer -->
+  <div class="modal-footer">
+    <button class="btn btn-success" id="printCardBtn"><i class="fas fa-print me-1"></i> Print</button>
+    <button class="btn btn-danger" id="downloadCardBtn"><i class="fas fa-file-pdf me-1"></i> Download PDF</button>
+     <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button> 
+  </div>
+</div>
+            <!-- </div> -->
+            
+            <!-- <div class="print-info">
+                <h3>Print Information:</h3>
+                <ul>
+                    <li><strong>Page Size:</strong> A4 (210mm x 297mm)</li>
+                    <li><strong>Cards Per Page:</strong> 1 card per page for optimal readability</li>
+                    <li><strong>Print Orientation:</strong> Portrait</li>
+                    <li><strong>Margins:</strong> 10mm on all sides</li>
+                    <li><strong>Font:</strong> Arial, 9pt for print version</li>
+                    <li><strong>Colors:</strong> Black text on white background, red subtitle, orange authority section</li>
+                    <li><strong>Layout:</strong> Table format with labels in left column, data in right column</li>
+                </ul>
+            </div> -->
+          <!-- </div>
+        </div> -->
+    </div>
+  </div>
+</div>
+
+
+
+
+</div>
+
+  </div>
+</div>
+<!-- JS for Print & Download -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+document.getElementById("printCardBtn").addEventListener("click", function () {
+    let content = document.getElementById("idCardContent").innerHTML;
+    let printWindow = window.open("", "", "width=900,height=650");
+    printWindow.document.write("<html><head><title>Print ID Card</title>");
+    printWindow.document.write('<style>body { font-family: Arial, sans-serif; }</style>'); // Optional styling
+    printWindow.document.write("</head><body>");
+    printWindow.document.write(content);
+    printWindow.document.write("</body></html><style> @media print { .footer{ background-color: turquoise; } } </style>");
+    printWindow.document.close();
+    printWindow.print();
+});
+
+document.getElementById("downloadCardBtn").addEventListener("click", function () {
+    const { jsPDF } = window.jspdf; // Get jsPDF from UMD
+    html2canvas(document.getElementById("idCardContent")).then(canvas => {
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF({
+            orientation: "portrait",
+            unit: "mm",
+            format: "a4"
+        });
+
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+        pdf.save("ID_Card.pdf");
+    });
+});
+</script>
+
+
 </body>
 
 </html>

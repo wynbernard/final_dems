@@ -19,7 +19,12 @@ $query = "
 			r.room_capacity,
 			l.latitude,
 			l.longitude,
-		COUNT(CASE WHEN a.classification != 'Infant' THEN e.evac_reg_id END) AS idp_count
+			TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) AS age,
+			COUNT(CASE 
+              WHEN p.date_of_birth IS NOT NULL 
+                   AND TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) > 0 
+              THEN e.evac_reg_id 
+         END) AS idp_count
 		FROM evac_loc_table l
 		LEFT JOIN room_table r ON l.evac_loc_id = r.evac_loc_id
 		LEFT JOIN evac_reg_table e ON r.room_id = e.room_id
@@ -135,7 +140,7 @@ mysqli_data_seek($result, 0);
 											<tr>
 												<th><i class="bi bi-hash"></i> No.</th>
 												<th><i class="bi bi-door-closed-fill"></i> Room Name</th>
-												<th><i class="bi bi-people-fill"></i> Total Capacity</th>
+												<th><i class="bi bi-people-fill"></i> Available Capacity</th>
 												<th class="text-center" style="text-align: center; vertical-align: middle;">
 													<i class="bi bi-gear-fill"></i> Actions
 												</th>
@@ -152,13 +157,14 @@ mysqli_data_seek($result, 0);
 														<td><?php echo htmlspecialchars($room['room_name'] ?? 'No Room Assigned'); ?></td>
 														<td>
 															<?php
-															$capacity = $room['idp_count'] ?? 0;
-															$max_capacity = $room['room_capacity'] ?? 0; // Added null coalescing
-															$percentage = ($max_capacity > 0) ? ($capacity / $max_capacity) * 100 : 0; // Division protection
+															$idpCount = $room['idp_count'] ?? 0;
+															$max_capacity = $room['room_capacity'] ?? 0;
+
+															$percentage = ($max_capacity > 0) ? $idpCount  / $max_capacity * 100 : 0;
 															?>
 															<div>
 																<div class="d-flex justify-content-between">
-																	<span><?php echo htmlspecialchars($capacity); ?></span>
+																	<span><?php echo htmlspecialchars( $max_capacity - $idpCount); ?></span>
 																	<span class="text-muted">/<?php echo $max_capacity; ?></span>
 																</div>
 																<div class="progress" style="height: 10px;">

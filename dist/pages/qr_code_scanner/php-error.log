@@ -127,3 +127,119 @@ Stack trace:
 #1 {main}
   thrown in C:\xampp\htdocs\FInal_DEMS\dist\pages\qr_code_scanner\register_family.php on line 114
 [11-Aug-2025 15:50:31 Europe/Berlin] Register error: Unknown column 'evacuation_id' in 'field list'
+[12-Aug-2025 18:16:05 Europe/Berlin] Register error: Statement preparation failed: 
+[12-Aug-2025 18:16:14 Europe/Berlin] Register error: Statement preparation failed: 
+[12-Aug-2025 18:17:03 Europe/Berlin] Register error: Statement preparation failed: 
+[12-Aug-2025 18:18:34 Europe/Berlin] Register error: Statement preparation failed: 
+[12-Aug-2025 18:19:03 Europe/Berlin] Register error: Statement preparation failed: 
+[12-Aug-2025 18:21:35 Europe/Berlin] Register error: Statement preparation failed: 
+[13-Aug-2025 05:50:36 Europe/Berlin] Register error: Statement preparation failed: 
+[13-Aug-2025 05:54:39 Europe/Berlin] Register error: Statement preparation failed: 
+[13-Aug-2025 05:58:10 Europe/Berlin] Register error: Statement preparation failed: 
+[13-Aug-2025 06:00:39 Europe/Berlin] Register error: Statement preparation failed: 
+[13-Aug-2025 06:01:23 Europe/Berlin] Register error: Statement preparation failed: 
+[13-Aug-2025 06:02:15 Europe/Berlin] Register error: Statement preparation failed: 
+[13-Aug-2025 06:04:24 Europe/Berlin] Register error in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php at line 43: Statement preparation failed: 
+[13-Aug-2025 06:04:44 Europe/Berlin] Register error in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php at line 43: Statement preparation failed: 
+[13-Aug-2025 06:05:55 Europe/Berlin] Register error in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php at line 43: Statement preparation failed: 
+[13-Aug-2025 06:06:45 Europe/Berlin] PHP Fatal error:  Uncaught Error: Call to a member function bind_param() on bool in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:97
+Stack trace:
+#0 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 97
+[13-Aug-2025 06:06:54 Europe/Berlin] PHP Fatal error:  Uncaught Error: Call to a member function bind_param() on bool in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:97
+Stack trace:
+#0 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 97
+[13-Aug-2025 06:07:00 Europe/Berlin] PHP Fatal error:  Uncaught Error: Call to a member function bind_param() on bool in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:97
+Stack trace:
+#0 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 97
+[13-Aug-2025 06:08:41 Europe/Berlin] Register error in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php at line 43: Statement preparation failed: 
+[13-Aug-2025 06:24:21 Europe/Berlin] Register error in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php at line 63: Statement preparation failed: 
+[13-Aug-2025 06:26:05 Europe/Berlin] Register error in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php at line 63: Statement preparation failed: 
+[13-Aug-2025 06:48:56 Europe/Berlin] Processing Member ID: 93, Age Class ID: 3, Classification: 'Pre-School', Mapped to: 'adult'
+[13-Aug-2025 06:48:56 Europe/Berlin] Processing Member ID: 95, Age Class ID: 3, Classification: 'Pre-School', Mapped to: 'adult'
+[13-Aug-2025 06:48:56 Europe/Berlin] Processing Member ID: 97, Age Class ID: 1, Classification: 'Infant', Mapped to: 'infant'
+[13-Aug-2025 06:53:07 Europe/Berlin] Processing Member ID: 93, Age Class ID: 3, Classification: 'Pre_School', Mapped to: 'pre_school'
+[13-Aug-2025 06:53:07 Europe/Berlin] Processing Member ID: 95, Age Class ID: 3, Classification: 'Pre_School', Mapped to: 'pre_school'
+[13-Aug-2025 06:53:07 Europe/Berlin] Processing Member ID: 97, Age Class ID: 1, Classification: 'Infant', Mapped to: 'infant'
+[13-Aug-2025 06:53:57 Europe/Berlin] Processing Member ID: 90, Age Class ID: 3, Classification: 'Pre_School', Mapped to: 'pre_school'
+[13-Aug-2025 06:53:57 Europe/Berlin] Processing Member ID: 92, Age Class ID: 3, Classification: 'Pre_School', Mapped to: 'pre_school'
+[14-Aug-2025 19:31:59 Europe/Berlin] Processing Member ID: 96, Age Class ID: 3, Classification: 'Pre_School', Mapped to: 'pre_school'
+[14-Aug-2025 22:12:47 Europe/Berlin] Processing Member ID: 96, Age Class ID: 3, Classification: 'Pre_School', Mapped to: 'pre_school'
+[14-Aug-2025 23:15:34 Europe/Berlin] Processing Member ID: 96, Age Class ID: 3, Classification: 'Pre_School', Mapped to: 'pre_school'
+[15-Aug-2025 00:22:20 Europe/Berlin] PHP Fatal error:  Uncaught TypeError: mysqli_stmt_bind_param(): Argument #1 ($statement) must be of type mysqli_stmt, bool given in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php:31
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php(31): mysqli_stmt_bind_param(false, 'i', 96)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php on line 31
+[15-Aug-2025 00:23:00 Europe/Berlin] PHP Fatal error:  Uncaught TypeError: mysqli_stmt_bind_param(): Argument #1 ($statement) must be of type mysqli_stmt, bool given in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php:31
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php(31): mysqli_stmt_bind_param(false, 'i', 96)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php on line 31
+[15-Aug-2025 00:24:32 Europe/Berlin] PHP Fatal error:  Uncaught TypeError: mysqli_stmt_bind_param(): Argument #1 ($statement) must be of type mysqli_stmt, bool given in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php:31
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php(31): mysqli_stmt_bind_param(false, 'i', 96)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php on line 31
+[15-Aug-2025 00:25:28 Europe/Berlin] PHP Fatal error:  Uncaught TypeError: mysqli_stmt_bind_param(): Argument #1 ($statement) must be of type mysqli_stmt, bool given in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php:31
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php(31): mysqli_stmt_bind_param(false, 'i', 96)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php on line 31
+[15-Aug-2025 00:27:36 Europe/Berlin] PHP Fatal error:  Uncaught TypeError: mysqli_stmt_bind_param(): Argument #1 ($statement) must be of type mysqli_stmt, bool given in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php:31
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php(31): mysqli_stmt_bind_param(false, 'i', 96)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php on line 31
+[15-Aug-2025 00:28:05 Europe/Berlin] PHP Fatal error:  Uncaught TypeError: mysqli_stmt_bind_param(): Argument #1 ($statement) must be of type mysqli_stmt, bool given in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php:31
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php(31): mysqli_stmt_bind_param(false, 'i', 96)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php on line 31
+[15-Aug-2025 00:33:29 Europe/Berlin] PHP Fatal error:  Uncaught TypeError: mysqli_stmt_bind_param(): Argument #1 ($statement) must be of type mysqli_stmt, bool given in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php:33
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php(33): mysqli_stmt_bind_param(false, 'i', 96)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php on line 33
+[15-Aug-2025 00:35:12 Europe/Berlin] PHP Fatal error:  Uncaught TypeError: mysqli_stmt_bind_param(): Argument #1 ($statement) must be of type mysqli_stmt, bool given in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php:33
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php(33): mysqli_stmt_bind_param(false, 'i', 96)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php on line 33
+[15-Aug-2025 00:35:34 Europe/Berlin] PHP Fatal error:  Uncaught TypeError: mysqli_stmt_bind_param(): Argument #1 ($statement) must be of type mysqli_stmt, bool given in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php:33
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php(33): mysqli_stmt_bind_param(false, 'i', 96)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php on line 33
+[15-Aug-2025 00:36:26 Europe/Berlin] PHP Fatal error:  Uncaught TypeError: mysqli_stmt_bind_param(): Argument #1 ($statement) must be of type mysqli_stmt, bool given in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php:33
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php(33): mysqli_stmt_bind_param(false, 'i', 96)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php on line 33
+[15-Aug-2025 00:36:39 Europe/Berlin] PHP Fatal error:  Uncaught TypeError: mysqli_stmt_bind_param(): Argument #1 ($statement) must be of type mysqli_stmt, bool given in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php:33
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php(33): mysqli_stmt_bind_param(false, 'i', 96)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php on line 33
+[15-Aug-2025 00:38:46 Europe/Berlin] PHP Fatal error:  Uncaught TypeError: mysqli_stmt_bind_param(): Argument #1 ($statement) must be of type mysqli_stmt, bool given in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php:33
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php(33): mysqli_stmt_bind_param(false, 'i', 96)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php on line 33
+[15-Aug-2025 00:43:45 Europe/Berlin] PHP Fatal error:  Uncaught TypeError: mysqli_stmt_bind_param(): Argument #1 ($statement) must be of type mysqli_stmt, bool given in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php:37
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php(37): mysqli_stmt_bind_param(false, 'i', 96)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php on line 37
+[15-Aug-2025 00:44:18 Europe/Berlin] PHP Fatal error:  Uncaught TypeError: mysqli_stmt_bind_param(): Argument #1 ($statement) must be of type mysqli_stmt, bool given in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php:37
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php(37): mysqli_stmt_bind_param(false, 'i', 96)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php on line 37
+[15-Aug-2025 05:36:18 Europe/Berlin] PHP Fatal error:  Uncaught TypeError: mysqli_stmt_bind_param(): Argument #1 ($statement) must be of type mysqli_stmt, bool given in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php:41
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php(41): mysqli_stmt_bind_param(false, 'i', 96)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\get_registration_details.php on line 41

@@ -29,18 +29,64 @@ try {
     $soloCount = 0;
     $familyCount = 0;
     $skipped = [];
+    
+    // Age group counters
+    $infantCount = 0;
+    $toddlerCount = 0;
+    $preschoolCount = 0;
+    $schoolAgeCount = 0;
+    $teenageCount = 0;
+    $adultCount = 0;
+    $seniorCount = 0;
+
+    // Load age classifications mapping
+    $ageClassMap = [];
+    $ageClassQuery = $conn->prepare("SELECT age_class_id, classification FROM age_class_table");
+    $ageClassQuery->execute();
+    $ageClassResult = $ageClassQuery->get_result();
+    
+    while ($row = $ageClassResult->fetch_assoc()) {
+        $ageClassMap[$row['age_class_id']] = trim($row['classification']); // Keep original case
+    }
+
     // Prepare statements
     $checkStmt = $conn->prepare("SELECT pre_reg_id FROM evac_reg_table WHERE pre_reg_id = ?");
     $insertStmt = $conn->prepare("INSERT INTO evac_reg_table (room_id, pre_reg_id, evac_loc_id, date_reg, status) VALUES (?, ?, ?, CURDATE(), 'Evacuated')");
     $logStmt = $conn->prepare("INSERT INTO logs_table (evac_reg_id, status, date_time) VALUES (?, ?, NOW())");
-    $typeStmt = $conn->prepare("SELECT registered_as FROM pre_reg_table WHERE pre_reg_id = ?");
-    $recordCheck = $conn->prepare("SELECT evacuation_record_id FROM evacuation_record_table WHERE evacuation_location = ? AND end_date IS NULL");
-    $recordInsert = $conn->prepare("INSERT INTO evacuation_record_table (evacuation_location, start_date, total_solo, total_family, total_evacuation) VALUES (?, NOW(), ?, ?, ?)");
-    $recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = total_solo + ?, total_family = total_family + ?, total_evacuation = total_evacuation + ? WHERE evacuation_record_id = ?");
+    $typeStmt = $conn->prepare("SELECT registered_as, age_class_id FROM pre_reg_table WHERE pre_reg_id = ?");
+    $recordCheck = $conn->prepare("SELECT evacuation_id FROM evacuation_record_table WHERE evacuation_location = ? AND end_date IS NULL");
+    $recordInsert = $conn->prepare("INSERT INTO evacuation_record_table (evacuation_location, start_date, total_solo, total_family, total_evacuation, total_infant, total_toddler, total_pre_school, total_school_age, total_teenage, total_adult, total_senior) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = total_solo + ?, total_family = total_family + ?, total_evacuation = total_evacuation + ?, total_infant = total_infant + ?, total_toddler = total_toddler + ?, total_pre_school = total_pre_school + ?, total_school_age = total_school_age + ?, total_teenage = total_teenage + ?, total_adult = total_adult + ?, total_senior = total_senior + ? WHERE evacuation_id = ?");
     $locationStmt = $conn->prepare("SELECT name FROM evac_loc_table WHERE evac_loc_id = ?");
 
     if (!$checkStmt || !$insertStmt || !$logStmt || !$typeStmt || !$recordCheck || !$recordInsert || !$recordUpdate || !$locationStmt) {
         throw new Exception("Statement preparation failed: " . $conn->error);
+    }
+
+    // Function to map age classification to standard age groups
+    function getAgeGroupFromClassification($classification) {
+        // Don't convert to lowercase, use case-insensitive comparison
+        $classification = trim($classification);
+        
+        // Use case-insensitive string search
+        if (stripos($classification, 'Infant') !== false) {
+            return 'infant';
+        } else if (stripos($classification, 'Toddler') !== false) {
+            return 'toddler';
+        } else if (stripos($classification, 'Pre_School') !== false || stripos($classification, 'Preschool') !== false) {
+            return 'pre_school';
+        } else if (stripos($classification, 'School_Age') !== false || stripos($classification, 'School Age') !== false) {
+            return 'school_age';
+        } else if (stripos($classification, 'Teenage') !== false || stripos($classification, 'Teen') !== false) {
+            return 'teenage';
+        } else if (stripos($classification, 'Adult') !== false) {
+            return 'adult';
+        } else if (stripos($classification, 'Senior') !== false) {
+            return 'senior';
+        }
+        
+        // Return default if no match found
+        return 'adult';
     }
 
     foreach ($memberIds as $memberId) {
@@ -60,18 +106,64 @@ try {
             $logStmt->bind_param("is", $evacRegId, $status);
             $logStmt->execute();
 
-            // Check registration type
+            // Check registration type and age classification
             $typeStmt->bind_param("i", $memberId);
             $typeStmt->execute();
             $typeResult = $typeStmt->get_result();
 
             if ($typeResult && $typeRow = $typeResult->fetch_assoc()) {
-                $groupType = strtolower($typeRow['registered_as']);
+                $groupType = strtolower(trim($typeRow['registered_as'])); // Convert to lowercase for comparison
+                $ageClassId = intval($typeRow['age_class_id']); // Ensure it's an integer
+                
+                // Count by registration type (fixed case comparison)
                 if ($groupType === 'solo') {
                     $soloCount++;
                 } else if ($groupType === 'family') {
-                    $familyCount++;  // This counts family members individually
+                    $familyCount++;
                 }
+
+                // Count by age group using age classification
+                if (isset($ageClassMap[$ageClassId]) && !empty($ageClassId)) {
+                    $classification = $ageClassMap[$ageClassId];
+                    $ageGroup = getAgeGroupFromClassification($classification);
+                    
+                    // Debug logging
+                    error_log("Processing Member ID: $memberId, Age Class ID: $ageClassId, Classification: '$classification', Mapped to: '$ageGroup'");
+                    
+                    switch ($ageGroup) {
+                        case 'infant':
+                            $infantCount++;
+                            break;
+                        case 'toddler':
+                            $toddlerCount++;
+                            break;
+                        case 'pre_school':
+                            $preschoolCount++;
+                            break;
+                        case 'school_age':
+                            $schoolAgeCount++;
+                            break;
+                        case 'teenage':
+                            $teenageCount++;
+                            break;
+                        case 'adult':
+                            $adultCount++;
+                            break;
+                        case 'senior':
+                            $seniorCount++;
+                            break;
+                        default:
+                            $adultCount++; // Fallback
+                            error_log("Unknown age group '$ageGroup' for member $memberId, defaulting to adult");
+                            break;
+                    }
+                } else {
+                    // Default to adult if age class not found
+                    $adultCount++;
+                    error_log("Age class ID $ageClassId not found in map for member $memberId, defaulting to adult");
+                }
+            } else {
+                error_log("No registration data found for member ID: $memberId");
             }
 
             $successCount++;
@@ -101,10 +193,10 @@ try {
     if ($recordCheck->num_rows > 0) {
         $recordCheck->bind_result($evacuationId);
         $recordCheck->fetch();
-        $recordUpdate->bind_param("iiii", $soloCount, $familyCount, $totalEvacuees, $evacuationId);
+        $recordUpdate->bind_param("iiiiiiiiiii", $soloCount, $familyCount, $totalEvacuees, $infantCount, $toddlerCount, $preschoolCount, $schoolAgeCount, $teenageCount, $adultCount, $seniorCount, $evacuationId);
         $recordUpdate->execute();
     } else {
-        $recordInsert->bind_param("siii", $locationName, $soloCount, $familyCount, $totalEvacuees);
+        $recordInsert->bind_param("siiiiiiiiii", $locationName, $soloCount, $familyCount, $totalEvacuees, $infantCount, $toddlerCount, $preschoolCount, $schoolAgeCount, $teenageCount, $adultCount, $seniorCount);
         $recordInsert->execute();
     }
 
@@ -114,20 +206,43 @@ try {
         'success' => true,
         'success_count' => $successCount,
         'skipped_members' => $skipped,
-        'message' => 'Registration complete.'
+        'registration_breakdown' => [
+            'solo' => $soloCount,
+            'family' => $familyCount
+        ],
+        'age_breakdown' => [
+            'infant' => $infantCount,
+            'toddler' => $toddlerCount,
+            'pre_school' => $preschoolCount,
+            'school_age' => $schoolAgeCount,
+            'teenage' => $teenageCount,
+            'adult' => $adultCount,
+            'senior' => $seniorCount
+        ],
+        'total_evacuees' => $totalEvacuees,
+        'age_class_mapping' => $ageClassMap, // Debug info
+        'message' => 'Registration complete with detailed age breakdown.'
     ]);
 } catch (Exception $e) {
     if ($conn->errno) {
         $conn->rollback();
     }
 
-    error_log("Register error: " . $e->getMessage());
+    $errorDetails = sprintf(
+        "Register error in %s at line %d: %s",
+        $e->getFile(),
+        $e->getLine(),
+        $e->getMessage()
+    );
+
+    error_log($errorDetails);
 
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => "Server error: " . $e->getMessage()
+        'error' => $errorDetails . " | Database error: " . $conn->error
     ]);
 }
 
 $conn->close();
+?>

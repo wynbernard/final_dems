@@ -8,7 +8,7 @@
 	<!-- Bootstrap 5 CSS -->
 	<link rel="stylesheet" href="../../../dist/css/bootstrap.min.css">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
-	<link rel="stylesheet" href="../css/auth/log_in.css">
+	<link rel="stylesheet" href="../css/auth/lol_in.css">
 	<script src="../scripts/auth_script/log_in.js"></script>
 </head>
 <style>
@@ -22,12 +22,14 @@
 	<div class="container">
 		<div class="row login-container bg-white">
 			<!-- Left Side - Background Image -->
-			<div class="col-md-6 d-none d-md-block bg-image"></div>
-
+			<div class="col-md-6 d-none d-md-flex bg-image align-items-center justify-content-center">
+				<img src="../../../src/images/logo/side_logo.png" alt="Logo" class="rounded-circle" width="250" height="250">
+			</div>
+		
 			<!-- Right Side - Login Form -->
 			<div class="col-md-6 p-5">
 				<div class="text-center mb-4">
-					<img src="../../../src/images/logo/images.png" alt="Logo" class="rounded-circle" width="80">
+					<img src="../../../src/images/logo/side_logo.png" alt="Logo" class="rounded-circle" width="80">
 				</div>
 				<h4 class="text-center mb-4">Sign In</h4>
 				<?php
@@ -241,4 +243,58 @@ function forgotPassword() {
 		z-index: 10;
 		/* ensure it's above the input */
 	}
+</style>
+<style>
+	.login-container {
+			max-width: 900px;
+			margin: auto;
+			border-radius: 10px;
+			overflow: hidden;
+			box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+		}
+
+		.form-group {
+			position: relative;
+			margin-bottom: 1.5rem;
+		}
+		.form-group .form-label {
+			position: absolute;
+			top: 10px;
+			left: 12px;
+			font-size: 14px;
+			color: #6c757d;
+			background: white;
+			padding: 0 5px;
+			transition: all 0.2s ease-out;
+			pointer-events: none;
+			opacity: 0;
+			transform: translateY(0);
+			z-index: 1;
+		}
+
+		.form-group input:focus+.form-label,
+		.form-group input:not(:placeholder-shown)+.form-label {
+			top: 0;
+			left: 10px;
+			font-size: 12px;
+			opacity: 1;
+			transform: translateY(-50%);
+		}
+
+		/* Make sure empty inputs show placeholder */
+		.form-control::placeholder {
+			opacity: 1;
+			transition: opacity 0.2s ease;
+			color: #adb5bd;
+		}
+
+		/* Hide placeholder when focused or when has value */
+		.form-control:focus::placeholder,
+		.form-control:not(:placeholder-shown)::placeholder {
+			opacity: 0;
+		}
+
+.swal2-icon.swal2-info {
+	color: red !important;
+		}	
 </style>

@@ -24,7 +24,8 @@ try {
             p.f_name,
             p.l_name,
             p.date_of_birth,
-            p.gender
+            p.gender,
+			p.relation_to_family
         FROM pre_reg_table p
         WHERE p.pre_reg_id NOT IN (
             SELECT pre_reg_id FROM pre_reg_table
@@ -52,7 +53,8 @@ try {
 			'date_of_birth' => $row['date_of_birth'],
 			'gender' => $row['gender'],
 			'isRegistered' => false,
-			'isPresent' => true
+			'isPresent' => true,
+			'relation_to_family' => $row['relation_to_family']
 		];
 	}
 

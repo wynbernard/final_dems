@@ -322,7 +322,7 @@
 
 <!-- QR Scanner Modal -->
 <div class="modal fade" id="qrScannerModal" tabindex="-1" aria-labelledby="qrScannerModalLabel" aria-hidden="true">
-	<div class="modal-dialog modal-lg">
+	<div class="modal-dialog modal-xl">
 		<div class="modal-content">
 			<div class="modal-header bg-primary text-white">
 				<h5 class="modal-title" id="qrScannerModalLabel">Family Member Registration</h5>
@@ -350,10 +350,138 @@
 							</div>
 						</div>
 					</div>
-
 					<div class="col-md-6">
+						<div class="container-fluid">
+						<div class="row g-3">
+							<div class="col-12">
+								<div class="id-card family-card">
+									<div class="card-header">
+										<div class="card-title">KANLAON EVACUATION PLAN</div>
+										<div class="card-subtitle">BAKWIT CARD</div>
+										<!-- <div class="registration-type">FAMILY</div> -->
+									</div>
+		
+									<div class="form-section">
+										<table class="form-table">
+											<tr>
+												<td>
+													HOUSEHOLD HEAD:
+														<span class="form-label-local">(PANGULO SANG PANIMALAY)</span>
+												</td>
+												<td id="householdHeadCell"></td>
+											</tr>
+											<tr>
+												<td>
+													NO. OF HOUSEHOLD MEMBER:
+													<span class="form-label-local">(KADAMUON/KADAGHANON SA PANIMALAY)</span>
+												</td>
+												<td id="memberCountCell"></td>
+											</tr>
+											<tr>
+												<td>
+													ADDRESS:
+													<span class="form-label-local">(PULOY-AN/PUY-ANAN)</span>
+												</td>
+												<td id="addressCell"></td>
+											</tr>
+											<tr>
+												<td>
+													COLLECTION POINT/PICKUP POINT:
+													<span class="form-label-local">(TILIPUNAN PARA SA BAKWIT)</span>
+												</td>
+												<td id="collectionPointCell"></td>
+											</tr>
+											<tr>
+												<td>
+													ASSIGNED EVACUATION CENTER:
+													<span class="form-label-local">(GINTALANA NGA EVACUATION CENTER)</span>
+												</td>
+												<td id="evacuationCenterCell"></td>
+											</tr>
+											<tr>
+												<td>
+													PHONE NUMBER OF FAMILY LEADER:
+													<span class="form-label-local">(NUMERO SA SELPON SANG PANGULO SANG PANIMALAY)</span>
+												</td>
+												<td id="phoneNumberCell"></td>
+											</tr>
+											<tr>
+												<td>
+													PERSONS WITH SPECIAL NEEDS:
+													<span class="form-label-local">(MIYEMBRO NGA MAY ESPESYAL NGA PANGINAHANGLANON)</span>
+												</td>
+												<td>N/A</td>
+                                        	</tr>
+											<tr>
+												<td>STAYING IN CENTER?</td>
+												<td>
+													<div class="checkbox-group" style="display: flex; gap: 20px; align-items: center;">
+														<div class="checkbox-item">
+															<div class="checkbox-box checked"></div>
+															<span>YES</span>
+														</div>
+														<div class="checkbox-item">
+															<div class="checkbox-box"></div>
+															<span>NO</span>
+														</div>
+														<div style="border-left: 2px solid #000; height: 40px; margin: 0 10px;"></div>
+														<span>QR CODE:</span>
+														<img id="qrCodeImg" src="../../../qrcodes/default.png" alt="QR Code" style="width: 80px; height: 80px;">
+													</div>
+												</td>
+											</tr>
+										</table>
+									</div>
+									<div class="authority-section">
+									<div class="logo-placeholder">
+										Place LGU logo here
+									</div>
+									
+									<div class="authority-list">
+										<div class="authority-item">
+											<div class="authority-name">LDRRMO</div>
+											<div class="authority-line"></div>
+										</div>
+										<div class="authority-item">
+											<div class="authority-name">PUNONG BARANGAY</div>
+											<div class="authority-line"></div>
+										</div>
+										<div class="authority-item">
+											<div class="authority-name">PUROK LEADER</div>
+											<div class="authority-line"></div>
+										</div>
+										<div class="authority-item">
+											<div class="authority-name">LOCAL POLICE STATION</div>
+											<div class="authority-line"></div>
+										</div>
+										<div class="authority-item">
+											<div class="authority-name">OFFICE OF CIVIL DEFENSE NIR</div>
+											<div class="authority-line">
+												<span class="authority-phone">09956112342 / 09177040134</span>
+											</div>
+										</div>
+									</div>
+								</div>
+
+                                <!-- Footer -->
+                                <div class="footer">
+                                    <div class="footer-content" style="border-radius:30px">
+                                        <div class="footer-text">REGIONAL TASK FORCE KANLAON</div>
+                                        <div class="volcano-logo"></div>
+                                    </div>
+                                </div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<!-- <div class="col-md-6"> -->
 						<!-- Family Member Information -->
-						<div class="card">
+						
+						
+					<!-- </div> -->
+
+					</div>
+					<div class="card">
 							<div class="card-header bg-success text-white">
 								<h6 class="mb-0"><i class="fas fa-users me-2"></i>Family Members</h6>
 							</div>
@@ -367,9 +495,7 @@
 								</div>
 							</div>
 						</div>
-					</div>
 				</div>
-
 				<!-- Selected Family Members -->
 				<div class="card mt-3">
 					<div class="card-header bg-warning">
@@ -447,3 +573,330 @@
 	});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+	   .container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.preview-header {
+    text-align: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.preview-header h1 {
+    color: #333;
+    margin-bottom: 5px;
+    font-size: 1.2rem;
+}
+
+.preview-header p {
+    color: #666;
+    margin: 3px 0;
+    font-size: 0.9rem;
+}
+
+.id-card {
+    background: white;
+    color: black;
+    padding: 1rem;
+    border: 2px solid #000;
+    border-radius: 0;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    position: relative;
+    margin-bottom: 20px;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.card-header {
+    text-align: center;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #000;
+    padding-bottom: 0.5rem;
+}
+
+.card-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin: 0;
+    color: #000;
+    text-transform: uppercase;
+}
+
+.card-subtitle {
+    font-size: 1rem;
+    font-weight: bold;
+    margin: 0.3rem 0 0 0;
+    color: #dc3545;
+    text-transform: uppercase;
+}
+
+.form-section {
+    margin-bottom: 1rem;
+	height: 400px;
+}
+
+.form-table {
+    width: 100%;
+    border-collapse: collapse;
+	border: 1px solid #000;
+}
+
+.form-table td {
+    padding: 0rem 0;
+    vertical-align: top;
+}
+
+
+.form-table td:first-child {
+    width: 25%;
+    font-size: 7px;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 2px;
+    text-align: center;
+    vertical-align: middle;
+    border-right: 1px solid #000; /* Added vertical line between columns */
+    border-bottom: 1px solid #000; /* Added horizontal line */
+}
+
+.form-table td:last-child {
+    width: 75%; /* Adjusted to total 100% with first-child */
+    font-size: 9px;
+    padding: 2px 2px 2px 5px; /* Added padding */
+    border-bottom: 1px solid #000; /* Added horizontal line */
+    vertical-align: middle; /* Ensure consistent vertical alignment */
+}
+
+.form-label-local {
+    font-size: 0.4rem;
+    color: #666;
+    font-style: italic;
+    text-transform: none;
+    font-weight: normal;
+    display: block;
+    margin-top: 0.1rem;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.checkbox-box {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #000;
+    display: inline-block;
+    position: relative;
+}
+
+.checkbox-box.checked {
+    background: #000;
+}
+
+.checkbox-box.checked::after {
+    content: '✓';
+    position: absolute;
+    top: -2px;
+    left: 1px;
+    font-weight: bold;
+    color: white;
+    font-size: 0.8rem;
+}
+
+.control-number-section {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #ccc;
+}
+
+.control-number-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.control-number-table td {
+    padding: 0.3rem 0;
+    vertical-align: middle;
+}
+
+.control-number-table td:first-child {
+    width: 30%;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding-right: 0.5rem;
+}
+
+.control-number-table td:last-child {
+    width: 70%;
+}
+
+.control-number-box {
+    border: 1px solid #000;
+    padding: 0.3rem 0.5rem;
+    text-align: center;
+    font-weight: bold;
+    background: #f8f9fa;
+    display: inline-block;
+    min-width: 150px;
+    font-size: 0.9rem;
+}
+
+.authority-section {
+    display: flex;
+    justify-content: space-between;
+    margin-top: -100px;
+    padding: 0.8rem;
+    background: #f4a460;
+    border: 1px solid #000;
+}
+
+.logo-placeholder {
+    width: 80px;
+    height: 80px;
+    border: 1px dashed #8b4513;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #deb887;
+    font-size: 0.6rem;
+    color: #8b4513;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.authority-list {
+    flex-grow: 1;
+    margin-left: 1rem;
+}
+
+.authority-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.3rem;
+}
+
+.authority-name {
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+}
+
+.authority-line {
+    border-bottom: 1px solid #000;
+    flex-grow: 1;
+    margin-left: 0.5rem;
+    min-width: 100px;
+}
+
+.authority-phone {
+    font-size: 0.6rem;
+    color: #666;
+}
+
+.footer {
+    margin-top: 0.5rem;
+	border-radius: 20px ;
+    background-color: lightblue;
+    padding: 0; /* Remove all internal padding */
+    box-sizing: border-box; /* Include border in width calculation */
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0; /* Ensures no gap between items */
+}
+
+.footer-text {
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    text-align: center;
+    flex-grow: 1;
+    padding-right: 0; /* Removed padding */
+    /* margin-right: -10px; Pulls logo closer by negative margin */
+}
+
+.volcano-logo {
+    width: 80px;
+    height: 80px;
+    border: 1px solid #000;
+    border-radius: 50%;
+    background: #ff8c00;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0; /* Removed margin */
+    transform: translateX(4px); /* Fine-tune positioning */
+	/* margin-right:100px; */
+}
+
+/* Keep volcano logo details the same */
+.volcano-logo::before {
+    content: '🌋';
+    position: absolute;
+    font-size: 3rem;
+}
+
+.volcano-logo::after {
+    content: 'TASK FORCE\A KANLAON';
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.3rem;
+    text-align: center;
+    line-height: 1;
+    white-space: pre-line;
+
+}
+
+.print-info {
+    background: #e9ecef;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 12px;
+}
+
+.print-info h3 {
+    margin-top: 0;
+    color: #333;
+    font-size: 1rem;
+}
+
+.print-info ul {
+    margin: 8px 0;
+    padding-left: 15px;
+}
+
+.print-info li {
+    margin: 3px 0;
+    font-size: 0.8rem;
+}
+</style>
+
+</style>

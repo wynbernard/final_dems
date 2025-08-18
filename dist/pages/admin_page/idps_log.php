@@ -128,14 +128,23 @@ if (!$result) {
 								<!-- New Date Picker -->
 								<input type="date" id="dateFilter" class="form-control me-2" style="max-width: 200px;">
 
-								<button type="button" class="btn btn-success btn-sm ms-2" id="logInBtn" data-bs-toggle="modal" data-bs-target="#scanQRModal" data-mode="IN">
-									<i class="bi bi-box-arrow-in-right"></i> IN
-								</button>
-								<button type="button" class="btn btn-danger btn-sm ms-2" id="logOutBtn" data-bs-toggle="modal" data-bs-target="#scanQRModal" data-mode="OUT">
-									<i class="bi bi-box-arrow-right"></i> OUT
+								
+								<div class="d-flex align-items-center">
+									<label for="rowsPerPageSelect" class="form-label me-2 mb-0">Show:</label>
+									<select id="rowsPerPageSelect" class="form-select" style="max-width: 100px;">
+										<option value="5">5</option>
+										<option value="10" selected>10</option>
+										<option value="25">25</option>
+										<option value="50">50</option>
+										<option value="100">100</option>
+									</select>
+									<span class="ms-2 text-muted">rows</span>
+								</div>
+								<button type="button" class="btn btn-primary btn-sm ms-2" id="logBtn" data-bs-toggle="modal" data-bs-target="#scanQRModal">
+									<i class="bi bi-qr-code-scan"></i> Scan QR
 								</button>
 							</div>
-							<input type="hidden" id="scanMode" value="IN"> <!-- Default mode -->
+							<!-- <input type="hidden" id="scanMode" value="IN"> Default mode -->
 
 							<div class="card-body">
 								<div class="table-responsive log-table-scroll" style="max-height: 400px; overflow-y: auto;">
@@ -199,217 +208,302 @@ if (!$result) {
 	<script src="https://unpkg.com/html5-qrcode"></script>
 	<script>
 		let qrScanner;
-		let availableCameras = [];
-		let lastScannedId = null;
-		let debounceTimeout = null;
-		let currentScanType = "IN"; // Default mode
+let availableCameras = [];
+let lastScannedId = null;
+let debounceTimeout = null;
 
-		async function initCameraList() {
-			const select = document.getElementById("cameraSelect");
-			select.innerHTML = "";
-			availableCameras = await Html5Qrcode.getCameras();
-			availableCameras.forEach(cam => {
-				const option = document.createElement("option");
-				option.value = cam.id;
-				option.text = cam.label;
-				select.appendChild(option);
-			});
-		}
+async function initCameraList() {
+	const select = document.getElementById("cameraSelect");
+	select.innerHTML = "";
+	availableCameras = await Html5Qrcode.getCameras();
+	availableCameras.forEach(cam => {
+		const option = document.createElement("option");
+		option.value = cam.id;
+		option.text = cam.label;
+		select.appendChild(option);
+	});
+}
 
-		async function startScanner() {
-			const cameraId = document.getElementById("cameraSelect").value;
-			qrScanner = new Html5Qrcode("qr-reader");
+async function startScanner() {
+	const cameraId = document.getElementById("cameraSelect").value;
+	qrScanner = new Html5Qrcode("qr-reader");
 
-			try {
-				await qrScanner.start(
-					cameraId, {
-						fps: 10,
-						qrbox: 300
-					},
-					async (decodedText) => {
-							const match = decodedText.trim().match(/pre_reg(?:_id)?:\s*(\d+)/i);
-							if (!match) return;
+	try {
+		await qrScanner.start(
+			cameraId,
+			{ fps: 10, qrbox: 300 },
+			async (decodedText) => {
+				const match = decodedText.trim().match(/pre_reg(?:_id)?:\s*(\d+)/i);
+				if (!match) return;
 
-							const preRegId = match[1];
-							if (preRegId === lastScannedId) return;
+				const preRegId = match[1];
+				if (preRegId === lastScannedId) return;
 
-							lastScannedId = preRegId;
-							clearTimeout(debounceTimeout);
-							debounceTimeout = setTimeout(() => lastScannedId = null, 3000);
+				lastScannedId = preRegId;
+				clearTimeout(debounceTimeout);
+				debounceTimeout = setTimeout(() => lastScannedId = null, 3000);
 
-							try {
-								// Send as FormData (NOT JSON)
-								const formData = new FormData();
-								formData.append("pre_reg_id", preRegId);
-								formData.append("logType", currentScanType);
+				try {
+					// Step 1: Get latest status from backend
+					let statusRes = await fetch(`../action/get_latest_status.php?pre_reg_id=${preRegId}`);
+					let statusData = await statusRes.json();
 
-								const response = await fetch(`../action/log_family.php`, {
-									method: "POST",
-									body: formData
-								});
-
-								const data = await response.json();
-								const logTime = new Date().toLocaleTimeString();
-
-								if (data.success) {
-									Swal.fire({
-										icon: 'success',
-										title: `${currentScanType} logged!`,
-										text: `${data.name} (${data.type}) has been logged at ${logTime}.`,
-										timer: 1500,
-										timerProgressBar: true
-									});
-								} else {
-									Swal.fire({
-										icon: 'warning',
-										title: 'Scan Failed',
-										text: data.message || 'Unregistered or already scanned.',
-										timer: 1500,
-										timerProgressBar: true
-									});
-								}
-							} catch (err) {
-								console.error("Log error:", err);
-								Swal.fire({
-									icon: 'error',
-									title: 'Log Failed',
-									text: err.message,
-								});
-							}
-						},
-						(err) => console.warn("QR error:", err)
-				);
-
-				document.getElementById("startScannerBtn").disabled = true;
-				document.getElementById("stopScannerBtn").disabled = false;
-			} catch (err) {
-				console.error("Scanner failed to start:", err);
-				alert("Unable to access the camera.");
-			}
-		}
-
-		async function stopScanner() {
-			if (qrScanner) {
-				await qrScanner.stop();
-				await qrScanner.clear();
-				qrScanner = null;
-			}
-			document.getElementById("startScannerBtn").disabled = false;
-			document.getElementById("stopScannerBtn").disabled = true;
-		}
-
-		document.getElementById("logInBtn").addEventListener("click", () => {
-			currentScanType = "IN";
-			Swal.fire({
-				title: 'Mode: IN',
-				icon: 'info',
-				timer: 1000,
-				showConfirmButton: false
-			});
-		});
-		document.getElementById("logOutBtn").addEventListener("click", () => {
-			currentScanType = "OUT";
-			Swal.fire({
-				title: 'Mode: OUT',
-				icon: 'info',
-				timer: 1000,
-				showConfirmButton: false
-			});
-		});
-
-		document.getElementById("startScannerBtn").addEventListener("click", startScanner);
-		document.getElementById("stopScannerBtn").addEventListener("click", stopScanner);
-
-		document.getElementById("scanQRModal")?.addEventListener("shown.bs.modal", async () => {
-			await initCameraList();
-		});
-		document.getElementById("scanQRModal")?.addEventListener("hidden.bs.modal", stopScanner);
-	</script>
-	<script>
-		document.addEventListener("DOMContentLoaded", function() {
-			const rowsPerPage = 10;
-			let currentPage = 1;
-
-			const table = document.getElementById("logTable").getElementsByTagName("tbody")[0];
-			const rows = Array.from(table.getElementsByTagName("tr"));
-			const searchBox = document.getElementById("searchBox");
-			const dateFilter = document.getElementById("dateFilter");
-			const pagination = document.getElementById("pagination");
-
-			function filterRows() {
-				const searchText = searchBox.value.toLowerCase();
-				const dateValue = dateFilter.value;
-
-				rows.forEach(row => {
-					const cells = row.getElementsByTagName("td");
-					const name = cells[1]?.textContent.toLowerCase() || "";
-					const location = cells[2]?.textContent.toLowerCase() || "";
-					const dateText = cells[4]?.textContent || "";
-					const dateMatch = dateValue ? dateText.includes(new Date(dateValue).toLocaleDateString('en-US', {
-						month: 'long',
-						day: 'numeric',
-						year: 'numeric'
-					})) : true;
-
-					if ((name.includes(searchText) || location.includes(searchText)) && dateMatch) {
-						row.style.display = "";
+					let nextAction;
+					if (statusData.latest_status === "IN") {
+						nextAction = "OUT";
 					} else {
-						row.style.display = "none";
+						nextAction = "IN";
 					}
-				});
 
-				currentPage = 1;
-				updatePagination();
-			}
+					// Step 2: Log the next action
+					const formData = new FormData();
+					formData.append("pre_reg_id", preRegId);
+					formData.append("logType", nextAction);
 
-			function updatePagination() {
-				const visibleRows = rows.filter(row => row.style.display !== "none");
-				const totalPages = Math.ceil(visibleRows.length / rowsPerPage);
-
-				// Clear pagination
-				pagination.innerHTML = "";
-
-				// Generate pagination buttons
-				for (let i = 1; i <= totalPages; i++) {
-					const li = document.createElement("li");
-					li.className = "page-item" + (i === currentPage ? " active" : "");
-					const a = document.createElement("a");
-					a.className = "page-link";
-					a.href = "#";
-					a.textContent = i;
-					a.addEventListener("click", function(e) {
-						e.preventDefault();
-						currentPage = i;
-						showPage();
+					let logRes = await fetch(`../action/log_family.php`, {
+						method: "POST",
+						body: formData
 					});
-					li.appendChild(a);
-					pagination.appendChild(li);
+
+					let logData = await logRes.json();
+					let logTime = new Date().toLocaleTimeString();
+
+					if (logData.success) {
+						Swal.fire({
+							icon: 'success',
+							title: `${nextAction} logged!`,
+							text: `${logData.name} (${logData.type}) has been logged at ${logTime}.`,
+							timer: 1500,
+							timerProgressBar: true
+						});
+					} else {
+						Swal.fire({
+							icon: 'warning',
+							title: 'Scan Failed',
+							text: logData.message || 'Unregistered or already scanned.',
+							timer: 1500,
+							timerProgressBar: true
+						});
+					}
+				} catch (err) {
+					console.error("Log error:", err);
+					Swal.fire({
+						icon: 'error',
+						title: 'Log Failed',
+						text: err.message,
+					});
 				}
+			},
+			(err) => console.warn("QR error:", err)
+		);
 
-				showPage();
-			}
+		document.getElementById("startScannerBtn").disabled = true;
+		document.getElementById("stopScannerBtn").disabled = false;
+	} catch (err) {
+		console.error("Scanner failed to start:", err);
+		alert("Unable to access the camera.");
+	}
+}
 
-			function showPage() {
-				const visibleRows = rows.filter(row => row.style.display !== "none");
-				const start = (currentPage - 1) * rowsPerPage;
-				const end = start + rowsPerPage;
+async function stopScanner() {
+	if (qrScanner) {
+		await qrScanner.stop();
+		await qrScanner.clear();
+		qrScanner = null;
+	}
+	document.getElementById("startScannerBtn").disabled = false;
+	document.getElementById("stopScannerBtn").disabled = true;
+}
 
-				visibleRows.forEach((row, index) => {
-					row.style.display = index >= start && index < end ? "" : "none";
-				});
-			}
+document.getElementById("startScannerBtn").addEventListener("click", startScanner);
+document.getElementById("stopScannerBtn").addEventListener("click", stopScanner);
 
-			searchBox.addEventListener("input", filterRows);
-			dateFilter.addEventListener("change", filterRows);
-
-			filterRows(); // Initial run
-		});
+document.getElementById("scanQRModal")?.addEventListener("shown.bs.modal", async () => {
+	await initCameraList();
+});
+document.getElementById("scanQRModal")?.addEventListener("hidden.bs.modal", stopScanner);
 	</script>
+  <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            let rowsPerPage = 10;
+            let currentPage = 1;
 
+            const table = document.getElementById("logTable").getElementsByTagName("tbody")[0];
+            const rows = Array.from(table.getElementsByTagName("tr"));
+            const searchBox = document.getElementById("searchBox");
+            const dateFilter = document.getElementById("dateFilter");
+            const pagination = document.getElementById("pagination");
+            const rowsPerPageSelect = document.getElementById("rowsPerPageSelect");
 
+            function filterRows() {
+                const searchText = searchBox.value.toLowerCase();
+                const dateValue = dateFilter.value;
 
+                rows.forEach(row => {
+                    const cells = row.getElementsByTagName("td");
+                    const name = cells[1]?.textContent.toLowerCase() || "";
+                    const location = cells[2]?.textContent.toLowerCase() || "";
+                    const dateText = cells[4]?.textContent || "";
+                    const dateMatch = dateValue ? dateText.includes(new Date(dateValue).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                    })) : true;
 
+                    if ((name.includes(searchText) || location.includes(searchText)) && dateMatch) {
+                        row.style.display = "";
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
 
+                currentPage = 1;
+                updatePagination();
+            }
+
+            function updatePagination() {
+                const visibleRows = getVisibleRows();
+                const totalPages = Math.ceil(visibleRows.length / rowsPerPage);
+
+                // Ensure current page doesn't exceed total pages
+                if (currentPage > totalPages && totalPages > 0) {
+                    currentPage = totalPages;
+                }
+
+                // Clear pagination
+                pagination.innerHTML = "";
+
+                if (totalPages <= 1) {
+                    showPage();
+                    return;
+                }
+
+                // Previous button
+                const prevLi = document.createElement("li");
+                prevLi.className = "page-item" + (currentPage === 1 ? " disabled" : "");
+                const prevA = document.createElement("a");
+                prevA.className = "page-link";
+                prevA.href = "#";
+                prevA.innerHTML = "&laquo;";
+                prevA.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    if (currentPage > 1) {
+                        currentPage--;
+                        showPage();
+                        updatePaginationButtons();
+                    }
+                });
+                prevLi.appendChild(prevA);
+                pagination.appendChild(prevLi);
+
+                // Generate pagination buttons
+                for (let i = 1; i <= totalPages; i++) {
+                    const li = document.createElement("li");
+                    li.className = "page-item" + (i === currentPage ? " active" : "");
+                    const a = document.createElement("a");
+                    a.className = "page-link";
+                    a.href = "#";
+                    a.textContent = i;
+                    a.addEventListener("click", function(e) {
+                        e.preventDefault();
+                        currentPage = i;
+                        showPage();
+                        updatePaginationButtons();
+                    });
+                    li.appendChild(a);
+                    pagination.appendChild(li);
+                }
+
+                // Next button
+                const nextLi = document.createElement("li");
+                nextLi.className = "page-item" + (currentPage === totalPages ? " disabled" : "");
+                const nextA = document.createElement("a");
+                nextA.className = "page-link";
+                nextA.href = "#";
+                nextA.innerHTML = "&raquo;";
+                nextA.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        showPage();
+                        updatePaginationButtons();
+                    }
+                });
+                nextLi.appendChild(nextA);
+                pagination.appendChild(nextLi);
+
+                showPage();
+            }
+
+            function updatePaginationButtons() {
+                const paginationItems = pagination.querySelectorAll('.page-item');
+                paginationItems.forEach((item, index) => {
+                    if (index === 0) {
+                        // Previous button
+                        item.className = "page-item" + (currentPage === 1 ? " disabled" : "");
+                    } else if (index === paginationItems.length - 1) {
+                        // Next button
+                        const visibleRows = getVisibleRows();
+                        const totalPages = Math.ceil(visibleRows.length / rowsPerPage);
+                        item.className = "page-item" + (currentPage === totalPages ? " disabled" : "");
+                    } else {
+                        // Page number buttons
+                        const pageNum = parseInt(item.querySelector('.page-link').textContent);
+                        item.className = "page-item" + (pageNum === currentPage ? " active" : "");
+                    }
+                });
+            }
+
+            function getVisibleRows() {
+                return rows.filter(row => {
+                    const cells = row.getElementsByTagName("td");
+                    const searchText = searchBox.value.toLowerCase();
+                    const dateValue = dateFilter.value;
+                    const name = cells[1]?.textContent.toLowerCase() || "";
+                    const location = cells[2]?.textContent.toLowerCase() || "";
+                    const dateText = cells[4]?.textContent || "";
+                    const dateMatch = dateValue ? dateText.includes(new Date(dateValue).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                    })) : true;
+                    
+                    return (name.includes(searchText) || location.includes(searchText)) && dateMatch;
+                });
+            }
+
+            function showPage() {
+                const visibleRows = getVisibleRows();
+                const start = (currentPage - 1) * rowsPerPage;
+                const end = start + rowsPerPage;
+
+                // First, reset all rows to hidden
+                rows.forEach(row => {
+                    row.style.display = "none";
+                });
+
+                // Then show only the rows for current page
+                visibleRows.forEach((row, index) => {
+                    if (index >= start && index < end) {
+                        row.style.display = "";
+                    }
+                });
+            }
+
+            // Event listeners
+            searchBox.addEventListener("input", filterRows);
+            dateFilter.addEventListener("change", filterRows);
+            
+            rowsPerPageSelect.addEventListener("change", function() {
+                rowsPerPage = parseInt(this.value);
+                currentPage = 1;
+                updatePagination();
+            });
+
+            // Initial run
+            filterRows();
+        });
+    </script>
 </body>
 
 </html>

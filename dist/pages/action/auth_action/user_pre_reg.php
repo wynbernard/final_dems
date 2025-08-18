@@ -148,9 +148,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 
 	if (strtolower($registration_type) == "family") {
-		$family_sql = "INSERT INTO family_table (region, province, city_municipality, district, barangay_id, house_block_number, street, sub_village, zip_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		$family_sql = "INSERT INTO family_table (region, province, city_municipality, district, barangay_id, house_block_number, street, sub_village, purok, zip_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		$family_stmt = $conn->prepare($family_sql);
-		$family_stmt->bind_param("sssssssss", $region, $province, $city, $district, $barangay_id, $block_number, $street, $sub_div, $zip_code);
+		$family_stmt->bind_param("ssssssssss", $region, $province, $city, $district, $barangay_id, $block_number, $street, $sub_div, $purok, $zip_code);
 		if ($family_stmt->execute()) {
 			$family_id = $family_stmt->insert_id;
 		} else {
@@ -160,9 +160,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		}
 		$family_stmt->close();
 	} else if (strtolower($registration_type) == "solo") {
-		$solo_sql = "INSERT INTO solo_address_table (region, province, city_municipality, district, barangay_id, house_block_number, street, sub_village, zip_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		$solo_sql = "INSERT INTO solo_address_table (region, province, city_municipality, district, barangay_id, house_block_number, street, sub_village, purok, zip_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		$solo_stmt = $conn->prepare($solo_sql);
-		$solo_stmt->bind_param("sssssssss", $region, $province, $city, $district, $barangay_id, $block_number, $street, $sub_div, $zip_code);
+		$solo_stmt->bind_param("ssssssssss", $region, $province, $city, $district, $barangay_id, $block_number, $street, $sub_div, $purok, $zip_code);
 		if ($solo_stmt->execute()) {
 			$solo_id = $solo_stmt->insert_id;
 		} else {

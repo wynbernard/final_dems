@@ -6,7 +6,7 @@
   <!-- Sidebar Brand -->
   <div class="sidebar-brand">
     <a href="./Dashboard.php" class="brand-link">
-      <img src="../../../src/images/logo/logo.png" alt="AdminLTE Logo" class="brand-image opacity-75 shadow" />
+      <img src="../../../src/images/logo/side_logo.png" alt="AdminLTE Logo" class="brand-image opacity-75 shadow" />
       <span class="brand-text fw-light">DEM System</span>
     </a>
   </div>
