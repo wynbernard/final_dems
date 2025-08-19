@@ -87,10 +87,57 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	$stmt = $conn->prepare("INSERT INTO pre_reg_table (f_name, l_name, age_class_id, gender, contact_no, family_id, date_of_birth ,relation_to_family) VALUES (?, ?, ?, ?, ?, ?, ?, ?	)");
 	$stmt->bind_param("ssississ", $f_name, $l_name, $age_class_id, $gender, $contact_no, $family_id, $birth_date, $relation);
 	if ($stmt->execute()) {
+		$pre_reg_id = $stmt->insert_id;
 		$stmt->close();
-		$_SESSION['success'] = "<span style='color:green;'><i class='bi bi-check-circle-fill'></i> Add Family Member Successfully!</span>";
+		// QR Code generation
+		$dobFormatted = date('Y-m-d', strtotime($birth_date));
+		$qr_data = "Pre_reg_id: $pre_reg_id\nName: $f_name $l_name\nPhone: $contact_no\nGender: $gender\nDOB: $dobFormatted\nAge: $age";
+		// Set directory and filename
+		$qr_dir = '../../../uploads/qr_codes/';
+		if (!file_exists($qr_dir)) {
+			mkdir($qr_dir, 0777, true);
+		}
+		$qr_filename = $qr_dir . time() . "_" . $pre_reg_id . ".png";
+		QRcode::png($qr_data, $qr_filename, QR_ECLEVEL_L, 6);
+		$qr_db_path = "uploads/qr_codes/" . time() . "_" . $pre_reg_id . ".png";
+
+		// Debug: Test file creation in QR directory
+		$test_file = $qr_dir . 'test_write.txt';
+		$test_content = 'QR code write test at ' . date('Y-m-d H:i:s');
+		$test_result = @file_put_contents($test_file, $test_content);
+		if ($test_result === false) {
+			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i> Failed to write test file in QR code folder.<br>Test path: $test_file<br>Please check folder permissions and path correctness.</span>";
+			header("Location: ../user_page/family.php");
+			exit();
+		}
+		// Generate QR code
+		
+		// Check if QR code was created
+		if (!file_exists($qr_filename)) {
+			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i> Failed to upload QR code to the folder.<br>Path attempted: $qr_filename<br>Please check folder permissions and path correctness. GD extension may also be required.</span>";
+			header("Location: ../user_page/family.php");
+			exit();
+		}
+		// Insert QR record and get qr_id (if qr_table exists)
+		if ($conn->query("SHOW TABLES LIKE 'qr_table'")->num_rows) {
+			$qr_sql = "INSERT INTO qr_table (pre_reg_id, code) VALUES (?, ?)";
+			$qr_stmt = $conn->prepare($qr_sql);
+			$qr_stmt->bind_param("is", $pre_reg_id, $qr_db_path);
+			if ($qr_stmt->execute()) {
+				$qr_id = $qr_stmt->insert_id;
+				// Update pre_reg_table with qr_id
+				$update_sql = "UPDATE pre_reg_table SET qr_id = ? WHERE pre_reg_id = ?";
+				$update_stmt = $conn->prepare($update_sql);
+				$update_stmt->bind_param("ii", $qr_id, $pre_reg_id);
+				$update_stmt->execute();
+				$update_stmt->close();
+			}
+			$qr_stmt->close();
+		}
+
+		$_SESSION['success'] = "<span style='color:green;'><i class='bi bi-check-circle-fill'></i> Add Family Member Successfully!.</span>";
 	} else {
-		$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i> Failed to insert family member.</span>";
+		$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i> Failed to insert family member: " . $stmt->error . "</span>";
 	}
 
 	$conn->close();

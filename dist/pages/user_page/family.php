@@ -92,9 +92,10 @@
 							<div class="card-body">
 								<?php
 								// Fetch all family members with the same family_id (excluding current user)
-								$query = "SELECT * FROM pre_reg_table 
+								$query = "SELECT * , qr.code FROM pre_reg_table 
 											LEFT JOIN age_class_table ON pre_reg_table.age_class_id = age_class_table.age_class_id
-											WHERE family_id = ? AND pre_reg_id != ?"; // Added condition to exclude current user
+											LEFT JOIN qr_table AS qr ON pre_reg_table.qr_id = qr.qr_id
+											WHERE family_id = ? AND pre_reg_table.pre_reg_id != ?"; // Added condition to exclude current user
 								$familyStmt = $conn->prepare($query);
 								$familyStmt->bind_param("ii", $family_id, $user1); // Assuming $user1 contains current user's ID
 								$familyStmt->execute();
@@ -147,7 +148,8 @@
 																	data-gender="<?= htmlspecialchars($member['gender']) ?>"
 																	data-contact_no="<?= htmlspecialchars($member['contact_no']) ?>"
 																	data-dob="<?= htmlspecialchars($member['date_of_birth']) ?>"
-																	data-relation="<?= $member['relation_to_family'] ?>">
+																	data-relation="<?= $member['relation_to_family'] ?>"
+																	data-qr="<?= $member['code'] ?>">
 																	<i class="fas fa-eye me-1"></i> View
 																</button>
 																<button class="btn btn-sm btn-outline-danger"

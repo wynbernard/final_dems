@@ -15,11 +15,15 @@
 			<div class="modal-body px-4 py-4">
 				<div class="row align-items-center mb-4">
 					<div class="col-md-3 text-center">
-						<div class="avatar-xxl position-relative d-inline-block">
+						<div class="avatar-xxl position-relative d-inline-block mb-2">
 							<img src="../../../dist/assets/img/user2-160x160.jpg" class="rounded-circle border border-4 border-white shadow" width="120" height="120" alt="Member Avatar">
 							<span class="position-absolute bottom-0 end-0 bg-primary rounded-circle p-2 border border-3 border-white">
 								<i class="fas fa-check text-white fs-6"></i>
 							</span>
+						</div>
+						<!-- QR Code Display -->
+						<div id="modal-member-qr-container" class="mt-3">
+							<img id="modal-member-qr" src="" alt="QR Code" style="display:none; max-width:120px; border:1px solid #eee; background:#fff; padding:4px; border-radius:8px;">
 						</div>
 					</div>
 					<div class="col-md-9">
@@ -121,6 +125,7 @@
 				const memberContactNo = this.getAttribute('data-contact_no');
 				const memberDob = this.getAttribute('data-dob');
 				const memberRelation = this.getAttribute('data-relation');
+				const memberQr = this.getAttribute('data-qr'); // QR code path
 
 				// 🎂 Calculate age from DOB with proper formatting
 				function calculateAge(dob) {
@@ -158,6 +163,15 @@
 				document.getElementById('modal-member-contact_no').textContent = memberContactNo || 'Not provided';
 				document.getElementById('modal-member-dob').textContent = ageData.formattedDob;
 				document.getElementById('modal-member-relation').textContent = memberRelation || 'Not specified';
+				// Set QR code image
+				const qrImg = document.getElementById('modal-member-qr');
+				if (memberQr && memberQr !== 'null' && memberQr !== '') {
+					qrImg.src = '../../../' + memberQr;
+					qrImg.style.display = 'block';
+				} else {
+					qrImg.src = '';
+					qrImg.style.display = 'none';
+				}
 
 				// Show the modal programmatically
 				const modal = new bootstrap.Modal(document.getElementById('viewFamilyMemberModal'));

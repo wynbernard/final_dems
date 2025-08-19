@@ -11,7 +11,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $password = trim($_POST['password']);
 
     // Check credentials
-    $sql = "SELECT prt.pre_reg_id, prt.f_name, prt.m_name, prt.l_name, prt.name_ext, prt.gender AS gender, prt.date_of_birth, prt.profile_pic AS photo, prt.password, er.evac_reg_id, qr.code AS code
+    $sql = "SELECT prt.pre_reg_id, prt.f_name, prt.m_name, prt.l_name, prt.name_ext, prt.gender AS gender, prt.registered_date AS date ,prt.date_of_birth, prt.profile_pic AS photo, prt.password, er.evac_reg_id, qr.code AS code
             FROM pre_reg_table prt
             JOIN evac_reg_table er ON er.pre_reg_id = prt.pre_reg_id
             LEFT JOIN qr_table qr ON prt.qr_id = qr.qr_id
@@ -102,7 +102,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
               <?php echo htmlspecialchars($result['f_name']." ".$result['m_name']." ".$result['l_name']." ".$result['name_ext']); ?>
             </h6>
             <p class="mb-1"><strong>DOB:</strong> <?php echo htmlspecialchars($result['date_of_birth']); ?></p>
-            <p class="mb-0"><strong>ID CODE:</strong> DEMS-000<?php echo !empty($result['pre_reg_id']) ? htmlspecialchars($result['pre_reg_id']) : '0'; ?></p>
+            <p class="mb-0"><strong>ID CODE:</strong> <?php echo !empty($result['pre_reg_id']) ? htmlspecialchars( date("Y", strtotime($result['date'])) . '' . $result['pre_reg_id']) : '0'; ?></p>
           </div>
         </div>
       </div>

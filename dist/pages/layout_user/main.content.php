@@ -104,7 +104,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
 <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.min.js"></script>
 
-<script>
+  <script>
   const barangayLat = <?php echo $barangayCoords['latitude']; ?>;
   const barangayLng = <?php echo $barangayCoords['longitude']; ?>;
   const evacuationCenters = <?php echo json_encode($locations, JSON_NUMERIC_CHECK); ?>;
@@ -128,8 +128,8 @@
   });
 
   const evacList = document.getElementById("evacuation-list");
-  const bounds = [];
 
+  // Haversine distance (fallback if OSRM fails)
   function getDistance(lat1, lng1, lat2, lng2) {
     const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -141,50 +141,80 @@
     return R * c;
   }
 
-  function renderEvacuationCenters() {
+  // Get OSRM route distance (returns Promise)
+  function getRouteDistance(lat1, lng1, lat2, lng2) {
+    const url = `https://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=false`;
+    return fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        if (data.routes && data.routes.length > 0) {
+          return data.routes[0].distance / 1000; // km
+        } else {
+          return getDistance(lat1, lng1, lat2, lng2);
+        }
+      })
+      .catch(() => getDistance(lat1, lng1, lat2, lng2));
+  }
+
+  // Render nearest 3 evacuation centers
+  async function renderEvacuationCenters() {
     evacList.innerHTML = '';
 
-    evacuationCenters.forEach(center => {
+    // Compute distances
+    const centersWithDistance = await Promise.all(evacuationCenters.map(async center => {
       const lat = parseFloat(center.latitude);
       const lng = parseFloat(center.longitude);
+      if (isNaN(lat) || isNaN(lng)) return null;
+      const distance = (userLat && userLng)
+        ? await getRouteDistance(userLat, userLng, lat, lng)
+        : null;
+      return { ...center, lat, lng, distance };
+    }));
 
-      if (!isNaN(lat) && !isNaN(lng)) {
-        // Add marker
-        const popupContent = `
+    // Filter + sort by distance
+    const nearest = centersWithDistance
+      .filter(c => c && c.distance !== null)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 3);
+
+    // Fit map bounds
+    const bounds = [];
+    function addEvacuationMarker(center) {
+      const popupContent = `
+        <strong>${center.name}</strong><br>
+        <small>Barangay: ${center.barangay_name}</small><br>
+        <small>Total Registrations: ${center.total_registrations}</small><br>
+        <button onclick="createRoute(${center.lat}, ${center.lng}, this)">Get Route</button>
+      `;
+      L.marker([center.lat, center.lng]).addTo(map).bindPopup(popupContent);
+      bounds.push([center.lat, center.lng]);
+    }
+
+    nearest.forEach(center => {
+      addEvacuationMarker(center);
+
+      // Build list item
+      const listItem = document.createElement("li");
+      listItem.className = "list-group-item d-flex justify-content-between align-items-start flex-column";
+      listItem.innerHTML = `
+        <div class="w-100">
           <strong>${center.name}</strong><br>
           <small>Barangay: ${center.barangay_name}</small><br>
-          <button onclick="createRoute(${lat}, ${lng}, this)">Get Route</button>
-        `;
-        L.marker([lat, lng]).addTo(map).bindPopup(popupContent);
-        bounds.push([lat, lng]);
-
-        // Distance calculation
-        const distance = (userLat && userLng) ? getDistance(userLat, userLng, lat, lng) : null;
-        const distanceText = distance ? `<small class="text-muted">${distance.toFixed(2)} km away</small><br>` : '';
-
-        // Build list item
-        const listItem = document.createElement("li");
-        listItem.className = "list-group-item d-flex justify-content-between align-items-start flex-column";
-        listItem.innerHTML = `
-          <div class="w-100">
-            <strong>${center.name}</strong><br>
-            <small>Barangay: ${center.barangay_name}</small><br>
-            ${distanceText}
-            <div class="route-steps mt-2 text-muted small"></div>
-          </div>
-          <button class="btn btn-sm btn-outline-primary align-self-end mt-2" onclick="createRoute(${lat}, ${lng}, this)">Get Route</button>
-        `;
-        evacList.appendChild(listItem);
-      }
+          <small class="text-muted">${center.distance.toFixed(2)} km by route</small>
+          <div class="route-steps mt-2 text-muted small"></div>
+        </div>
+        <button class="btn btn-sm btn-outline-primary align-self-end mt-2" onclick="createRoute(${center.lat}, ${center.lng}, this)">Get Route</button>
+      `;
+      evacList.appendChild(listItem);
     });
 
     if (bounds.length) {
-      map.fitBounds(bounds, {
-        padding: [20, 20]
-      });
+      bounds.push([userLat, userLng]);
+      map.fitBounds(bounds, { padding: [20, 20] });
     }
   }
 
+  // Draw route on map
   function createRoute(destLat, destLng, btn) {
     if (userLat === null || userLng === null) {
       alert("Getting your current location... please try again.");
@@ -195,8 +225,27 @@
       map.removeControl(routingControl);
     }
 
-    const stepDiv = btn.closest("li").querySelector(".route-steps");
-    stepDiv.innerHTML = "<em>Loading directions...</em>";
+    // Find the .route-steps container: in list (li) or in marker popup
+    let stepDiv = null;
+    // If button is inside a list item, use that
+    if (btn.closest("li")) {
+      stepDiv = btn.closest("li").querySelector(".route-steps");
+    } else {
+      // Otherwise, try to find a .route-steps in the popup (if you add one)
+      const popup = document.querySelector('.leaflet-popup-content');
+      if (popup) {
+        stepDiv = popup.querySelector('.route-steps');
+        // If not present, create and append it
+        if (!stepDiv) {
+          stepDiv = document.createElement('div');
+          stepDiv.className = 'route-steps mt-2 text-muted small';
+          popup.appendChild(stepDiv);
+        }
+      }
+    }
+    if (stepDiv) {
+      stepDiv.innerHTML = "<em>Loading directions...</em>";
+    }
 
     routingControl = L.Routing.control({
       waypoints: [
@@ -213,16 +262,19 @@
       showAlternatives: false,
       createMarker: () => null,
       lineOptions: {
-        styles: [{
-          color: 'blue',
-          weight: 5
-        }]
-      }
+        styles: [{ color: 'blue', weight: 5 }]
+      },
+      show: false // disable default instruction panel
     }).addTo(map);
 
     routingControl.on('routesfound', e => {
-      const steps = e.routes[0].instructions.map((step, i) => `${i + 1}. ${step.text}`);
-      stepDiv.innerHTML = `<strong>Directions:</strong><br>${steps.join("<br>")}`;
+      const route = e.routes[0];
+      const summary = route.summary;
+      stepDiv.innerHTML = `
+        <strong>Route found:</strong><br>
+        ${ (summary.totalDistance / 1000).toFixed(2) } km, 
+        ${ Math.round(summary.totalTime / 60) } min
+      `;
     });
 
     routingControl.on('routingerror', err => {
@@ -231,28 +283,23 @@
     });
   }
 
-  // Geolocation & start tracking
+  // Geolocation
   if (navigator.geolocation) {
-    navigator.geolocation.watchPosition(pos => {
+    navigator.geolocation.getCurrentPosition(pos => {
       userLat = pos.coords.latitude;
       userLng = pos.coords.longitude;
 
       if (!userMarker) {
-        userMarker = L.marker([userLat, userLng], {
-            icon: userIcon
-          })
+        userMarker = L.marker([userLat, userLng], { icon: userIcon })
           .addTo(map)
           .bindPopup("<strong>You are here</strong>")
           .openPopup();
-        map.setView([userLat, userLng], 15);
-      } else {
-        userMarker.setLatLng([userLat, userLng]);
       }
 
       renderEvacuationCenters();
     }, err => {
       console.warn("Location error:", err.message);
-      renderEvacuationCenters();
+      alert("Failed to get location.");
     }, {
       enableHighAccuracy: true,
       maximumAge: 0,
@@ -260,6 +307,5 @@
     });
   } else {
     alert("Geolocation is not supported.");
-    renderEvacuationCenters();
   }
 </script>

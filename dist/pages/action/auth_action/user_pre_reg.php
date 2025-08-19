@@ -311,7 +311,7 @@ if (isset($_FILES['signature_file']) && $_FILES['signature_file']['error'] === U
 		// QR Code generation
 		$qr_data = "Pre_reg_id: $pre_reg_id\nName: $f_name $l_name\nEmail: $email\nPhone: $contact_no\nGender: $gender\nDOB: $dobFormatted\nAge: $age";
 		// Set directory and filename
-		$qr_dir = "../../../../uploads/qr_codes/";
+		$qr_dir = "../../../uploads/qr_codes/";
 		if (!file_exists($qr_dir)) {
 			mkdir($qr_dir, 0777, true);
 		}
