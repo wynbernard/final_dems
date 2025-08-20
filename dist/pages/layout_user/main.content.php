@@ -27,7 +27,7 @@
     <!--begin::Row-->
     <div class="row">
       <!--begin::Col-->
-      <div class="col-lg-3 col-6">
+      <div class="col-lg-3 col-6">  
         <!--begin::Small Box Widget 3-->
         <!-- <div class="small-box text-bg-warning">
           <div class="inner">
@@ -171,42 +171,122 @@
       return { ...center, lat, lng, distance };
     }));
 
-    // Filter + sort by distance
-    const nearest = centersWithDistance
-      .filter(c => c && c.distance !== null)
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, 3);
 
-    // Fit map bounds
-    const bounds = [];
-    function addEvacuationMarker(center) {
-      const popupContent = `
-        <strong>${center.name}</strong><br>
-        <small>Barangay: ${center.barangay_name}</small><br>
-        <small>Total Registrations: ${center.total_registrations}</small><br>
-        <button onclick="createRoute(${center.lat}, ${center.lng}, this)">Get Route</button>
-      `;
-      L.marker([center.lat, center.lng]).addTo(map).bindPopup(popupContent);
-      bounds.push([center.lat, center.lng]);
-    }
+      // Filter + sort by distance
+      const nearest = centersWithDistance
+        .filter(c => c && c.distance !== null)
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 3);
 
-    nearest.forEach(center => {
-      addEvacuationMarker(center);
+      // Find the first location with available capacity
+      let recommendedIdx = 0;
+      for (let i = 0; i < nearest.length; i++) {
+        const cap = parseInt(nearest[i].total_capacity) || 0;
+        const rec = parseInt(nearest[i].total_recommended) || 0;
+        if (cap === 0 || rec < cap) {
+          recommendedIdx = i;
+          break;
+        }
+        // If all are full, will default to the last
+        recommendedIdx = i;
+      }
 
-      // Build list item
-      const listItem = document.createElement("li");
-      listItem.className = "list-group-item d-flex justify-content-between align-items-start flex-column";
-      listItem.innerHTML = `
-        <div class="w-100">
+      // Fit map bounds
+      const bounds = [];
+      function addEvacuationMarker(center, isRecommended = false, isFull = false) {
+        const fullBadge = isFull ? '<span class="badge bg-danger mb-1">Full</span><br>' : '';
+        const popupContent = `
           <strong>${center.name}</strong><br>
           <small>Barangay: ${center.barangay_name}</small><br>
-          <small class="text-muted">${center.distance.toFixed(2)} km by route</small>
-          <div class="route-steps mt-2 text-muted small"></div>
-        </div>
-        <button class="btn btn-sm btn-outline-primary align-self-end mt-2" onclick="createRoute(${center.lat}, ${center.lng}, this)">Get Route</button>
-      `;
-      evacList.appendChild(listItem);
-    });
+          ${isRecommended ? '<span class="badge bg-success mb-1">Recommended</span><br>' : ''}
+          ${fullBadge}
+          <small class='text-muted'>${center.total_recommended || 0} / ${center.total_capacity || 0} Arrivals</small><br>
+          <button onclick=\"createRoute(${center.lat}, ${center.lng}, this)\">Get Route</button>
+        `;
+        const greenIcon = L.icon({
+          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+          shadowSize: [41, 41]
+        });
+        const defaultIcon = L.icon({
+          iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+          shadowSize: [41, 41]
+        });
+        if (isRecommended) {
+          const recommendedDivIcon = L.divIcon({
+            html: `<div style=\"display:flex;align-items:center;\"><img src='https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png' style='width:25px;height:41px;'><span style=\"background:#28a745;color:#fff;padding:2px 8px;border-radius:8px;font-size:0.9em;margin-left:4px;\">Recommended</span></div>` ,
+            iconSize: [100, 41],
+            iconAnchor: [12, 41],
+            className: ''
+          });
+          L.marker([center.lat, center.lng], {icon: recommendedDivIcon})
+            .addTo(map)
+            .bindPopup(popupContent);
+        } else {
+          L.marker([center.lat, center.lng], {icon: defaultIcon})
+            .addTo(map)
+            .bindPopup(popupContent);
+        }
+        bounds.push([center.lat, center.lng]);
+      }
+
+      nearest.forEach((center, idx) => {
+        const isRecommended = idx === recommendedIdx;
+        const cap = parseInt(center.total_capacity) || 0;
+        const rec = parseInt(center.total_recommended) || 0;
+        const isFull = cap > 0 && rec >= cap;
+        addEvacuationMarker(center, isRecommended, isFull);
+
+        // Build list item
+        const listItem = document.createElement("li");
+        listItem.className = "list-group-item d-flex justify-content-between align-items-start flex-column" + (isRecommended ? ' border-success border-2' : '');
+        listItem.innerHTML = `
+          <div class="w-100">
+            <strong>${center.name}</strong><br>
+            <small>Barangay: ${center.barangay_name}</small><br>
+            ${isRecommended ? '<span class="badge bg-success">Recommended</span><br>' : ''}
+            ${isFull ? '<span class="badge bg-danger">Full</span><br>' : ''}
+            <small class="text-muted">${center.distance.toFixed(2)} km by route</small><br>
+            <small class="text-muted">${center.total_recommended || 0} / ${center.total_capacity || 0} Arrivals</small><br>
+            <div class="route-steps mt-2 text-muted small"></div>
+            <div class="d-flex flex-row gap-2 mt-2 align-items-center">
+              <button class="btn btn-sm btn-outline-primary" onclick="createRoute(${center.lat}, ${center.lng}, this)">Get Route</button>
+              <button class="btn btn-sm btn-success btn-arrive" data-evac-id="${center.evac_loc_id}">Arrive</button>
+            </div>
+          </div>
+        `;
+        evacList.appendChild(listItem);
+
+        // Auto-log recommended location arrival (only once, for the recommended)
+        if (isRecommended && window._recommendedLogged !== true) {
+          window._recommendedLogged = true;
+          // Get pre_reg_id from PHP session and send with evac_loc_id
+          const preRegId = <?php echo isset($_SESSION['pre_reg_id']) ? intval($_SESSION['pre_reg_id']) : 'null'; ?>;
+          if (preRegId) {
+            fetch('../action_user/log_recommended_arrival.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: `evac_loc_id=${center.evac_loc_id}&pre_reg_id=${preRegId}`
+            })
+            .then(res => res.text())
+            .then(result => {
+              if (result !== 'success') {
+                // alert('Recommendation update error: ' + result);
+              }
+            })
+            .catch(err => {
+              // alert('Network or server error: ' + err);
+            });
+          }
+        }
+      });
 
     if (bounds.length) {
       bounds.push([userLat, userLng]);

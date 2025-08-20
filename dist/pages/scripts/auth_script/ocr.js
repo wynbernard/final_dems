@@ -156,13 +156,9 @@ document.getElementById('ic_image').addEventListener('change', function() {
 
 									if (fnameMatch && mnameMatch && lnameMatch && extMatch) {
 										Swal.fire({
-											icon: extractedIdNumber ? 'success' : 'warning',
-											title: extractedIdNumber ? 'ID Number Detected' : 'ID Number Not Found',
-											html: `
-												<div><b>Detected ID Type:</b> ${detectedType}</div>
-												<div><b>ID Number:</b> ${extractedIdNumber || '<i>Not Detected</i>'}</div>
-												<div class="mt-2">✅ Name matched successfully!</div>
-											`,
+											icon: 'success',
+											title: 'Name Matched',
+											text: '✅ Name matched successfully!',
 											confirmButtonColor: '#198754'
 										});
 									} else {
@@ -176,11 +172,7 @@ document.getElementById('ic_image').addEventListener('change', function() {
 										Swal.fire({
 											icon: 'error',
 											title: 'Name Mismatch',
-											html: `
-												<div><b>Detected ID Type:</b> ${detectedType}</div>
-												<div><b>ID Number:</b> ${extractedIdNumber || '<i>Not Detected</i>'}</div>
-												<div class="mt-2">❌ ${unmatched.join(", ")} not found on the ID.<br>The uploaded image has been cleared.</div>
-											`,
+											text: `❌ ${unmatched.join(", ")} not found on the ID.<br>The uploaded image has been cleared.`,
 											confirmButtonColor: '#dc3545'
 										});
 									}

@@ -2,7 +2,7 @@
 include '../../../database/session.php';
 include '../layout/head_links.php';
 
-$query = "SELECT elt.latitude , elt.longitude , elt.evac_loc_id , elt.city , elt.purok , bmt.barangay_name , elt.name , elt.total_capacity FROM evac_loc_table as elt
+$query = "SELECT elt.latitude , elt.longitude , elt.evac_loc_id , elt.city , elt.purok , bmt.barangay_name , elt.name , elt.total_capacity , elt.status FROM evac_loc_table as elt
 LEFT JOIN barangay_manegement_table as bmt ON elt.barangay_id = bmt.barangay_id";
 $result = mysqli_query($conn, $query);
 
@@ -65,6 +65,7 @@ if (!$result) {
 												<th><i class="bi bi-geo-alt-fill"></i> Location</th>
 												<th><i class="bi bi-house-door-fill"></i> Address</th>
 												<th><i class="bi bi-people-fill"></i> Total Capacity</th>
+												<th><i class="bi bi-person-fill"></i>Status</th>
 												<th><i class="bi bi-gear-fill"></i> Actions</th>
 
 											</tr>
@@ -87,7 +88,16 @@ if (!$result) {
 														<td class="location-capacity">
 															<?php echo htmlspecialchars($location['total_capacity']); ?>
 														</td>
-
+														<td class="location-status">
+															<span class="badge bg-<?php echo $location['status'] === 'Active' ? 'success' : 'secondary'; ?>" id="status-badge-<?php echo $location['evac_loc_id']; ?>">
+																<?php echo htmlspecialchars($location['status']); ?>
+															</span>
+															<button class="btn btn-sm btn-outline-<?php echo $location['status'] === 'Active' ? 'secondary' : 'success'; ?> ms-2 status-toggle-btn"
+																data-id="<?php echo $location['evac_loc_id']; ?>"
+																data-status="<?php echo $location['status']; ?>">
+																Set <?php echo $location['status'] === 'Active' ? 'Inactive' : 'Active'; ?>
+															</button>
+														</td>
 														<td>
 															<a href="#" class="btn btn-sm btn-outline-success edit-btn shadow"
 																data-id="<?php echo $location['evac_loc_id']; ?>"
@@ -178,6 +188,43 @@ if (!$result) {
 			/* green tone for capacity */
 		}
 	</style>
+	<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.status-toggle-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const id = this.getAttribute('data-id');
+            const currentStatus = this.getAttribute('data-status');
+            const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+            const badge = document.getElementById('status-badge-' + id);
+            const button = this;
+            button.disabled = true;
+            fetch('update_location_status.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `evac_loc_id=${id}&status=${newStatus}`
+            })
+            .then(res => res.text())
+            .then(data => {
+                if (data.trim() === 'success') {
+                    badge.textContent = newStatus;
+                    badge.className = 'badge bg-' + (newStatus === 'Active' ? 'success' : 'secondary');
+                    button.textContent = 'Set ' + (newStatus === 'Active' ? 'Inactive' : 'Active');
+                    button.className = 'btn btn-sm btn-outline-' + (newStatus === 'Active' ? 'secondary' : 'success') + ' ms-2 status-toggle-btn';
+                    button.setAttribute('data-status', newStatus);
+                } else {
+                    alert('Failed to update status.');
+                }
+                button.disabled = false;
+            })
+            .catch(() => {
+                alert('Failed to update status.');
+                button.disabled = false;
+            });
+        });
+    });
+});
+</script>
 	<script src="../scripts/scripts.js"></script>
 </body>
 

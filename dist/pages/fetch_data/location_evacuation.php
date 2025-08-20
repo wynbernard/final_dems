@@ -33,18 +33,26 @@ $barangayCoords = $barangayResult->fetch_assoc();
 // Prepare query to fetch centers in the same barangay
 $query = "SELECT 
     evac_loc_table.barangay_id, 
-    name, 
+    name,
+    evac_loc_table.total_capacity AS total_capacity,
+    evac_loc_table.status AS status,
+    evac_loc_table.evac_loc_id,
     evac_loc_table.latitude AS latitude, 
     evac_loc_table.longitude AS longitude,
     barangay_manegement_table.barangay_name AS barangay_name,
-    COUNT(e.evac_reg_id) AS total_registrations
-    
+    (
+        SELECT COUNT(pre_reg_id)
+        FROM pre_reg_table
+        WHERE recommended_location = evac_loc_table.evac_loc_id
+    ) AS total_recommended
 FROM evac_loc_table
 LEFT JOIN barangay_manegement_table 
     ON evac_loc_table.barangay_id = barangay_manegement_table.barangay_id
-    LEFT JOIN room_table r ON evac_loc_table.evac_loc_id = r.evac_loc_id
-    LEFT JOIN evac_reg_table e ON r.room_id = e.room_id
-GROUP BY evac_loc_table.barangay_id, name, evac_loc_table.latitude, evac_loc_table.longitude, barangay_manegement_table.barangay_name";
+LEFT JOIN room_table r ON evac_loc_table.evac_loc_id = r.evac_loc_id
+LEFT JOIN evac_reg_table e ON r.room_id = e.room_id
+GROUP BY evac_loc_table.barangay_id, name, evac_loc_table.latitude, evac_loc_table.longitude, barangay_manegement_table.barangay_name
+HAVING status = 'Active'
+";
 
 $stmt = $conn->prepare($query);
 $stmt->execute();

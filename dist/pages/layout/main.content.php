@@ -515,6 +515,7 @@ LEFT JOIN evac_reg_table ert
     AND ert.status = 'IN' -- ✅ optional: only count people currently inside
 WHERE evc.latitude IS NOT NULL 
   AND evc.longitude IS NOT NULL
+  AND evc.status = 'Active'
 GROUP BY rm.room_id
 ORDER BY evc.name, rm.room_name;
 ";
