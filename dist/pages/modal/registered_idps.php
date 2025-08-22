@@ -1,14 +1,16 @@
 <!-- Register IDP Modal -->
 <div class="modal fade" id="registerIDPModal" tabindex="-1" aria-labelledby="registerIDPModalLabel" aria-hidden="true">
-	<div class="modal-dialog">
+	<div class="modal-dialog modal-xl">
 		<div class="modal-content">
 			<div class="modal-header">
 				<h5 class="modal-title" id="registerIDPModalLabel">Register New IDP</h5>
 				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body">
-				<form id="idpRegistrationForm" method="POST" action="../action/registration_staff.php">
-					<div class="alert alert-info mb-3">
+				<form id="idpRegistrationForm" method="POST" action="../action/registration_backend.php" enctype="multipart/form-data">
+					<div id="assignedRoomDisplay" class="alert alert-success mb-3" style="display:none; font-weight:bold;"></div>
+					<div class="d-flex align-items-center mb-3">
+					       <div class="alert alert-info mb-3 me-3">
 						<strong>Location:</strong>
 						<?php
 						// Safely get parameters with null coalescing operator
@@ -59,60 +61,795 @@
 						?>
 						<input type="hidden" name="location_id" value="<?php echo htmlspecialchars($selectedLocationId); ?>">
 					</div>
-					<div class="mb-3">
-						<label for="idpName" class="form-label">Full Name</label>
-						<input type="text" class="form-control" id="idpName" name="name" required autocomplete="off"
-							placeholder="Start typing to search...">
-						<input type="hidden" name="pre_reg_id" id="preRegId">
-						<div id="nameSuggestions" class="list-group position-absolute" style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto; width: calc(100% - 30px);"></div>
-						<small id="noMatchWarning" class="text-danger mt-1 d-none">No IDPs found.</small>
-					</div>
-
-					<div class="mb-3">
-						<label for="room" class="form-label">Room</label>
-						<select class="form-select" id="room" name="room" required>
-							<option value="" disabled selected>Select a room</option>
-						</select>
-					</div>
-					<div class="mb-3">
-						<label for="disasterDropdown" class="form-label">Disaster</label>
-						<select class="form-select" id="disasterDropdown" name="disasterDropdown" required>
-							<option value="" disabled selected>Select a Disaster</option>
-							<?php
-							// Include the database connection file
-							include '../../../database/session.php'; // Adjust the path to your session/database connection file
-
-							// Query to fetch disasters from the database
-							$query = "SELECT disaster_id, disaster_name FROM disaster_table";
-							$result = mysqli_query($conn, $query);
-
-							// Check if the query was successful and returned results
-							if ($result && mysqli_num_rows($result) > 0) {
-								// Loop through the results and generate <option> elements
-								while ($row = mysqli_fetch_assoc($result)) {
-									echo '<option value="' . htmlspecialchars($row['disaster_id']) . '">' . htmlspecialchars($row['disaster_name']) . '</option>';
-								}
+						<div class="alert alert-info mb-3">
+						<strong>Disaster Event:</strong>
+						<span id="disasterEventName">
+						<?php
+						$selectedDisasterId = $_GET['disasterId'] ?? '';
+						$disasterName = '';
+						if ($selectedDisasterId) {
+							$stmt = $conn->prepare("SELECT disaster_name FROM disaster_table WHERE disaster_id = ?");
+							$stmt->bind_param("i", $selectedDisasterId);
+							$stmt->execute();
+							$result = $stmt->get_result();
+							if ($result && $result->num_rows > 0) {
+								$row = $result->fetch_assoc();
+								$disasterName = $row['disaster_name'];
+								echo htmlspecialchars($disasterName);
 							} else {
-								// Fallback option if no disasters are found in the database
-								echo '<option value="" disabled>No disasters available</option>';
+								echo "Unknown Disaster (ID: " . htmlspecialchars($selectedDisasterId) . ")";
 							}
+							$stmt->close();
+						} else {
+							echo "No disaster selected";
+						}
+						?>
+						</span>
+						<input type="hidden" name="disasterId" id="disasterIdHidden" value="<?php echo htmlspecialchars($selectedDisasterId); ?>">
+					</div>
+						<div class="ms-3">
+							<label for="room_id" class="form-label"><strong>Room :</strong></label>
+							<select name="room_id" id="room" class="form-select" style="min-width:180px;display:inline-block;" <?php if (empty($selectedLocationId) && empty($fallbackEvacId)) echo 'disabled'; ?>>
+								<option value="" disabled selected>
+									<?php if (empty($selectedLocationId) && empty($fallbackEvacId)) {
+										echo 'Select a location first';
+									} else {
+										echo 'Select a room';
+									} ?>
+								</option>
+								<!-- Room options will be populated by JS -->
+							</select>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-3">
+							<div class="mb-3">
+								<label for="f_name" class="form-label">
+									First Name <span class="text-danger">*</span>
+								</label>
+								<input type="text" name="f_name" id="f_name" class="form-control" placeholder="Enter First Name" required>
+							</div>
+						</div>
 
-							// Close the database connection (optional, as it may be handled elsewhere)
-							mysqli_close($conn);
-							?>
-						</select>
+						<div class="col-md-3">
+							<div class="mb-3">
+								<label class="form-label">Middle Name <span class="text-danger">*</span></label>
+								<input type="text" name="m_name" id="m_name" class="form-control" placeholder="Enter Middle Name" required>
+							</div>
+						</div>
+						<div class="col-md-3">
+							<div class="mb-3">
+								<label class="form-label">Last Name <span class="text-danger">*</span></label>
+								<input type="text" name="l_name" id="l_name" class="form-control" placeholder="Enter Last Name" required>
+								<small id="nameFeedback"></small>
+							</div>
+						</div>
+						<div class="col-md-3">
+							<div class="mb-2">
+								<label class="form-label">Name Extension</label>
+								<select class="form-control" name="name_extension" id="name_extension">
+									<option value="" disabled selected>-- Select Extension --</option>
+									<option value="">None</option>
+									<option value="jr">Jr.</option>
+									<option value="sr">Sr.</option>
+									<option value="i">I</option>
+									<option value="ii">II</option>
+									<option value="iii">III</option>
+								</select>
+							</div>
+						</div>
+						<script>
+							document.addEventListener("DOMContentLoaded", function() {
+								const fName = document.getElementById("f_name");
+								const mName = document.getElementById("m_name");
+								const lName = document.getElementById("l_name");
+								const nameExt = document.getElementById("name_extension"); // matches your <select>
+								const feedback = document.getElementById("nameFeedback");
+
+								// Add input/change listeners
+								[fName, mName, lName, nameExt].forEach(field => {
+									field.addEventListener("input", validateName);
+									field.addEventListener("change", validateName); // For <select>
+								});
+
+								function validateName() {
+									const first = fName.value.trim();
+									const middle = mName.value.trim();
+									const last = lName.value.trim();
+									const extension = nameExt.value || ""; // Handles "" if not selected
+
+									if (!first || !middle || !last) {
+										feedback.innerHTML = "";
+										feedback.className = "";
+										[fName, mName, lName, nameExt].forEach(f => f.classList.remove("is-valid", "is-invalid"));
+										return;
+									}
+
+									checkNameAvailability(first, middle, last, extension);
+								}
+
+								function checkNameAvailability(first, middle, last, extension) {
+									fetch("../check_validation/name_validation.php", {
+											method: "POST",
+											headers: {
+												"Content-Type": "application/x-www-form-urlencoded",
+											},
+											body: "f_name=" + encodeURIComponent(first) +
+												"&m_name=" + encodeURIComponent(middle) +
+												"&l_name=" + encodeURIComponent(last) +
+												"&name_ext=" + encodeURIComponent(extension),
+										})
+										.then((response) => response.text())
+										.then((data) => {
+											const result = data.trim();
+
+											if (result === "taken") {
+												feedback.innerHTML = "Full name already registered.";
+												feedback.className = "text-danger";
+												[fName, mName, lName, nameExt].forEach(field => {
+													field.classList.add("is-invalid");
+													field.classList.remove("is-valid");
+												});
+											} else if (result === "available") {
+												feedback.innerHTML = "Name is unique.";
+												feedback.className = "text-success";
+												[fName, mName, lName, nameExt].forEach(field => {
+													field.classList.add("is-valid");
+													field.classList.remove("is-invalid");
+												});
+											} else {
+												feedback.innerHTML = "Error checking name.";
+												feedback.className = "text-warning";
+											}
+										})
+										.catch((error) => {
+											console.error("Error:", error);
+											feedback.innerHTML = "Server error.";
+											feedback.className = "text-warning";
+										});
+								}
+							});
+						</script>
+					</div>
+					<div class="row">
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Contact No.<span class="text-danger">*</span></label>
+								<input type="number" name="contact_no" id="contact_no" class="form-control" placeholder="Enter Contact No." required pattern="[0-9]{10,15}">
+								<small id="contactError" class="text-danger"></small>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Email Address <span class="text-danger">*</span></label>
+								<input type="email" name="email" id="email" class="form-control" placeholder="Enter Email" required>
+								<small id="emailFeedback"></small>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Highest Education Attainment <span class="text-danger">*</span></label>
+								<select name="education_attainment" id="education_attainment" class="form-control" required>
+									<option value="" selected disabled>Select Education Attainment</option>
+									<option value="No Formal Education">No Formal Education</option>
+									<option value="Some Elementary">Some Elementary</option>
+									<option value="Completed Elementary">Completed Elementary</option>
+									<option value="Some High School">Some High School</option>
+									<option value="Completed High School">Completed High School / Secondary</option>
+									<option value="Some College">Some College</option>
+									<option value="Completed Vocational">Completed Vocational / Technical</option>
+									<option value="Associate Degree">Associate Degree</option>
+									<option value="Bachelor’s Degree">Bachelor’s Degree</option>
+									<option value="Some Graduate Studies">Some Graduate Studies</option>
+									<option value="Master’s Degree">Master’s Degree</option>
+									<option value="Doctorate Degree">Doctorate Degree (Ph.D., Ed.D., etc.)</option>
+									<option value="Prefer Not to Say">Prefer Not to Say</option>
+								</select>
+								<small id="educationAttainmentFeedback"></small>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3 position-relative">
+								<label class="form-label">Password <span class="text-danger">*</span></label>
+								<div class="input-group">
+									<input type="password" name="password" id="password" class="form-control" placeholder="Enter Password" required onkeyup="validatePassword()">
+									<span class="input-group-text" onclick="toggleVisibility('password', this)" style="cursor: pointer;">
+										<i class="fa fa-eye-slash"></i>
+									</span>
+								</div>
+								<small id="passwordHelp" class="form-text text-danger mt-1 d-block"></small>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3 position-relative">
+								<label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+								<div class="input-group">
+									<input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Confirm Password" required onkeyup="validatePassword()">
+									<span class="input-group-text border-0" onclick="toggleVisibility('confirm_password', this)" style="cursor: pointer;">
+										<i class="fa fa-eye-slash"></i>
+									</span>
+								</div>
+								<small id="passwordMatchMessage" class="text-danger mt-1 d-block"></small>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Signature <span class="text-danger">*</span></label>
+								<div class="mt-0">
+									<input type="file" name="signature_file" id="signature_file" class="form-control" accept="image/*" required onchange="previewSignature(event)">
+								</div>
+								<div class="mt-2">
+									<img id="signaturePreview" src="#" alt="Signature Preview" style="max-width: 200px; display: none; border: 1px solid #ddd; padding: 5px;" />
+								</div>
+							</div>
+						</div>
+						<script>
+							function previewSignature(event) {
+								const input = event.target;
+								const preview = document.getElementById('signaturePreview');
+
+								if (input.files && input.files[0]) {
+									const reader = new FileReader();
+
+									reader.onload = function(e) {
+										preview.src = e.target.result;
+										preview.style.display = 'block';
+									};
+
+									reader.readAsDataURL(input.files[0]);
+								} else {
+									preview.src = '#';
+									preview.style.display = 'none';
+								}
+							}
+						</script>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Date of Birth <span class="text-danger">*</span></label>
+								<input type="date" name="dob" id="dob" class="form-control" required>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Place Of Birth <span class="text-danger">*</span></label>
+								<input type="text" name="pob" id="pob" class="form-control" placeholder="Enter Place of Birth" required>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Mother Maiden Name <span class="text-danger">*</span></label>
+								<input type="text" name="mmn" id="mmn" class="form-control" placeholder="Enter Mother Maiden Name" required>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label for="religion" class="form-label">Religion <span class="text-danger">*</span></label>
+								<select class="form-select" id="religion" name="religion" required>
+									<option value="" disabled selected>Select your religion</option>
+									<option value="Roman Catholic">Roman Catholic</option>
+									<option value="Iglesia ni Cristo">Iglesia ni Cristo</option>
+									<option value="Evangelical">Evangelical (Born Again)</option>
+									<option value="Seventh-day Adventist">Seventh-day Adventist</option>
+									<option value="Other Christian">Other Christian (e.g., Baptist, Methodist, Pentecostal)</option>
+									<option value="Islam">Islam</option>
+									<option value="Aglipayan">Aglipayan (Philippine Independent Church)</option>
+									<option value="Jehovah's Witnesses">Jehovah's Witnesses</option>
+									<option value="Buddhism">Buddhism</option>
+									<option value="Hinduism">Hinduism</option>
+									<option value="Indigenous Beliefs">Indigenous / Ethnic Beliefs</option>
+									<option value="None">None / No Religion</option>
+									<option value="Other">Other (please specify)</option>
+								</select>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Occupation</label>
+								<input type="text" name="occupation" id="occupation" class="form-control" placeholder="Enter Occupation">
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Monthly Income</label>
+								<!-- Visible input with commas -->
+								<input type="text" id="monthly_income_display" class="form-control" placeholder="₱0.00" oninput="formatWithCommas()" required>
+								<!-- Hidden number input for form submission -->
+								<input type="number" name="monthly_income" id="monthly_income" hidden>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Gender <span class="text-danger">*</span></label>
+								<select name="gender" id="gender" class="form-control" required>
+									<option value="" disabled selected>-- Select Gender --</option>
+									<option value="Male">Male</option>
+									<option value="Female">Female</option>
+								</select>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Civil Status <span class="text-danger">*</span></label>
+								<select name="civil_status" id="civil_status" class="form-control" required>
+									<option value="" disabled selected>-- Select Civil Status --</option>
+									<option value="single">Single</option>
+									<option value="married">Married</option>
+									<option value="widowed">Widowed</option>
+									<option value="divorced">Divorced</option>
+									<option value="separated">Separated</option>
+									<option value="annulled">Annulled</option>
+									<option value="others">Others</option>
+								</select>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Registration Type <span class="text-danger">*</span></label>
+								<select name="registration_type" id="registration_type" class="form-control" required>
+									<option value="" disabled selected>-- Select Registration Type --</option>
+									<option value="Solo">Solo</option>
+									<option value="Family">Family</option>
+								</select>
+							</div>
+						</div>
+						<div class="row" id="familyMembersSection" style="display:none;">
+							<div class="col-12">
+								<div class="mb-3">
+									<label for="numFamilyMembers" class="form-label">Number of Family Members (excluding head):</label>
+									<input type="number" min="1" max="20" class="form-control" id="numFamilyMembers" name="numFamilyMembers">
+								</div>
+								<div id="familyMembersFields"></div>
+							</div>
+						</div>
+						
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label fw-semibold">Upload Image of ID Card Presented <span class="text-danger">*</span></label>
+								<input type="file" name="ic_image" id="ic_image" class="form-control" accept="image/*" required onchange="previewIdCard(event)">
+								<div class="mt-2">
+									<img id="idCardPreview" src="#" alt="ID Card Preview" style="max-width: 100%; max-height: 200px; display: none; border: 1px solid #ccc; padding: 5px;" />
+								</div>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label for="icp" class="form-label">ID Card Presented <span class="text-danger">*</span></label>
+								<select name="icp" id="icp" class="form-select" required onchange="updateIDCardFormat()">
+									<option value="" disabled selected>Select ID Card</option>
+									<option value="Philippine National ID">Philippine National ID (PhilSys)</option>
+									<option value="Passport">Passport</option>
+									<option value="Driver's License">Driver’s License (LTO)</option>
+									<option value="UMID">UMID (Unified Multi-Purpose ID)</option>
+									<option value="SSS ID">SSS ID</option>
+									<option value="PRC ID">PRC (Professional Regulation Commission) ID</option>
+									<option value="Voter's ID">Voter’s ID / Certificate</option>
+									<option value="TIN ID">TIN ID (BIR)</option>
+									<option value="PhilHealth ID">PhilHealth ID</option>
+								</select>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">ID Card Number <span class="text-danger">*</span></label>
+								<input type="text" name="icn" id="icn" class="form-control" placeholder="Enter ID Card Number" required>
+							</div>
+						</div>
+						<!-- ID Upload Input -->
+						<script>
+							function previewIdCard(event) {
+								const input = event.target;
+								const preview = document.getElementById('idCardPreview');
+
+								if (input.files && input.files[0]) {
+									const reader = new FileReader();
+
+									reader.onload = function(e) {
+										preview.src = e.target.result;
+										preview.style.display = 'block';
+									};
+
+									reader.readAsDataURL(input.files[0]);
+								} else {
+									preview.src = '#';
+									preview.style.display = 'none';
+								}
+							}
+						</script>
+						<!-- <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script> -->
+						<!-- SweetAlert2 CSS -->
+						<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+						<!-- SweetAlert2 JS -->
+						<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+						<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+						<!-- <script src="tesseract.js"></script> -->
+						<div class="col-md-2">
+							<div class="mb-3">
+								<label class="form-label">Others</label>
+								<div class="form-check mt-2">
+									<input type="checkbox" name="beneficiary" id="beneficiary" class="form-check-input">
+									<label for="beneficiary" class="form-check-label">4Ps Beneficiary</label>
+								</div>
+							</div>
+						</div>
+						<div class="col-md-2">
+							<div class="mb-3">
+								<label class="form-label" style="color:white;">&nbsp;</label>
+								<div class="form-check mt-2">
+									<input type="checkbox" name="ip" id="ip" class="form-check-input" onchange="toggleEthnicity()">
+									<label for="ip" class="form-check-label">IP's</label>
+								</div>
+							</div>
+						</div>
+
+						<!-- Hidden Ethnicity Input -->
+						<div class="col-md-4" id="ethnicityField" style="display: none;">
+							<div class="mb-3">
+								<label for="ethnicity" class="form-label">Ethnicity</label>
+								<input type="text" name="ethnicity" id="ethnicity" class="form-control" placeholder="Enter Ethnicity">
+							</div>
+						</div>
+
+						<!-- PROFILE PICTURE -->
+
+						<!-- Profile Preview - Fully Centered -->
+						<div id="profilePicPreview" class="mt-3 d-none d-flex justify-content-center">
+							<div class="d-flex flex-column align-items-center">
+								<div class="border rounded-circle overflow-hidden" style="width: 150px; height: 150px; margin-bottom: 30px;">
+									<img id="profileImage" src="" alt="Profile Picture" class="img-fluid h-100 w-100 object-fit-cover">
+								</div>
+							</div>
+						</div>
+
+						<!-- Button -->
+						<button type="button" class="btn btn-primary" id="selectImageBtn">
+							Set Profile Picture
+						</button>
+						<!-- Hidden file input -->
+						<input type="file" id="imageInput" accept="image/*" name="profile_pic" class="d-none">
+
+						<script>
+							const selectImageBtn = document.getElementById('selectImageBtn');
+							const imageInput = document.getElementById('imageInput');
+							const profileImage = document.getElementById('profileImage');
+							const profilePicPreview = document.getElementById('profilePicPreview');
+
+							selectImageBtn.addEventListener('click', () => {
+								imageInput.click();
+							});
+
+							imageInput.addEventListener('change', function() {
+								const file = this.files[0];
+								if (file && file.type.startsWith('image/')) {
+									const reader = new FileReader();
+									reader.onload = function(e) {
+										profileImage.src = e.target.result;
+										profilePicPreview.classList.remove('d-none');
+									};
+									reader.readAsDataURL(file);
+								}
+							});
+						</script>
+					</div>
+					<div class="row">
+						<!-- Personal Information -->
+						<div class="col-12 my-5 position-relative">
+							<div class="border-top"></div>
+							<span class="position-absolute start-50 translate-middle bg-white px-3 text-muted"
+								style="top: -12px; font-size: 0.9rem">
+								Address Information
+							</span>
+						</div>
+						<!-- Address Fields -->
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Region <span class="text-danger">*</span></label>
+								<input type="text" name="region" id="region" class="form-control" value="Region VI (Western Visayas)" readonly>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Province <span class="text-danger">*</span></label>
+								<input type="text" name="province" id="province" class="form-control" value="Negros Occidental" readonly>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">City <span class="text-danger">*</span></label>
+								<input type="text" name="city" id="city" class="form-control" value="Bago City" readonly>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">District <span class="text-danger">*</span></label>
+								<input type="text" name="district" id="district" class="form-control" value="4th district" readonly>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Barangay <span class="text-danger">*</span></label>
+								<select name="barangay" id="barangay" class="form-control" required>
+									<option value="">Select Barangay</option>
+								</select>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">House Block Number</label>
+								<input type="text" name="block_number" id="block_number" class="form-control" placeholder="Enter Block Number">
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Street</label>
+								<input type="text" name="street" id="street" class="form-control" placeholder="Enter street">
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Subdivision Village</label>
+								<input type="text" name="sub_div" id="sub_div" class="form-control" placeholder="Enter Subdivision Village">
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">Zip Code</label>
+								<input type="text" name="zip_code" id="zip_code" value="6101" class="form-control" readonly>
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="mb-3">
+								<label class="form-label">Purok <span class="text-danger">*</span></label>
+								<input type="text" name="purok" id="purok" class="form-control" placeholder="Enter Purok" required>
+							</div>
+						</div>
+					</div>
+					<div class="col-12 my-4 position-relative">
+						<div class="border-top"></div>
+						<span class="position-absolute start-50 translate-middle bg-white px-3 text-muted"
+							style="top: -12px; font-size: 0.9rem">
+							Account Information
+						</span>
+					</div>
+					<div class="row">
+						<div class="col-md-6">
+							<div class="mb-3">
+								<label class="form-label">Bank/E-Wallet</label>
+								<input type="text" name="wallet" id="wallet" class="form-control" placeholder="Enter Bank/E-Wallet">
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="mb-3">
+								<label class="form-label">Account Name</label>
+								<input type="text" name="account_name" id="account_name" class="form-control" placeholder="Enter Account Name">
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="mb-3">
+								<label class="form-label">Account Type</label>
+								<input type="text" name="account_type" id="account_type" class="form-control" placeholder="Enter Account Type">
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="mb-3">
+								<label class="form-label">Account Number</label>
+								<input type="number" name="account_number" id="account_number" class="form-control" placeholder="Enter Account Number">
+							</div>
+						</div>
+					</div>
+					<!-- Responsive Button Layout -->
+					<div class="d-grid gap-2">
+						<button type="submit" id="submitBtn" class="btn btn-success">Submit</button>
 					</div>
 				</form>
 			</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-				<button type="submit" form="idpRegistrationForm" class="btn btn-primary" id="registerBtn">Register</button>
 			</div>
 		</div>
 	</div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="../scripts/auth_script/user_registration.js"></script>
+<script src="../scripts/auth_script/address_api.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+	const regType = document.getElementById('registration_type');
+	const familySection = document.getElementById('familyMembersSection');
+	const numMembersInput = document.getElementById('numFamilyMembers');
+	const familyFieldsDiv = document.getElementById('familyMembersFields');
+
+	if (regType) {
+		regType.addEventListener('change', function() {
+			if (this.value === 'Family') {
+				familySection.style.display = 'block';
+			} else {
+				familySection.style.display = 'none';
+				familyFieldsDiv.innerHTML = '';
+				if(numMembersInput) numMembersInput.value = '';
+			}
+		});
+	}
+
+	function autoSelectRoom() {
+		const count = parseInt(numMembersInput.value) || 0;
+		const totalPeople = count + 1;
+		const roomDropdown = document.getElementById('room');
+		const assignedRoomDisplay = document.getElementById('assignedRoomDisplay');
+		let assignedText = '';
+		if (roomDropdown) {
+			let found = false;
+			for (let opt of roomDropdown.options) {
+				if (opt.value && !opt.disabled) {
+					// Try to extract occupancy/capacity from option text: "Room Name (Occupied/Capacity)"
+					const match = opt.textContent.match(/\((\d+)[^\d]+(\d+)\)/);
+					if (match) {
+						const occupied = parseInt(match[1]);
+						const capacity = parseInt(match[2]);
+						if ((capacity - occupied) >= totalPeople) {
+							roomDropdown.value = opt.value;
+							assignedText = `Assigned Room: <b>${opt.textContent}</b>`;
+							found = true;
+							break;
+						}
+					}
+				}
+			}
+			if (!found) {
+				roomDropdown.value = '';
+				assignedText = '<span class="text-danger">No available room can accommodate this family size.</span>';
+			}
+		}
+		if (assignedRoomDisplay) {
+			assignedRoomDisplay.innerHTML = assignedText;
+			assignedRoomDisplay.style.display = assignedText ? 'block' : 'none';
+		}
+	}
+
+	// Also update display if user manually changes the room
+	document.addEventListener('DOMContentLoaded', function() {
+		const roomDropdown = document.getElementById('room');
+		if (roomDropdown) {
+			roomDropdown.addEventListener('change', function() {
+				const assignedRoomDisplay = document.getElementById('assignedRoomDisplay');
+				let selected = roomDropdown.options[roomDropdown.selectedIndex];
+				if (selected && selected.value) {
+					assignedRoomDisplay.innerHTML = `Assigned Room: <b>${selected.textContent}</b>`;
+					assignedRoomDisplay.style.display = 'block';
+				} else {
+					assignedRoomDisplay.innerHTML = '';
+					assignedRoomDisplay.style.display = 'none';
+				}
+			});
+		}
+	});
+
+	if (numMembersInput) {
+		numMembersInput.addEventListener('input', function() {
+			const count = parseInt(this.value) || 0;
+			familyFieldsDiv.innerHTML = '';
+			for (let i = 1; i <= count; i++) {
+				familyFieldsDiv.innerHTML += `
+					<div class="card mb-2 p-2">
+						<h6>Member #${i}</h6>
+						<div class="row">
+							<div class="col-md-4 mb-2">
+								<input type="text" class="form-control" name="member_fname_${i}" placeholder="First Name" required>
+							</div>
+							<div class="col-md-4 mb-2">
+								<input type="text" class="form-control" name="member_mname_${i}" placeholder="Middle Name" required>
+							</div>
+							<div class="col-md-4 mb-2">
+								<input type="text" class="form-control" name="member_lname_${i}" placeholder="Last Name" required>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-4 mb-2">
+								<input type="date" class="form-control" name="member_dob_${i}" placeholder="Date of Birth" required>
+							</div>
+							<div class="col-md-4 mb-2">
+								<select class="form-control" name="member_gender_${i}" required>
+									<option value="">Gender</option>
+									<option value="Male">Male</option>
+									<option value="Female">Female</option>
+								</select>
+							</div>
+							<div class="col-md-4 mb-2">
+								<input type="text" class="form-control" name="member_relation_${i}" placeholder="Relation to Head" required>
+							</div>
+						</div>
+					</div>
+				`;
+			}
+			// Initial auto-select after fields are rendered
+			autoSelectRoom();
+			// Add real-time auto-select on all member fields
+			setTimeout(() => {
+				const memberInputs = familyFieldsDiv.querySelectorAll('input, select');
+				memberInputs.forEach(inp => {
+					inp.addEventListener('input', autoSelectRoom);
+					inp.addEventListener('change', autoSelectRoom);
+				});
+			}, 0);
+		});
+	}
+});
+</script>
+<script>
+function toggleVisibility(fieldId, iconSpan) {
+	const input = document.getElementById(fieldId);
+	const icon = iconSpan.querySelector('i');
+	if (input.type === 'password') {
+		input.type = 'text';
+		icon.classList.remove('fa-eye-slash');
+		icon.classList.add('fa-eye');
+	} else {
+		input.type = 'password';
+		icon.classList.remove('fa-eye');
+		icon.classList.add('fa-eye-slash');
+	}
+}
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+	const regType = document.getElementById('registration_type');
+	const familySection = document.getElementById('familyMembersSection');
+	const numMembersInput = document.getElementById('numFamilyMembers');
+	const familyFieldsDiv = document.getElementById('familyMembersFields');
+
+	if (regType) {
+		regType.addEventListener('change', function() {
+			if (this.value === 'Family') {
+				familySection.style.display = 'block';
+			} else {
+				familySection.style.display = 'none';
+				familyFieldsDiv.innerHTML = '';
+				if(numMembersInput) numMembersInput.value = '';
+			}
+		});
+	}
+
+	if (numMembersInput) {
+		numMembersInput.addEventListener('input', function() {
+			const count = parseInt(this.value) || 0;
+			familyFieldsDiv.innerHTML = '';
+			for (let i = 1; i <= count; i++) {
+				familyFieldsDiv.innerHTML += `
+					<div class="card mb-2 p-2">
+						<h6>Member #${i}</h6>
+						<div class="row">
+							<div class="col-md-4 mb-2">
+								<input type="text" class="form-control" name="member_fname_${i}" placeholder="First Name" required>
+							</div>
+							<div class="col-md-4 mb-2">
+								<input type="text" class="form-control" name="member_mname_${i}" placeholder="Middle Name" required>
+							</div>
+							<div class="col-md-4 mb-2">
+								<input type="text" class="form-control" name="member_lname_${i}" placeholder="Last Name" required>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-4 mb-2">
+								<input type="date" class="form-control" name="member_dob_${i}" placeholder="Date of Birth" required>
+							</div>
+							<div class="col-md-4 mb-2">
+								<select class="form-control" name="member_gender_${i}" required>
+									<option value="">Gender</option>
+									<option value="Male">Male</option>
+									<option value="Female">Female</option>
+								</select>
+							</div>
+							<div class="col-md-4 mb-2">
+								<input type="text" class="form-control" name="member_relation_${i}" placeholder="Relation to Head" required>
+							</div>
+						</div>
+					</div>
+				`;
+			}
+		});
+	}
+});
+</script>
 <script>
 	document.addEventListener("DOMContentLoaded", function() {
 		const inputField = document.getElementById("idpName");
@@ -295,7 +1032,7 @@
 		}
 	});
 </script>
-<div class="modal fade" id="registerChoiceModal" tabindex="-1" aria-labelledby="registerChoiceModalLabel" aria-hidden="true">
+<div class="modal fade" id="registerChoiceModal" aria-hidden="true" tabindex="-1">
 	<div class="modal-dialog">
 		<div class="modal-content">
 			<div class="modal-header">
@@ -572,7 +1309,6 @@
 		}
 	});
 </script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
 	   .container {
@@ -899,4 +1635,116 @@
 }
 </style>
 
-</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var disasterSelect = document.getElementById('disasterSelect');
+    var form = document.getElementById('idpRegistrationForm');
+    if (disasterSelect) {
+        disasterSelect.addEventListener('change', function() {
+            var selectedValue = disasterSelect.value;
+            // If the selected value is empty or the 'No disaster events found' option
+            if (!selectedValue || selectedValue === '' || disasterSelect.options[disasterSelect.selectedIndex].text === 'No disaster events found') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Disaster Selected',
+                    text: 'Please select a valid disaster event before proceeding.'
+                });
+                disasterSelect.selectedIndex = 0; // Reset to default
+            }
+        });
+    }
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            var selectedValue = disasterSelect ? disasterSelect.value : '';
+            if (!selectedValue || selectedValue === '' || (disasterSelect && disasterSelect.options[disasterSelect.selectedIndex].text === 'No disaster events found')) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Disaster Selected',
+                    text: 'Please select a valid disaster event before submitting the form.'
+                });
+                return false;
+            }
+        });
+    }
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var form = document.getElementById('idpRegistrationForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            var formData = new FormData(form);
+            fetch(form.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: data.message
+                    }).then(() => {
+                        form.reset();
+                        // Optionally, reset custom UI fields (e.g., previews, dynamic fields)
+                        var assignedRoomDisplay = document.getElementById('assignedRoomDisplay');
+                        if (assignedRoomDisplay) {
+                            assignedRoomDisplay.innerHTML = '';
+                            assignedRoomDisplay.style.display = 'none';
+                        }
+                        var profilePicPreview = document.getElementById('profilePicPreview');
+                        if (profilePicPreview) {
+                            profilePicPreview.classList.add('d-none');
+                        }
+                        var signaturePreview = document.getElementById('signaturePreview');
+                        if (signaturePreview) {
+                            signaturePreview.src = '#';
+                            signaturePreview.style.display = 'none';
+                        }
+                        // Reset family members section if present
+                        var familySection = document.getElementById('familyMembersSection');
+                        var familyFieldsDiv = document.getElementById('familyMembersFields');
+                        var numMembersInput = document.getElementById('numFamilyMembers');
+                        if (familySection && familyFieldsDiv && numMembersInput) {
+                            familySection.style.display = 'none';
+                            familyFieldsDiv.innerHTML = '';
+                            numMembersInput.value = '';
+                        }
+                        // Reset room dropdown
+                        var roomDropdown = document.getElementById('room');
+                        if (roomDropdown) {
+                            roomDropdown.selectedIndex = 0;
+                        }
+                        // Reset disaster event display
+                        var disasterEventName = document.getElementById('disasterEventName');
+                        if (disasterEventName) {
+                            disasterEventName.textContent = 'No disaster selected';
+                        }
+                        var disasterIdHidden = document.getElementById('disasterIdHidden');
+                        if (disasterIdHidden) {
+                            disasterIdHidden.value = '';
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while submitting the form.'
+                });
+            });
+        });
+    }
+});
+</script>

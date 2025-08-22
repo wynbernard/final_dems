@@ -572,25 +572,25 @@
 						<div class="col-md-6">
 							<div class="mb-3">
 								<label class="form-label">Bank/E-Wallet</label>
-								<input type="text" name="wallet" id="wallet" class="form-control" placeholder="Enter Bank/E-Wallet" required>
+								<input type="text" name="wallet" id="wallet" class="form-control" placeholder="Enter Bank/E-Wallet">
 							</div>
 						</div>
 						<div class="col-md-6">
 							<div class="mb-3">
 								<label class="form-label">Account Name</label>
-								<input type="text" name="account_name" id="account_name" class="form-control" placeholder="Enter Account Name" required>
+								<input type="text" name="account_name" id="account_name" class="form-control" placeholder="Enter Account Name">
 							</div>
 						</div>
 						<div class="col-md-6">
 							<div class="mb-3">
 								<label class="form-label">Account Type</label>
-								<input type="text" name="account_type" id="account_type" class="form-control" placeholder="Enter Account Type" required>
+								<input type="text" name="account_type" id="account_type" class="form-control" placeholder="Enter Account Type">
 							</div>
 						</div>
 						<div class="col-md-6">
 							<div class="mb-3">
 								<label class="form-label">Account Number</label>
-								<input type="number" name="account_number" id="account_number" class="form-control" placeholder="Enter Account Number" required>
+								<input type="number" name="account_number" id="account_number" class="form-control" placeholder="Enter Account Number">
 							</div>
 						</div>
 					</div>

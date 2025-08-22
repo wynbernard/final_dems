@@ -101,6 +101,21 @@ LEFT JOIN age_class_table ON pre_reg_table.age_class_id = age_class_table.age_cl
 										}
 										?>
 									</select>
+									<!-- Disaster Selection Dropdown -->
+									<select name="disasterId" id="disasterSelect" class="form-select me-2 mb-2" style="max-width: 250px;" required>
+										<option value="" disabled selected>Select Disaster Event</option>
+										<?php
+										$disasterQuery = mysqli_query($conn, "SELECT disaster_id, disaster_name FROM disaster_table ORDER BY disaster_id DESC");
+										if ($disasterQuery && mysqli_num_rows($disasterQuery) > 0) {
+											while ($disaster = mysqli_fetch_assoc($disasterQuery)) {
+												$selected = (isset($_GET['disasterId']) && $_GET['disasterId'] == $disaster['disaster_id']) ? 'selected' : '';
+												echo '<option value="' . htmlspecialchars($disaster['disaster_id']) . '" ' . $selected . '>' . htmlspecialchars($disaster['disaster_name']) . '</option>';
+											}
+										} else {
+											echo '<option value="">No disaster events found</option>';
+										}
+										?>
+									</select>
 
 									<!-- Register Button -->
 									<button type="button" class="btn btn-primary mb-2" data-bs-toggle="modal" data-bs-target="#registerChoiceModal">
@@ -109,6 +124,7 @@ LEFT JOIN age_class_table ON pre_reg_table.age_class_id = age_class_table.age_cl
 
 									<?php
 									$locationId = $_GET['location_id'] ?? '';
+                                    $selectedDisasterId = $_GET['disaster_id'] ?? '';
 
 									// Age classification query (filter only if location selected)
 									$ageQuery = "
