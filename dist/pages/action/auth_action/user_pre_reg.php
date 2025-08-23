@@ -337,8 +337,22 @@ if (isset($_FILES['signature_file']) && $_FILES['signature_file']['error'] === U
 		}
 		$qr_stmt->close();
 
+		// Set session for the newly registered user and redirect to dashboard
+		$_SESSION['pre_reg_id'] = $pre_reg_id;
+		$_SESSION['f_name'] = $f_name;
+		$_SESSION['l_name'] = $l_name;
+		$_SESSION['email_address'] = $email;
+		$_SESSION['registered_as'] = $registration_type;
+		// generate a session token and store
+		$user_token = bin2hex(random_bytes(16));
+		$_SESSION['user_session_token'] = $user_token;
+		$updateToken = $conn->prepare("UPDATE pre_reg_table SET user_session_token = ? WHERE pre_reg_id = ?");
+		$updateToken->bind_param('si', $user_token, $pre_reg_id);
+		$updateToken->execute();
+		$updateToken->close();
+
 		$_SESSION['success'] = "<span style='color: green;'><i class='bi bi-check-circle-fill'></i></span> Registered Successfull!!!";
-		header("Location: ../../auth/log_in.php");
+		header("Location: ../../user_page/Dashboard.php");
 	} else {
 		if (!$stmt->execute()) {
 	$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Database error: " . $stmt->error;
