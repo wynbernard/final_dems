@@ -55,36 +55,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	// 	header("Location: ../auth/user_registration.php");
 	// 	exit();
 	// }
-			$profilePicPath = ""; // Default to empty if no image uploaded
+	$profilePicPath = ""; // Default to empty if no image uploaded
 
-			if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === UPLOAD_ERR_OK) {
-				$uploadDir = '../../profile_images/'; // Make sure this folder exists and is writable
-				if (!is_dir($uploadDir)) {
-					mkdir($uploadDir, 0777, true);
-				}
+	if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === UPLOAD_ERR_OK) {
+		$uploadDir = '../../profile_images/'; // Make sure this folder exists and is writable
+		if (!is_dir($uploadDir)) {
+			mkdir($uploadDir, 0777, true);
+		}
 
-				$fileTmpPath = $_FILES['profile_pic']['tmp_name'];
-				$extension = strtolower(pathinfo($_FILES['profile_pic']['name'], PATHINFO_EXTENSION));
-				$allowedTypes = ['jpg', 'jpeg', 'png', 'gif']; // Allow only image types
+		$fileTmpPath = $_FILES['profile_pic']['tmp_name'];
+		$extension = strtolower(pathinfo($_FILES['profile_pic']['name'], PATHINFO_EXTENSION));
+		$allowedTypes = ['jpg', 'jpeg', 'png', 'gif']; // Allow only image types
 
-				if (in_array($extension, $allowedTypes)) {
-					$fileName = uniqid('profile_', true) . '.' . $extension;
-					$destPath = $uploadDir . $fileName;
+		if (in_array($extension, $allowedTypes)) {
+			$fileName = uniqid('profile_', true) . '.' . $extension;
+			$destPath = $uploadDir . $fileName;
 
-					if (move_uploaded_file($fileTmpPath, $destPath)) {
-						// Save relative path for database
-						$profilePicPath = '../profile_images/' . $fileName;
-					} else {
-						$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Failed to move uploaded profile picture.";
-						header("Location: ../../auth/log_in.php");
-						exit;
-					}
-				} else {
-					$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Invalid profile picture type. Allowed: JPG, PNG, GIF.";
-					header("Location: ../../auth/log_in.php");
-					exit;
-				}
+			if (move_uploaded_file($fileTmpPath, $destPath)) {
+				// Save relative path for database
+				$profilePicPath = '../profile_images/' . $fileName;
+			} else {
+				$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Failed to move uploaded profile picture.";
+				header("Location: ../../auth/log_in.php");
+				exit;
 			}
+		} else {
+			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Invalid profile picture type. Allowed: JPG, PNG, GIF.";
+			header("Location: ../../auth/log_in.php");
+			exit;
+		}
+	}
 
 
 	if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -176,22 +176,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		exit();
 	}
 
-if ($age < 1) {
-	// 0-11 months
-	$age_class = 'Infant';
-} elseif ($age >= 1 && $age <= 3) {
-	$age_class = 'Toddler';
-} elseif ($age >= 4 && $age <= 5) {
-	$age_class = 'Pre-School';
-} elseif ($age >= 6 && $age <= 12) {
-	$age_class = 'School-Age';
-} elseif ($age >= 13 && $age <= 19) {
-	$age_class = 'Teenage';
-} elseif ($age >= 20 && $age <= 59) {
-	$age_class = 'Adult';
-} else {
-	$age_class = 'Senior';
-}
+	if ($age < 1) {
+		// 0-11 months
+		$age_class = 'Infant';
+	} elseif ($age >= 1 && $age <= 3) {
+		$age_class = 'Toddler';
+	} elseif ($age >= 4 && $age <= 5) {
+		$age_class = 'Pre-School';
+	} elseif ($age >= 6 && $age <= 12) {
+		$age_class = 'School-Age';
+	} elseif ($age >= 13 && $age <= 19) {
+		$age_class = 'Teenage';
+	} elseif ($age >= 20 && $age <= 59) {
+		$age_class = 'Adult';
+	} else {
+		$age_class = 'Senior';
+	}
 
 	$checkClassSql = "SELECT age_class_id FROM age_class_table WHERE classification = ?";
 	$stmt = $conn->prepare($checkClassSql);
@@ -211,7 +211,7 @@ if ($age < 1) {
 	}
 	$stmt->close();
 
-	$targetDir = "../../id_card_image/";
+	$targetDir = "../../../id_card_image/";
 	if (!file_exists($targetDir)) {
 		mkdir($targetDir, 0777, true); // Create the folder if it doesn't exist
 	}
@@ -240,62 +240,62 @@ if ($age < 1) {
 	}
 
 
-$targetDir = "../../signature_image/";
+	$targetDir = "../../../signature_image/";
 
-// Create the directory if it doesn't exist
-if (!file_exists($targetDir)) {
-	mkdir($targetDir, 0755, true);
-}
+	// Create the directory if it doesn't exist
+	if (!file_exists($targetDir)) {
+		mkdir($targetDir, 0755, true);
+	}
 
-$signaturePath = "";
+	$signaturePath = "";
 
-// Helper function: Set white background for PNGs
-function setWhiteBackgroundForPng($filepath)
-{
-	if (exif_imagetype($filepath) !== IMAGETYPE_PNG) return;
+	// Helper function: Set white background for PNGs
+	function setWhiteBackgroundForPng($filepath)
+	{
+		if (exif_imagetype($filepath) !== IMAGETYPE_PNG) return;
 
-	$image = imagecreatefrompng($filepath);
-	$width = imagesx($image);
-	$height = imagesy($image);
+		$image = imagecreatefrompng($filepath);
+		$width = imagesx($image);
+		$height = imagesy($image);
 
-	$white_bg = imagecreatetruecolor($width, $height);
-	$white = imagecolorallocate($white_bg, 255, 255, 255);
-	imagefill($white_bg, 0, 0, $white);
-	imagecopy($white_bg, $image, 0, 0, 0, 0, $width, $height);
+		$white_bg = imagecreatetruecolor($width, $height);
+		$white = imagecolorallocate($white_bg, 255, 255, 255);
+		imagefill($white_bg, 0, 0, $white);
+		imagecopy($white_bg, $image, 0, 0, 0, 0, $width, $height);
 
-	imagepng($white_bg, $filepath);
+		imagepng($white_bg, $filepath);
 
-	imagedestroy($image);
-	imagedestroy($white_bg);
-}
+		imagedestroy($image);
+		imagedestroy($white_bg);
+	}
 
-// Check and process uploaded signature
-if (isset($_FILES['signature_file']) && $_FILES['signature_file']['error'] === UPLOAD_ERR_OK) {
-	$uploadName = basename($_FILES["signature_file"]["name"]);
-	$extension = strtolower(pathinfo($uploadName, PATHINFO_EXTENSION));
-	$filename = 'signature_upload_' . time() . '.' . $extension;
-	$filepath = $targetDir . $filename;
+	// Check and process uploaded signature
+	if (isset($_FILES['signature_file']) && $_FILES['signature_file']['error'] === UPLOAD_ERR_OK) {
+		$uploadName = basename($_FILES["signature_file"]["name"]);
+		$extension = strtolower(pathinfo($uploadName, PATHINFO_EXTENSION));
+		$filename = 'signature_upload_' . time() . '.' . $extension;
+		$filepath = $targetDir . $filename;
 
-	$allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-	$fileType = mime_content_type($_FILES["signature_file"]["tmp_name"]);
+		$allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+		$fileType = mime_content_type($_FILES["signature_file"]["tmp_name"]);
 
-	if (in_array($fileType, $allowedTypes)) {
-		if (move_uploaded_file($_FILES["signature_file"]["tmp_name"], $filepath)) {
-			if ($extension === 'png') {
-				setWhiteBackgroundForPng($filepath);
+		if (in_array($fileType, $allowedTypes)) {
+			if (move_uploaded_file($_FILES["signature_file"]["tmp_name"], $filepath)) {
+				if ($extension === 'png') {
+					setWhiteBackgroundForPng($filepath);
+				}
+				$signaturePath = $filepath;
+				echo "✅ Signature uploaded successfully!";
+				// You can now save $signaturePath to your database
+			} else {
+				echo "❌ Failed to move the uploaded signature.";
 			}
-			$signaturePath = $filepath;
-			echo "✅ Signature uploaded successfully!";
-			// You can now save $signaturePath to your database
 		} else {
-			echo "❌ Failed to move the uploaded signature.";
+			echo "❌ Invalid file type. Only JPG, PNG, and GIF are allowed.";
 		}
 	} else {
-		echo "❌ Invalid file type. Only JPG, PNG, and GIF are allowed.";
+		echo "❌ No file uploaded or an error occurred.";
 	}
-} else {
-	echo "❌ No file uploaded or an error occurred.";
-}
 
 
 
@@ -311,7 +311,7 @@ if (isset($_FILES['signature_file']) && $_FILES['signature_file']['error'] === U
 		// QR Code generation
 		$qr_data = "Pre_reg_id: $pre_reg_id\nName: $f_name $l_name\nEmail: $email\nPhone: $contact_no\nGender: $gender\nDOB: $dobFormatted\nAge: $age";
 		// Set directory and filename
-		$qr_dir = "../../../uploads/qr_codes/";
+		$qr_dir = "../../../../uploads/qr_codes/";
 		if (!file_exists($qr_dir)) {
 			mkdir($qr_dir, 0777, true);
 		}
@@ -355,9 +355,9 @@ if (isset($_FILES['signature_file']) && $_FILES['signature_file']['error'] === U
 		header("Location: ../../user_page/Dashboard.php");
 	} else {
 		if (!$stmt->execute()) {
-	$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Database error: " . $stmt->error;
-	header("Location: ../../auth/log_in.php");
-	exit;
+			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Database error: " . $stmt->error;
+			header("Location: ../../auth/log_in.php");
+			exit;
 		};
 	}
 	$conn->close();

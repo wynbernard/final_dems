@@ -278,42 +278,48 @@
       $ageGroups[$label] = 0;
     }
 
-
     // --- Age Classification Breakdown ---
     // Query based on selected source
     if ($selectedSource === 'evac') {
       $ageQuery = "
-    SELECT act.classification, COUNT(*) as total
+    SELECT TIMESTAMPDIFF(YEAR, prt.date_of_birth, CURDATE()) AS age
     FROM evac_reg_table ert
     LEFT JOIN pre_reg_table prt ON ert.pre_reg_id = prt.pre_reg_id
-    LEFT JOIN age_class_table act ON prt.age_class_id = act.age_class_id
-    GROUP BY act.classification
   ";
     } else {
       $ageQuery = "
-    SELECT act.classification, COUNT(*) as total
+    SELECT TIMESTAMPDIFF(YEAR, prt.date_of_birth, CURDATE()) AS age
     FROM pre_reg_table prt
     LEFT JOIN evac_reg_table ert ON prt.pre_reg_id = ert.pre_reg_id
-    LEFT JOIN age_class_table act ON prt.age_class_id = act.age_class_id
-    GROUP BY act.classification
   ";
     }
 
     $ageResult = mysqli_query($conn, $ageQuery);
     if ($ageResult) {
       while ($row = mysqli_fetch_assoc($ageResult)) {
-        $classification = $row['classification'];
-        $total = (int)$row['total'];
-        $ageGroups[$classification] = $total;
+        $age = (int)$row['age'];
+
+        if ($age <= 2) {
+          $ageGroups['Infant']++;
+        } elseif ($age >= 3 && $age <= 12) {
+          $ageGroups['Child']++;
+        } elseif ($age >= 13 && $age <= 19) {
+          $ageGroups['Teen']++;
+        } elseif ($age >= 20 && $age <= 59) {
+          $ageGroups['Adult']++;
+        } elseif ($age >= 60) {
+          $ageGroups['Senior']++;
+        }
       }
     }
+
     // Count solo evacuees with solo_address_id > 0
     $soloQuery = "SELECT COUNT(*) AS solo_count FROM pre_reg_table WHERE registered_as = 'Solo'";
     $soloResult = mysqli_query($conn, $soloQuery);
     $soloCount1 = ($soloResult) ? (int)mysqli_fetch_assoc($soloResult)['solo_count'] : 0;
 
     // Count family evacuees with family_id > 0
-    $familyQuery = "SELECT COUNT(*) AS family_count FROM pre_reg_table WHERE registered_as = 'Family'";
+    $familyQuery = "SELECT COUNT(*) AS family_count FROM pre_reg_table WHERE registered_as = 'Family' AND relation_to_family = 'Head of Family' AND family_id IS NOT NULL";
     $familyResult = mysqli_query($conn, $familyQuery);
     $familyCount1 = ($familyResult) ? (int)mysqli_fetch_assoc($familyResult)['family_count'] : 0;
     ?>
@@ -542,8 +548,8 @@ ORDER BY evc.name, rm.room_name;
     FROM evac_reg_table 
     LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
     WHERE evac_loc_id = $locId 
-      AND registered_as = 'Family' 
-      AND family_id IS NOT NULL 
+      AND registered_as = 'Family'
+      AND family_id IS NOT NULL
       AND family_id > 0
   ";
 

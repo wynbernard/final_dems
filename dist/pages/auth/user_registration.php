@@ -246,6 +246,13 @@
 								<input type="date" name="dob" id="dob" class="form-control" required>
 							</div>
 						</div>
+						<script>
+							// Set max date to today
+							document.addEventListener("DOMContentLoaded", function() {
+								const today = new Date().toISOString().split("T")[0];
+								document.getElementById("dob").setAttribute("max", today);
+							});
+						</script>
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label">Place Of Birth <span class="text-danger">*</span></label>

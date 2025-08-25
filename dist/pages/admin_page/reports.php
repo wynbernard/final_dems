@@ -74,6 +74,7 @@ foreach ($evacRegData as $row) {
     $locName = $row['name'] ?? 'Unknown';
     $regType = $row['registered_as'];
     $preRegId = $row['pre_reg_id'];
+    $relation = $row['relation_to_family'] ?? '';
 
     // Initialize location
     if (!isset($locationCounts[$locName])) {
@@ -86,7 +87,7 @@ foreach ($evacRegData as $row) {
         $locationCounts[$locName]['Solo']++;
     }
     // Count Family (add by size if available)
-    elseif ($regType === 'Family') {
+    elseif ($regType === 'Family' && $relation === 'Head of Family') {
         $familySize = (isset($row['family_count']) && is_numeric($row['family_count'])) ? (int)$row['family_count'] : 1;
         $locationCounts[$locName]['Family'] += $familySize;
     }
@@ -101,6 +102,33 @@ $uniquePreRegIds = [];
 foreach ($evacRegData as $row) {
     if (!empty($row['pre_reg_id'])) {
         $uniquePreRegIds[$row['pre_reg_id']] = true;
+    }
+}
+
+// Compute gender counts for unique pre_reg_ids
+$maleCount = 0;
+$femaleCount = 0;
+if (!empty($uniquePreRegIds)) {
+    $ids = array_keys($uniquePreRegIds);
+    // prepare IN clause safely
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $types = str_repeat('i', count($ids));
+    $sql = "SELECT gender, COUNT(*) as cnt FROM pre_reg_table WHERE pre_reg_id IN ($placeholders) GROUP BY gender";
+    $stmtG = $conn->prepare($sql);
+    if ($stmtG) {
+        // bind params dynamically
+        $refs = [];
+        foreach ($ids as $k => $v) $refs[] = &$ids[$k];
+        array_unshift($refs, $types);
+        call_user_func_array([$stmtG, 'bind_param'], $refs);
+        $stmtG->execute();
+        $gres = $stmtG->get_result();
+        while ($grow = $gres->fetch_assoc()) {
+            $g = strtolower(trim($grow['gender']));
+            if ($g === 'male') $maleCount = intval($grow['cnt']);
+            elseif ($g === 'female') $femaleCount = intval($grow['cnt']);
+        }
+        $stmtG->close();
     }
 }
 
@@ -135,7 +163,8 @@ if (trim(strtolower($userRole)) === 'admin') {
 
 $totalEvacuees = count($uniquePreRegIds);
 
-// Age classification aggregation based on age_class_name from DB
+
+// Age classification aggregation based on DOB
 $allAgeClasses = [
     'Infant',
     'Toddler',
@@ -146,13 +175,39 @@ $allAgeClasses = [
     'Senior'
 ];
 $ageGroups = array_fill_keys($allAgeClasses, 0);
+
 foreach ($evacRegData as $row) {
-    $class = isset($row['classification']) ? $row['classification'] : 'Unknown';
+    if (!empty($row['date_of_birth'])) {
+        $dob = new DateTime($row['date_of_birth']);
+        $today = new DateTime();
+        $age = $dob->diff($today)->y; // age in years
+
+        // Classification based on age
+        if ($age <= 1) {
+            $class = 'Infant';
+        } elseif ($age >= 2 && $age <= 3) {
+            $class = 'Toddler';
+        } elseif ($age >= 4 && $age <= 6) {
+            $class = 'Pre-School';
+        } elseif ($age >= 7 && $age <= 12) {
+            $class = 'School-Age';
+        } elseif ($age >= 13 && $age <= 19) {
+            $class = 'Teenage';
+        } elseif ($age >= 20 && $age <= 59) {
+            $class = 'Adult';
+        } else {
+            $class = 'Senior';
+        }
+    } else {
+        $class = 'Unknown'; // fallback if dob is missing
+    }
+
     if (isset($ageGroups[$class])) {
         $ageGroups[$class]++;
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -293,22 +348,34 @@ foreach ($evacRegData as $row) {
                                 </div>
                                 <div class="card-body px-4 py-3">
                                     <div class="row text-center g-3 mb-4">
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <div class="p-3 rounded-3 bg-white shadow-sm border" style="border-left: 6px solid #4e73df;">
                                                 <small class="text-muted">Total Solo Evacuees</small>
                                                 <h4 class="fw-bold text-primary mb-0"><?php echo array_sum($soloData); ?></h4>
                                             </div>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <div class="p-3 rounded-3 bg-white shadow-sm border" style="border-left: 6px solid #1cc88a;">
                                                 <small class="text-muted">Total Family Evacuees</small>
                                                 <h4 class="fw-bold text-success mb-0"><?php echo array_sum($familyData); ?></h4>
                                             </div>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <div class="p-3 rounded-3 bg-white shadow-sm border" style="border-left: 6px solid #f6c23e;">
                                                 <small class="text-muted">Total Unique Evacuees</small>
                                                 <h4 class="fw-bold text-warning mb-0"><?php echo $totalEvacuees; ?></h4>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="p-3 rounded-3 bg-white shadow-sm border" style="border-left: 6px solid #e83e8c;">
+                                                <small class="text-muted">Male</small>
+                                                <h4 class="fw-bold text-danger mb-0"><?php echo isset($maleCount) ? $maleCount : 0; ?></h4>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="p-3 rounded-3 bg-white shadow-sm border" style="border-left: 6px solid #6f42c1;">
+                                                <small class="text-muted">Female</small>
+                                                <h4 class="fw-bold text-muted mb-0"><?php echo isset($femaleCount) ? $femaleCount : 0; ?></h4>
                                             </div>
                                         </div>
                                     </div>

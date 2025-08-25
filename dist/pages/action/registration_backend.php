@@ -51,16 +51,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Validate email and contact
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        echo json_encode(['success'=>false,'message'=>'Invalid Email Format!']);
+        echo json_encode(['success' => false, 'message' => 'Invalid Email Format!']);
         exit();
     }
     if (!preg_match('/^[0-9]{10,15}$/', $contact_no)) {
-        echo json_encode(['success'=>false,'message'=>'Invalid Contact Number!']);
+        echo json_encode(['success' => false, 'message' => 'Invalid Contact Number!']);
         exit();
     }
     $dobFormatted = date('Y-m-d', strtotime($dob));
     if ($dobFormatted == "1970-01-01") {
-        echo json_encode(['success'=>false,'message'=>'Invalid Birth Date!']);
+        echo json_encode(['success' => false, 'message' => 'Invalid Birth Date!']);
         exit();
     }
 
@@ -75,8 +75,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($account_information_stmt->execute()) {
         $account_id = $account_information_stmt->insert_id;
     } else {
-    echo json_encode(['success'=>false,'message'=>'Failed to insert account information!']);
-    exit();
+        echo json_encode(['success' => false, 'message' => 'Failed to insert account information!']);
+        exit();
     }
 
     // Barangay
@@ -95,7 +95,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($barangay_stmt->execute()) {
             $barangay_id = $barangay_stmt->insert_id;
         } else {
-            echo json_encode(['success'=>false,'message'=>'Failed to insert barangay!']);
+            echo json_encode(['success' => false, 'message' => 'Failed to insert barangay!']);
             exit();
         }
     }
@@ -108,7 +108,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($family_stmt->execute()) {
             $family_id = $family_stmt->insert_id;
         } else {
-            echo json_encode(['success'=>false,'message'=>'Failed to insert family address!']);
+            echo json_encode(['success' => false, 'message' => 'Failed to insert family address!']);
             exit();
         }
         $family_stmt->close();
@@ -119,12 +119,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($solo_stmt->execute()) {
             $solo_id = $solo_stmt->insert_id;
         } else {
-            echo json_encode(['success'=>false,'message'=>'Failed to insert solo address!']);
+            echo json_encode(['success' => false, 'message' => 'Failed to insert solo address!']);
             exit();
         }
     } else {
-    echo json_encode(['success'=>false,'message'=>'Invalid Registration Type!']);
-    exit();
+        echo json_encode(['success' => false, 'message' => 'Invalid Registration Type!']);
+        exit();
     }
 
     // Age class
@@ -262,7 +262,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $update_stmt->close();
         }
         $qr_stmt->close();
-    if (strtolower($registration_type) == "family" && isset($_POST['numFamilyMembers']) && intval($_POST['numFamilyMembers']) > 0) {
+        if (strtolower($registration_type) == "family" && isset($_POST['numFamilyMembers']) && intval($_POST['numFamilyMembers']) > 0) {
             $numMembers = intval($_POST['numFamilyMembers']);
             for ($i = 1; $i <= $numMembers; $i++) {
                 $mfname = trim($_POST["member_fname_$i"] ?? '');
@@ -273,7 +273,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $mrelation = trim($_POST["member_relation_$i"] ?? '');
                 $mrelation_to_family = $mrelation;
                 $mage = 0;
-                $mage_class_id = null; 
+                $mage_class_id = null;
                 if ($mdob) {
                     $mbirthDate = new DateTime($mdob);
                     $mtoday = new DateTime();
@@ -310,7 +310,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         $mage_class_id = $mstmt2->insert_id;
                         $mstmt2->close();
                     }
-                    
+
                     $mstmt->close();
                 }
                 $msql = "INSERT INTO pre_reg_table (f_name, m_name, l_name, gender, registered_as, family_id, age_class_id, date_of_birth, relation_to_family) VALUES (?,?,?,?,?,?,?,?,?)";
@@ -342,26 +342,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $qr_stmt->close();
                 }
                 $mstmt->close();
-            }  
+            }
         }
-        echo json_encode(['success'=>true,'message'=>'Registration successful!']);
+        echo json_encode(['success' => true, 'message' => 'Registration successful!']);
         // Register in evac_reg_table (for head/solo only)
         $evac_loc_id = isset($_POST['location_id']) ? intval($_POST['location_id']) : 0;
         $room_id = isset($_POST['room_id']) ? intval($_POST['room_id']) : 0;
         $disaster_id = isset($_POST['disasterId']) ? intval($_POST['disasterId']) : 0;
         $date_reg = date('Y-m-d');
         if (!$evac_loc_id) {
-            echo json_encode(['success'=>false,'message'=>'Missing evac_loc_id in registration.']);
+            echo json_encode(['success' => false, 'message' => 'Missing evac_loc_id in registration.']);
             $conn->close();
             exit();
         }
         if (!$room_id) {
-            echo json_encode(['success'=>false,'message'=>'Missing room_id in registration.']);
+            echo json_encode(['success' => false, 'message' => 'Missing room_id in registration.']);
             $conn->close();
             exit();
         }
         if (!$disaster_id) {
-            echo json_encode(['success'=>false,'message'=>'No disaster selected. Please select a disaster event before submitting.']);
+            echo json_encode(['success' => false, 'message' => 'No disaster selected. Please select a disaster event before submitting.']);
             $conn->close();
             exit();
         }
@@ -369,6 +369,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $evac_stmt = $conn->prepare($evac_sql);
         $evac_stmt->bind_param("iiisi", $pre_reg_id, $evac_loc_id, $room_id, $date_reg, $disaster_id);
         $evac_stmt->execute();
+        // Insert log entry for this evac registration with status 'IN'
+        $evac_reg_id = $evac_stmt->insert_id;
+        if ($evac_reg_id) {
+            $log_sql = "INSERT INTO logs_table (evac_reg_id, status, date_time) VALUES (?, ?, NOW())";
+            $log_stmt = $conn->prepare($log_sql);
+            if ($log_stmt) {
+                $log_status = 'IN';
+                $log_stmt->bind_param("is", $evac_reg_id, $log_status);
+                $log_stmt->execute();
+                $log_stmt->close();
+            }
+        }
         $evac_stmt->close();
         // Register each family member in evac_reg_table
         if (strtolower($registration_type) == "family" && isset($_POST['numFamilyMembers']) && intval($_POST['numFamilyMembers']) > 0) {
@@ -392,17 +404,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $evac_stmt = $conn->prepare($evac_sql);
                     $evac_stmt->bind_param("iiisi", $member_pre_reg_id, $evac_loc_id, $room_id, $date_reg, $disaster_id);
                     $evac_stmt->execute();
+                    // Insert corresponding log (status IN) for the member registration
+                    $member_evac_reg_id = $evac_stmt->insert_id;
+                    if ($member_evac_reg_id) {
+                        $log_sql = "INSERT INTO logs_table (evac_reg_id, status, date_time) VALUES (?, ?, NOW())";
+                        $log_stmt = $conn->prepare($log_sql);
+                        if ($log_stmt) {
+                            $log_status = 'IN';
+                            $log_stmt->bind_param("is", $member_evac_reg_id, $log_status);
+                            $log_stmt->execute();
+                            $log_stmt->close();
+                        }
+                    }
                     $evac_stmt->close();
                 }
                 $find_member_stmt->close();
             }
         }
     } else {
-    echo json_encode(['success'=>false,'message'=>'Database error: ' . $stmt->error]);
+        echo json_encode(['success' => false, 'message' => 'Database error: ' . $stmt->error]);
     }
     $conn->close();
     exit();
 } else {
-    echo json_encode(['success'=>false,'message'=>'Invalid request.']);
+    echo json_encode(['success' => false, 'message' => 'Invalid request.']);
     exit();
 }
