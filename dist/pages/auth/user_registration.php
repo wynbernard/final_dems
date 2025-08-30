@@ -38,6 +38,63 @@
 				<h3 class="text-center text-primary fw-bold">Pre-Registration</h3>
 
 				<form id="registrationForm" method="POST" action="../action/auth_action/user_pre_reg.php" enctype="multipart/form-data">
+				<div class="row">
+					<div class="row">
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label fw-semibold">Upload Image of ID Card Presented <span class="text-danger">*</span></label>
+								<input type="file" name="ic_image" id="ic_image" class="form-control" accept="image/*" required onchange="previewIdCard(event)">
+								<div class="mt-2">
+									<img id="idCardPreview" src="#" alt="ID Card Preview" style="max-width: 100%; max-height: 200px; display: none; border: 1px solid #ccc; padding: 5px;" />
+								</div>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label for="icp" class="form-label">ID Card Presented <span class="text-danger">*</span></label>
+								<select name="icp" id="icp" class="form-select" required onchange="updateIDCardFormat()">
+									<option value="" disabled selected>Select ID Card</option>
+									<option value="Philippine National ID">Philippine National ID (PhilSys)</option>
+									<!-- <option value="Passport">Passport</option>
+									<option value="Driver's License">Driver’s License (LTO)</option>
+									<option value="UMID">UMID (Unified Multi-Purpose ID)</option>
+									<option value="SSS ID">SSS ID</option>
+									<option value="PRC ID">PRC (Professional Regulation Commission) ID</option>
+									<option value="Voter's ID">Voter’s ID / Certificate</option>
+									<option value="TIN ID">TIN ID (BIR)</option>
+									<option value="PhilHealth ID">PhilHealth ID</option> -->
+								</select>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="mb-3">
+								<label class="form-label">ID Card Number <span class="text-danger">*</span></label>
+								<input type="text" name="icn" id="icn" class="form-control" placeholder="Enter ID Card Number" required>
+							</div>
+						</div>
+					</div>
+				</div>
+						<!-- ID Upload Input -->
+						<script>
+							function previewIdCard(event) {
+								const input = event.target;
+								const preview = document.getElementById('idCardPreview');
+
+								if (input.files && input.files[0]) {
+									const reader = new FileReader();
+
+									reader.onload = function(e) {
+										preview.src = e.target.result;
+										preview.style.display = 'block';
+									};
+
+									reader.readAsDataURL(input.files[0]);
+								} else {
+									preview.src = '#';
+									preview.style.display = 'none';
+								}
+							}
+						</script>
 					<div class="row">
 						<div class="col-md-3">
 							<div class="mb-3">
@@ -336,59 +393,6 @@
 								</select>
 							</div>
 						</div>
-						<div class="col-md-4">
-							<div class="mb-3">
-								<label class="form-label fw-semibold">Upload Image of ID Card Presented <span class="text-danger">*</span></label>
-								<input type="file" name="ic_image" id="ic_image" class="form-control" accept="image/*" required onchange="previewIdCard(event)">
-								<div class="mt-2">
-									<img id="idCardPreview" src="#" alt="ID Card Preview" style="max-width: 100%; max-height: 200px; display: none; border: 1px solid #ccc; padding: 5px;" />
-								</div>
-							</div>
-						</div>
-						<div class="col-md-4">
-							<div class="mb-3">
-								<label for="icp" class="form-label">ID Card Presented <span class="text-danger">*</span></label>
-								<select name="icp" id="icp" class="form-select" required onchange="updateIDCardFormat()">
-									<option value="" disabled selected>Select ID Card</option>
-									<option value="Philippine National ID">Philippine National ID (PhilSys)</option>
-									<option value="Passport">Passport</option>
-									<option value="Driver's License">Driver’s License (LTO)</option>
-									<option value="UMID">UMID (Unified Multi-Purpose ID)</option>
-									<option value="SSS ID">SSS ID</option>
-									<option value="PRC ID">PRC (Professional Regulation Commission) ID</option>
-									<option value="Voter's ID">Voter’s ID / Certificate</option>
-									<option value="TIN ID">TIN ID (BIR)</option>
-									<option value="PhilHealth ID">PhilHealth ID</option>
-								</select>
-							</div>
-						</div>
-						<div class="col-md-4">
-							<div class="mb-3">
-								<label class="form-label">ID Card Number <span class="text-danger">*</span></label>
-								<input type="text" name="icn" id="icn" class="form-control" placeholder="Enter ID Card Number" required>
-							</div>
-						</div>
-						<!-- ID Upload Input -->
-						<script>
-							function previewIdCard(event) {
-								const input = event.target;
-								const preview = document.getElementById('idCardPreview');
-
-								if (input.files && input.files[0]) {
-									const reader = new FileReader();
-
-									reader.onload = function(e) {
-										preview.src = e.target.result;
-										preview.style.display = 'block';
-									};
-
-									reader.readAsDataURL(input.files[0]);
-								} else {
-									preview.src = '#';
-									preview.style.display = 'none';
-								}
-							}
-						</script>
 						<!-- Modal for Image Processing -->
 						<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
 							<div class="modal-dialog modal-dialog-centered">

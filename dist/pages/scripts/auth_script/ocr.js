@@ -1,189 +1,167 @@
 document.getElementById('ic_image').addEventListener('change', function() {
-								const file = this.files[0];
-								const fname = document.getElementById('f_name').value.trim().toLowerCase();
-								const mname = document.getElementById('m_name').value.trim().toLowerCase();
-								const lname = document.getElementById('l_name').value.trim().toLowerCase();
-								const ext = document.getElementById('name_extension').value.trim().toLowerCase();
-								const idSelect = document.getElementById('icp');
+    const file = this.files[0];
+    const idSelect = document.getElementById('icp');
+    if (!file) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'No File',
+            text: 'Please upload an ID image.'
+        });
+        this.value = "";
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function() {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const qrCode = jsQR(imageData.data, canvas.width, canvas.height);
+            if (qrCode) {
+                let qrData;
+                try {
+                    qrData = JSON.parse(qrCode.data);
+                } catch (e) {
+                    qrData = {};
+                }
+                // Fill fields from QR if available
+                if (qrData.subject) {
+                    const fName = (qrData.subject.fName || '').toUpperCase();
+                    const mName = (qrData.subject.mName || '').toUpperCase();
+                    const lName = (qrData.subject.lName || '').toUpperCase();
+                    document.getElementById('f_name').value = fName;
+                    document.getElementById('m_name').value = mName;
+                    document.getElementById('l_name').value = lName;
+                    document.getElementById('icn').value = qrData.subject.PCN || '';
+                    idSelect.value = 'Philippine National ID';
+                    console.log('Extracted from QR:', { fName, mName, lName });
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ID Scanned',
+                        text: 'Fields auto-filled from QR code.'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'QR Data Error',
+                        text: 'QR code found but no subject data.'
+                    });
+                }
+            } else {
+                runTesseractOCR(file, idSelect);
+            }
+        };
+        img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+});
 
-								if (!file || !fname || !mname || !lname) {
-									Swal.fire({
-										icon: 'warning',
-										title: 'Missing Input',
-										text: 'Please fill out first, middle, and last name before uploading the ID.'
-									});
-									this.value = "";
-									return;
-								}
-
-								const reader = new FileReader();
-								reader.onload = function() {
-									const img = new Image();
-									img.onload = function() {
-										const canvas = document.createElement('canvas');
-										const ctx = canvas.getContext('2d');
-										canvas.width = img.width;
-										canvas.height = img.height;
-										ctx.drawImage(img, 0, 0);
-										const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-										const qrCode = jsQR(imageData.data, canvas.width, canvas.height);
-
-
-										if (qrCode) {
-											let qrData;
-											qrData = JSON.parse(qrCode.data);
-
-											const qrFname  = (qrData.subject?.fName || "").trim().toLowerCase();
-											const qrMname  = (qrData.subject?.mName || "").trim().toLowerCase();
-											const qrLname  = (qrData.subject?.lName || "").trim().toLowerCase();
-											const qrSuffix = (qrData.subject?.Suffix || "").trim().toLowerCase();
-
-											 // Compare each field (middle name & suffix optional if left blank)
-											const isFnameMatch = fname === qrFname;
-											const isMnameMatch = mname ? mname === qrMname : true;
-											const isLnameMatch = lname === qrLname;
-											const isExtMatch   = ext   ? ext === qrSuffix : true;
-
-
-											// Extract PCN (PhilSys number format: ####-####-####-####)
-											 if (qrData.subject?.PCN) {
-												document.getElementById('icn').value = qrData.subject.PCN;
-												console.log("PCN:", qrData.subject.PCN);
-												console.log(qrFname);
-											}
-
-											if (isFnameMatch && isMnameMatch && isLnameMatch && isExtMatch) {
-												idSelect.value = 'Philippine National ID';
-												Swal.fire({
-													icon: 'success',
-													title: 'QR Name Match',
-													text: 'QR code successfully verified.',
-													confirmButtonColor: '#198754'
-												});5
-											} else {
-												document.getElementById('ic_image').value = "";
-												Swal.fire({
-													icon: 'error',
-													title: 'QR Name Mismatch',
-													text: 'Name in the QR code does not match your input.',
-													confirmButtonColor: '#dc3545'
-												});
-											}
-										} else {
-											runTesseractOCR(file, fname, mname, lname, ext, idSelect);
-										}
-									};
-									img.src = reader.result;
-								};
-								reader.readAsDataURL(file);
-							});
-
-							function runTesseractOCR(file, fname, mname, lname, ext, idSelect) {
-								Swal.fire({
-									title: 'Checking ID...',
-									html: 'Extracting text from the ID image.<br><b>Please wait.</b>',
-									allowOutsideClick: false,
-									didOpen: () => Swal.showLoading()
-								});
-
-								Tesseract.recognize(file, 'eng', {
-									logger: m => {
-										if (m.status === "recognizing text") {
-											Swal.update({
-												html: `Extracting text... <b>${Math.round(m.progress * 100)}%</b>`
-											});
-										}
-									}
-								}).then(({
-									data: {
-										text
-									}
-								}) => {
-									const normalize = str => str.toLowerCase().replace(/[^\w\s\-\/]/gi, '').replace(/\s+/g, ' ').trim();
-									const cleanText = normalize(text);
-
-									// ID number extraction
-									const idNumberMatch = cleanText.match(/\b([A-Z0-9]{3,}-[A-Z0-9]{2,}-[A-Z0-9]{3,}(?:-[A-Z0-9]+)?)\b|\b\d{4}-\d{4}-\d{4}-\d{4}\b/);
-									const extractedIdNumber = idNumberMatch ? idNumberMatch[0] : "";
-									document.getElementById('icn').value = extractedIdNumber;
-
-									// ID type detection
-									const idTypeMap = {
-										"philippine national id": "Philippine National ID",
-										"philsys": "Philippine National ID",
-										"passport": "Passport",
-										"driver": "Driver's License",
-										"lto": "Driver's License",
-										"umid": "UMID",
-										"sss": "SSS ID",
-										"prc": "PRC ID",
-										"voter": "Voter's ID",
-										"tin": "TIN ID",
-										"philhealth": "PhilHealth ID"
-									};
-
-									let detectedType = "Unknown";
-									for (const keyword in idTypeMap) {
-										if (cleanText.includes(keyword)) {
-											detectedType = idTypeMap[keyword];
-											break;
-										}
-									}
-
-									if (detectedType === "Unknown") {
-										if (/^\d{4}-\d{4}-\d{4}-\d{4}$/.test(extractedIdNumber)) {
-											detectedType = "Philippine National ID";
-										} else if (/^[A-Z]{1,3}-\d{2}-\d{6,7}$/.test(extractedIdNumber)) {
-											detectedType = "Driver's License";
-										} else if (/^\d{2}-\d{9,10}$/.test(extractedIdNumber)) {
-											detectedType = "PhilHealth ID";
-										} else if (/^\d{9}$/.test(extractedIdNumber)) {
-											detectedType = "TIN ID";
-										} else if (/^\d{2}-\d{7,10}$/.test(extractedIdNumber)) {
-											detectedType = "SSS ID";
-										}
-									}
-
-									const matchOption = Array.from(idSelect.options).find(opt => opt.value === detectedType);
-									if (matchOption) {
-										idSelect.value = detectedType;
-									}
-
-									const fnameMatch = cleanText.includes(fname);
-									const mnameMatch = cleanText.includes(mname);
-									const lnameMatch = cleanText.includes(lname);
-									const extMatch = ext ? cleanText.includes(ext) : true;
-
-									if (fnameMatch && mnameMatch && lnameMatch && extMatch) {
-										Swal.fire({
-											icon: 'success',
-											title: 'Name Matched',
-											text: '✅ Name matched successfully!',
-											confirmButtonColor: '#198754'
-										});
-									} else {
-										document.getElementById('ic_image').value = "";
-										const unmatched = [];
-										if (!fnameMatch) unmatched.push("First Name");
-										if (!mnameMatch) unmatched.push("Middle Name");
-										if (!lnameMatch) unmatched.push("Last Name");
-										if (!extMatch) unmatched.push("Extension");
-
-										Swal.fire({
-											icon: 'error',
-											title: 'Name Mismatch',
-											text: `❌ ${unmatched.join(", ")} not found on the ID.<br>The uploaded image has been cleared.`,
-											confirmButtonColor: '#dc3545'
-										});
-									}
-								}).catch(err => {
-									console.error(err);
-									document.getElementById('ic_image').value = "";
-									Swal.fire({
-										icon: 'error',
-										title: 'OCR Error',
-										text: 'There was an error reading the ID image.',
-										confirmButtonColor: '#dc3545'
-									});
-								});
-							}
+function runTesseractOCR(file, idSelect) {
+    Swal.fire({
+        title: 'Checking ID...',
+        html: 'Extracting text from the ID image.<br><b>Please wait.</b>',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+    Tesseract.recognize(file, 'eng', {
+        logger: m => {
+            if (m.status === "recognizing text") {
+                Swal.update({
+                    html: `Extracting text... <b>${Math.round(m.progress * 100)}%</b>`
+                });
+            }
+        }
+    }).then(({ data: { text } }) => {
+        const normalize = str => str.toLowerCase().replace(/[^\w\s\-\/]/gi, '').replace(/\s+/g, ' ').trim();
+        const cleanText = normalize(text);
+        console.log('Full OCR text:', cleanText);
+        // Extract PhilSys ID number (####-####-####-####)
+        const idNumberMatch = cleanText.match(/\b\d{4}-\d{4}-\d{4}-\d{4}\b/);
+        const extractedIdNumber = idNumberMatch ? idNumberMatch[0] : "";
+        document.getElementById('icn').value = extractedIdNumber;
+        // Improved extraction for Philippine National ID
+        let fName = '', mName = '', lName = '';
+        // Use regex to find the value after the label, allowing for OCR errors and extra spaces
+        const lastNameMatch = cleanText.match(/apelyido\/?last name\s*([a-z\- ]{2,})/i);
+        if (lastNameMatch) {
+            // Only take the first word after the label as the last name
+            lName = lastNameMatch[1].split(/\s+/)[0].replace(/[^A-Za-z\-]/g, '').trim().toUpperCase();
+        }
+        const givenNameMatch = cleanText.match(/mga pangalan\/?given names?\s*[-: ]\s*([a-z\- ,]{2,})/i);
+        if (givenNameMatch) {
+            // After the dash, take the first word as first name, second as extension if in extList
+            const namesRaw = givenNameMatch[1].split(/ gitnang apelyido| middle name| petsa ng kapanganakan| date of birth| tirahan| address|\s{2,}/i)[0]
+                .replace(/[^A-Za-z\-\s,]/g, '').trim();
+            const names = namesRaw.split(' ').filter(Boolean);
+            const extList = ['JR', 'SR', 'I', 'II', 'III', 'IV', 'V'];
+            let ext = '';
+            if (names.length > 0) {
+                fName = names[0].toUpperCase();
+                if (names.length > 1 && extList.includes(names[1].toUpperCase())) {
+                    ext = names[1].toUpperCase();
+                    mName = '';
+                } else if (names.length > 1) {
+                    mName = names.slice(1).join(' ').toUpperCase();
+                }
+            }
+            document.getElementById('name_extension').value = ext;
+        }
+        const middleNameMatch = cleanText.match(/gitnang apelyido\/?middle name\s*([a-z\- ]{2,})/i);
+        if (middleNameMatch) {
+            mName = middleNameMatch[1].split(/ petsa ng kapanganakan| date of birth| tirahan| address|\s{2,}/i)[0]
+                .replace(/[^A-Za-z\-\s]/g, '').trim().toUpperCase();
+        }
+        // Fallback: Try previous logic if not found
+        if (!fName || !lName) {
+            let nameMatch = cleanText.match(/([a-z]+), ([a-z]+) ([a-z]+)/i); // LAST, FIRST MIDDLE
+            if (!nameMatch) {
+                nameMatch = cleanText.match(/([a-z]+) ([a-z]+) ([a-z]+)/i); // FIRST MIDDLE LAST
+            }
+            if (nameMatch) {
+                if (cleanText.includes(",")) {
+                    lName = lName || nameMatch[1].toUpperCase();
+                    fName = fName || nameMatch[2].toUpperCase();
+                    mName = mName || nameMatch[3].toUpperCase();
+                } else {
+                    fName = fName || nameMatch[1].toUpperCase();
+                    mName = mName || nameMatch[2].toUpperCase();
+                    lName = lName || nameMatch[3].toUpperCase();
+                }
+            }
+        }
+        document.getElementById('f_name').value = fName;
+        document.getElementById('m_name').value = mName;
+        document.getElementById('l_name').value = lName;
+        console.log('Extracted from OCR:', { fName, mName, lName });
+        // Set ID type if PhilSys detected
+        if (extractedIdNumber) {
+            idSelect.value = "Philippine National ID";
+        }
+        if ((fName && lName) && extractedIdNumber) {
+            Swal.fire({
+                icon: 'success',
+                title: 'ID Scanned',
+                text: 'National ID details extracted and fields filled!'
+            });
+        } else {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Partial/No Match',
+                text: 'Could not extract all details. Please check the fields and try again.'
+            });
+        }
+    }).catch(err => {
+        console.error(err);
+        document.getElementById('ic_image').value = "";
+        Swal.fire({
+            icon: 'error',
+            title: 'OCR Error',
+            text: 'There was an error reading the ID image.',
+            confirmButtonColor: '#dc3545'
+        });
+    });
+}
