@@ -344,6 +344,52 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $mstmt->close();
             }
         }
+        // Send account details to the user's email (try Gmail if configured via environment variables)
+        try {
+            require_once '../../../vendor/autoload.php';
+            $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+
+            $gmailUser = getenv('GMAIL_USER');
+            $gmailPass = getenv('GMAIL_PASS');
+
+            if ($gmailUser && $gmailPass) {
+                // Gmail SMTP (requires app password or OAuth credentials)
+                $mail->isSMTP();
+                $mail->Host = 'smtp.gmail.com';
+                $mail->SMTPAuth = true;
+                $mail->Username = $gmailUser;
+                $mail->Password = $gmailPass;
+                $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port = 587;
+            } else {
+                // Fallback to Hostinger settings used elsewhere in the project
+                $mail->isSMTP();
+                $mail->Host = 'smtp.hostinger.com';
+                $mail->SMTPAuth = true;
+                $mail->Username = 'dems_info@bccbsis.com';
+                $mail->Password = '[nAgc/#^Jj7';
+                $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+                $mail->Port = 465;
+            }
+
+            $fromAddress = ($gmailUser) ? $gmailUser : 'dems_info@bccbsis.com';
+            $mail->setFrom($fromAddress, 'DEMS');
+            $mail->addAddress($email, $f_name . ' ' . $l_name);
+            $mail->isHTML(true);
+            $mail->Subject = 'DEMS Registration - Account Details';
+            $mailBody = "<p>Dear " . htmlspecialchars($f_name) . ",</p>" .
+                "<p>Your account has been created on the DEMS system. Please find your login details below:</p>" .
+                "<p><strong>Email:</strong> " . htmlspecialchars($email) . "<br>" .
+                "<strong>Password:</strong> " . htmlspecialchars($password) . "</p>" .
+                "<p>Please change your password after first login for security reasons.</p>";
+            $mail->Body = $mailBody;
+            $mail->AltBody = "DEMS account created. Email: $email\nPassword: $password";
+
+            $mail->send();
+        } catch (Exception $e) {
+            error_log('Registration email failed: ' . $e->getMessage());
+        }
+
         echo json_encode(['success' => true, 'message' => 'Registration successful!']);
         // Register in evac_reg_table (for head/solo only)
         $evac_loc_id = isset($_POST['location_id']) ? intval($_POST['location_id']) : 0;

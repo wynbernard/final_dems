@@ -10,83 +10,83 @@
 				<form id="idpRegistrationForm" method="POST" action="../action/registration_backend.php" enctype="multipart/form-data">
 					<div id="assignedRoomDisplay" class="alert alert-success mb-3" style="display:none; font-weight:bold;"></div>
 					<div class="d-flex align-items-center mb-3">
-					       <div class="alert alert-info mb-3 me-3">
-						<strong>Location:</strong>
-						<?php
-						// Safely get parameters with null coalescing operator
-						$selectedLocationId = $_GET['location_id'] ?? $_SESSION['evac_loc_id'] ?? '';
+						<div class="alert alert-info mb-3 me-3">
+							<strong>Location:</strong>
+							<?php
+							// Safely get parameters with null coalescing operator
+							$selectedLocationId = $_GET['location_id'] ?? $_SESSION['evac_loc_id'] ?? '';
 
-						if ($selectedLocationId) {
-							// Query location name using prepared statement
-							$stmt = $conn->prepare("SELECT name FROM evac_loc_table WHERE evac_loc_id = ?");
-							$stmt->bind_param("s", $selectedLocationId);
-							$stmt->execute();
-							$result = $stmt->get_result();
+							if ($selectedLocationId) {
+								// Query location name using prepared statement
+								$stmt = $conn->prepare("SELECT name FROM evac_loc_table WHERE evac_loc_id = ?");
+								$stmt->bind_param("s", $selectedLocationId);
+								$stmt->execute();
+								$result = $stmt->get_result();
 
-							if ($result->num_rows > 0) {
-								$location = $result->fetch_assoc();
-								echo htmlspecialchars($location['name']);
+								if ($result->num_rows > 0) {
+									$location = $result->fetch_assoc();
+									echo htmlspecialchars($location['name']);
+								} else {
+									echo "Unknown Location (ID: " . htmlspecialchars($selectedLocationId) . ")";
+								}
 							} else {
-								echo "Unknown Location (ID: " . htmlspecialchars($selectedLocationId) . ")";
-							}
-						} else {
-							// Check if evac_loc_id exists but wasn't captured
-							$fallbackEvacId = $_GET['evac_loc_id'] ?? '';
-							if ($fallbackEvacId) {
-								// Use prepared statement to prevent SQL injection
-								$stmt = $conn->prepare("SELECT evac_loc_table.name FROM admin_table
+								// Check if evac_loc_id exists but wasn't captured
+								$fallbackEvacId = $_GET['evac_loc_id'] ?? '';
+								if ($fallbackEvacId) {
+									// Use prepared statement to prevent SQL injection
+									$stmt = $conn->prepare("SELECT evac_loc_table.name FROM admin_table
 								LEFT JOIN evac_loc_table ON admin_table.evac_loc_id = evac_loc_table.evac_loc_id
 								 WHERE evac_loc_id = ?");
-								$stmt->bind_param("s", $fallbackEvacId);
+									$stmt->bind_param("s", $fallbackEvacId);
 
-								if ($stmt->execute()) {
-									$result = $stmt->get_result();
+									if ($stmt->execute()) {
+										$result = $stmt->get_result();
 
-									if ($result->num_rows > 0) {
-										$location = $result->fetch_assoc();
-										echo htmlspecialchars($location['name']);
+										if ($result->num_rows > 0) {
+											$location = $result->fetch_assoc();
+											echo htmlspecialchars($location['name']);
+										} else {
+											echo "Unknown Location (ID: " . htmlspecialchars($fallbackEvacId) . ")";
+										}
 									} else {
-										echo "Unknown Location (ID: " . htmlspecialchars($fallbackEvacId) . ")";
+										// Handle query error
+										echo "Location ID: " . htmlspecialchars($fallbackEvacId) . " (Error fetching details)";
 									}
-								} else {
-									// Handle query error
-									echo "Location ID: " . htmlspecialchars($fallbackEvacId) . " (Error fetching details)";
-								}
 
-								$stmt->close();
-							} else {
-								echo "No location selected";
+									$stmt->close();
+								} else {
+									echo "No location selected";
+								}
 							}
-						}
-						?>
-						<input type="hidden" name="location_id" value="<?php echo htmlspecialchars($selectedLocationId); ?>">
-					</div>
+							?>
+							<input type="hidden" name="location_id" value="<?php echo htmlspecialchars($selectedLocationId); ?>">
+						</div>
 						<div class="alert alert-info mb-3">
-						<strong>Disaster Event:</strong>
-						<span id="disasterEventName">
-						<?php
-						$selectedDisasterId = $_GET['disasterId'] ?? '';
-						$disasterName = '';
-						if ($selectedDisasterId) {
-							$stmt = $conn->prepare("SELECT disaster_name FROM disaster_table WHERE disaster_id = ?");
-							$stmt->bind_param("i", $selectedDisasterId);
-							$stmt->execute();
-							$result = $stmt->get_result();
-							if ($result && $result->num_rows > 0) {
-								$row = $result->fetch_assoc();
-								$disasterName = $row['disaster_name'];
-								echo htmlspecialchars($disasterName);
-							} else {
-								echo "Unknown Disaster (ID: " . htmlspecialchars($selectedDisasterId) . ")";
-							}
-							$stmt->close();
-						} else {
-							echo "No disaster selected";
-						}
-						?>
-						</span>
-						<input type="hidden" name="disasterId" id="disasterIdHidden" value="<?php echo htmlspecialchars($selectedDisasterId); ?>">
-					</div>
+							<strong>Disaster Event:</strong>
+							<span id="disasterEventName">
+								<?php
+								$selectedDisasterId = $_GET['disasterId'] ?? '';
+								$disasterName = '';
+								if ($selectedDisasterId) {
+									$stmt = $conn->prepare("SELECT disaster_name FROM disaster_table WHERE disaster_id = ?");
+									$stmt->bind_param("i", $selectedDisasterId);
+									$stmt->execute();
+									$result = $stmt->get_result();
+									if ($result && $result->num_rows > 0) {
+										$row = $result->fetch_assoc();
+										$disasterName = $row['disaster_name'];
+										echo htmlspecialchars($disasterName);
+									} else {
+										echo "Unknown Disaster (ID: " . htmlspecialchars($selectedDisasterId) . ")";
+									}
+									$stmt->close();
+								} else {
+									echo "No disaster selected";
+								}
+								?>
+							</span>
+							<input type="hidden" name="disasterId" id="disasterIdHidden" value="<?php echo htmlspecialchars($selectedDisasterId); ?>">
+						</div>
 						<div class="ms-3">
 							<label for="room_id" class="form-label"><strong>Room :</strong></label>
 							<select name="room_id" id="room" class="form-select" style="min-width:180px;display:inline-block;" <?php if (empty($selectedLocationId) && empty($fallbackEvacId)) echo 'disabled'; ?>>
@@ -401,7 +401,7 @@
 								<div id="familyMembersFields"></div>
 							</div>
 						</div>
-						
+
 						<div class="col-md-4">
 							<div class="mb-3">
 								<label class="form-label fw-semibold">Upload Image of ID Card Presented <span class="text-danger">*</span></label>
@@ -653,168 +653,83 @@
 <script src="../scripts/auth_script/user_registration.js"></script>
 <script src="../scripts/auth_script/address_api.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-	const regType = document.getElementById('registration_type');
-	const familySection = document.getElementById('familyMembersSection');
-	const numMembersInput = document.getElementById('numFamilyMembers');
-	const familyFieldsDiv = document.getElementById('familyMembersFields');
-
-	if (regType) {
-		regType.addEventListener('change', function() {
-			if (this.value === 'Family') {
-				familySection.style.display = 'block';
-			} else {
-				familySection.style.display = 'none';
-				familyFieldsDiv.innerHTML = '';
-				if(numMembersInput) numMembersInput.value = '';
-			}
-		});
-	}
-
-	function autoSelectRoom() {
-		const count = parseInt(numMembersInput.value) || 0;
-		const totalPeople = count + 1;
-		const roomDropdown = document.getElementById('room');
-		const assignedRoomDisplay = document.getElementById('assignedRoomDisplay');
-		let assignedText = '';
-		if (roomDropdown) {
-			let found = false;
-			for (let opt of roomDropdown.options) {
-				if (opt.value && !opt.disabled) {
-					// Try to extract occupancy/capacity from option text: "Room Name (Occupied/Capacity)"
-					const match = opt.textContent.match(/\((\d+)[^\d]+(\d+)\)/);
-					if (match) {
-						const occupied = parseInt(match[1]);
-						const capacity = parseInt(match[2]);
-						if ((capacity - occupied) >= totalPeople) {
-							roomDropdown.value = opt.value;
-							assignedText = `Assigned Room: <b>${opt.textContent}</b>`;
-							found = true;
-							break;
-						}
-					}
-				}
-			}
-			if (!found) {
-				roomDropdown.value = '';
-				assignedText = '<span class="text-danger">No available room can accommodate this family size.</span>';
-			}
-		}
-		if (assignedRoomDisplay) {
-			assignedRoomDisplay.innerHTML = assignedText;
-			assignedRoomDisplay.style.display = assignedText ? 'block' : 'none';
-		}
-	}
-
-	// Also update display if user manually changes the room
 	document.addEventListener('DOMContentLoaded', function() {
-		const roomDropdown = document.getElementById('room');
-		if (roomDropdown) {
-			roomDropdown.addEventListener('change', function() {
-				const assignedRoomDisplay = document.getElementById('assignedRoomDisplay');
-				let selected = roomDropdown.options[roomDropdown.selectedIndex];
-				if (selected && selected.value) {
-					assignedRoomDisplay.innerHTML = `Assigned Room: <b>${selected.textContent}</b>`;
-					assignedRoomDisplay.style.display = 'block';
+		const regType = document.getElementById('registration_type');
+		const familySection = document.getElementById('familyMembersSection');
+		const numMembersInput = document.getElementById('numFamilyMembers');
+		const familyFieldsDiv = document.getElementById('familyMembersFields');
+
+		if (regType) {
+			regType.addEventListener('change', function() {
+				if (this.value === 'Family') {
+					familySection.style.display = 'block';
 				} else {
-					assignedRoomDisplay.innerHTML = '';
-					assignedRoomDisplay.style.display = 'none';
+					familySection.style.display = 'none';
+					familyFieldsDiv.innerHTML = '';
+					if (numMembersInput) numMembersInput.value = '';
 				}
 			});
 		}
-	});
 
-	if (numMembersInput) {
-		numMembersInput.addEventListener('input', function() {
-			const count = parseInt(this.value) || 0;
-			familyFieldsDiv.innerHTML = '';
-			for (let i = 1; i <= count; i++) {
-				familyFieldsDiv.innerHTML += `
-					<div class="card mb-2 p-2">
-						<h6>Member #${i}</h6>
-						<div class="row">
-							<div class="col-md-4 mb-2">
-								<input type="text" class="form-control" name="member_fname_${i}" placeholder="First Name" required>
-							</div>
-							<div class="col-md-4 mb-2">
-								<input type="text" class="form-control" name="member_mname_${i}" placeholder="Middle Name" required>
-							</div>
-							<div class="col-md-4 mb-2">
-								<input type="text" class="form-control" name="member_lname_${i}" placeholder="Last Name" required>
-							</div>
-						</div>
-						<div class="row">
-							<div class="col-md-4 mb-2">
-								<input type="date" class="form-control" name="member_dob_${i}" placeholder="Date of Birth" required>
-							</div>
-							<div class="col-md-4 mb-2">
-								<select class="form-control" name="member_gender_${i}" required>
-									<option value="">Gender</option>
-									<option value="Male">Male</option>
-									<option value="Female">Female</option>
-								</select>
-							</div>
-							<div class="col-md-4 mb-2">
-								<input type="text" class="form-control" name="member_relation_${i}" placeholder="Relation to Head" required>
-							</div>
-						</div>
-					</div>
-				`;
+		function autoSelectRoom() {
+			const count = parseInt(numMembersInput.value) || 0;
+			const totalPeople = count + 1;
+			const roomDropdown = document.getElementById('room');
+			const assignedRoomDisplay = document.getElementById('assignedRoomDisplay');
+			let assignedText = '';
+			if (roomDropdown) {
+				let found = false;
+				for (let opt of roomDropdown.options) {
+					if (opt.value && !opt.disabled) {
+						// Try to extract occupancy/capacity from option text: "Room Name (Occupied/Capacity)"
+						const match = opt.textContent.match(/\((\d+)[^\d]+(\d+)\)/);
+						if (match) {
+							const occupied = parseInt(match[1]);
+							const capacity = parseInt(match[2]);
+							if ((capacity - occupied) >= totalPeople) {
+								roomDropdown.value = opt.value;
+								assignedText = `Assigned Room: <b>${opt.textContent}</b>`;
+								found = true;
+								break;
+							}
+						}
+					}
+				}
+				if (!found) {
+					roomDropdown.value = '';
+					assignedText = '<span class="text-danger">No available room can accommodate this family size.</span>';
+				}
 			}
-			// Initial auto-select after fields are rendered
-			autoSelectRoom();
-			// Add real-time auto-select on all member fields
-			setTimeout(() => {
-				const memberInputs = familyFieldsDiv.querySelectorAll('input, select');
-				memberInputs.forEach(inp => {
-					inp.addEventListener('input', autoSelectRoom);
-					inp.addEventListener('change', autoSelectRoom);
+			if (assignedRoomDisplay) {
+				assignedRoomDisplay.innerHTML = assignedText;
+				assignedRoomDisplay.style.display = assignedText ? 'block' : 'none';
+			}
+		}
+
+		// Also update display if user manually changes the room
+		document.addEventListener('DOMContentLoaded', function() {
+			const roomDropdown = document.getElementById('room');
+			if (roomDropdown) {
+				roomDropdown.addEventListener('change', function() {
+					const assignedRoomDisplay = document.getElementById('assignedRoomDisplay');
+					let selected = roomDropdown.options[roomDropdown.selectedIndex];
+					if (selected && selected.value) {
+						assignedRoomDisplay.innerHTML = `Assigned Room: <b>${selected.textContent}</b>`;
+						assignedRoomDisplay.style.display = 'block';
+					} else {
+						assignedRoomDisplay.innerHTML = '';
+						assignedRoomDisplay.style.display = 'none';
+					}
 				});
-			}, 0);
-		});
-	}
-});
-</script>
-<script>
-function toggleVisibility(fieldId, iconSpan) {
-	const input = document.getElementById(fieldId);
-	const icon = iconSpan.querySelector('i');
-	if (input.type === 'password') {
-		input.type = 'text';
-		icon.classList.remove('fa-eye-slash');
-		icon.classList.add('fa-eye');
-	} else {
-		input.type = 'password';
-		icon.classList.remove('fa-eye');
-		icon.classList.add('fa-eye-slash');
-	}
-}
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-	const regType = document.getElementById('registration_type');
-	const familySection = document.getElementById('familyMembersSection');
-	const numMembersInput = document.getElementById('numFamilyMembers');
-	const familyFieldsDiv = document.getElementById('familyMembersFields');
-
-	if (regType) {
-		regType.addEventListener('change', function() {
-			if (this.value === 'Family') {
-				familySection.style.display = 'block';
-			} else {
-				familySection.style.display = 'none';
-				familyFieldsDiv.innerHTML = '';
-				if(numMembersInput) numMembersInput.value = '';
 			}
 		});
-	}
 
-	if (numMembersInput) {
-		numMembersInput.addEventListener('input', function() {
-			const count = parseInt(this.value) || 0;
-			familyFieldsDiv.innerHTML = '';
-			for (let i = 1; i <= count; i++) {
-				familyFieldsDiv.innerHTML += `
+		if (numMembersInput) {
+			numMembersInput.addEventListener('input', function() {
+				const count = parseInt(this.value) || 0;
+				familyFieldsDiv.innerHTML = '';
+				for (let i = 1; i <= count; i++) {
+					familyFieldsDiv.innerHTML += `
 					<div class="card mb-2 p-2">
 						<h6>Member #${i}</h6>
 						<div class="row">
@@ -845,10 +760,211 @@ document.addEventListener('DOMContentLoaded', function() {
 						</div>
 					</div>
 				`;
-			}
-		});
+				}
+				// Initial auto-select after fields are rendered
+				autoSelectRoom();
+				// Add real-time auto-select on all member fields
+				setTimeout(() => {
+					const memberInputs = familyFieldsDiv.querySelectorAll('input, select');
+					memberInputs.forEach(inp => {
+						inp.addEventListener('input', autoSelectRoom);
+						inp.addEventListener('change', autoSelectRoom);
+					});
+				}, 0);
+			});
+		}
+	});
+</script>
+<script>
+	function toggleVisibility(fieldId, iconSpan) {
+		const input = document.getElementById(fieldId);
+		const icon = iconSpan.querySelector('i');
+		if (input.type === 'password') {
+			input.type = 'text';
+			icon.classList.remove('fa-eye-slash');
+			icon.classList.add('fa-eye');
+		} else {
+			input.type = 'password';
+			icon.classList.remove('fa-eye');
+			icon.classList.add('fa-eye-slash');
+		}
 	}
-});
+</script>
+<script>
+	document.addEventListener('DOMContentLoaded', function() {
+		const regType = document.getElementById('registration_type');
+		const familySection = document.getElementById('familyMembersSection');
+		const numMembersInput = document.getElementById('numFamilyMembers');
+		const familyFieldsDiv = document.getElementById('familyMembersFields');
+
+		if (regType) {
+			regType.addEventListener('change', function() {
+				if (this.value === 'Family') {
+					familySection.style.display = 'block';
+				} else {
+					familySection.style.display = 'none';
+					familyFieldsDiv.innerHTML = '';
+					if (numMembersInput) numMembersInput.value = '';
+				}
+			});
+		}
+
+		if (numMembersInput) {
+			numMembersInput.addEventListener('input', function() {
+				const count = parseInt(this.value) || 0;
+				familyFieldsDiv.innerHTML = '';
+				for (let i = 1; i <= count; i++) {
+					familyFieldsDiv.innerHTML += `
+					<div class="card mb-2 p-2">
+						<h6>Member #${i}</h6>
+						<div class="row">
+							<div class="col-md-4 mb-2">
+								<input type="text" class="form-control" name="member_fname_${i}" placeholder="First Name" required>
+							</div>
+							<div class="col-md-4 mb-2">
+								<input type="text" class="form-control" name="member_mname_${i}" placeholder="Middle Name" required>
+							</div>
+							<div class="col-md-4 mb-2">
+								<input type="text" class="form-control" name="member_lname_${i}" placeholder="Last Name" required>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-4 mb-2">
+								<input type="date" class="form-control" name="member_dob_${i}" placeholder="Date of Birth" required>
+							</div>
+							<div class="col-md-4 mb-2">
+								<select class="form-control" name="member_gender_${i}" required>
+									<option value="">Gender</option>
+									<option value="Male">Male</option>
+									<option value="Female">Female</option>
+								</select>
+							</div>
+							<div class="col-md-4 mb-2">
+								<input type="text" class="form-control" name="member_relation_${i}" placeholder="Relation to Head" required>
+							</div>
+						</div>
+					</div>
+				`;
+				}
+
+				// After inserting fields, set up validation and auto-select behavior
+				autoSelectRoom();
+				setupMemberValidation();
+			});
+
+			// Validate duplicate names among members and against the head
+			function setupMemberValidation() {
+				const submitBtn = document.getElementById('submitBtn');
+				const count = parseInt(numMembersInput.value) || 0;
+
+				// Attach listeners to member inputs
+				for (let i = 1; i <= count; i++) {
+					const fname = document.querySelector(`[name='member_fname_${i}']`);
+					const mname = document.querySelector(`[name='member_mname_${i}']`);
+					const lname = document.querySelector(`[name='member_lname_${i}']`);
+					if (fname) fname.addEventListener('input', validateDuplicates);
+					if (mname) mname.addEventListener('input', validateDuplicates);
+					if (lname) lname.addEventListener('input', validateDuplicates);
+				}
+
+				// Attach listeners to head name fields so changes trigger re-validation in real-time
+				const headFirstEl = document.getElementById('f_name');
+				const headMiddleEl = document.getElementById('m_name');
+				const headLastEl = document.getElementById('l_name');
+				[headFirstEl, headMiddleEl, headLastEl].forEach(h => {
+					if (h) h.addEventListener('input', validateDuplicates);
+				});
+
+				// Perform initial validation
+				validateDuplicates();
+
+				function validateDuplicates() {
+					// Clear previous feedback
+					const feedbackEls = familyFieldsDiv.querySelectorAll('.duplicate-feedback');
+					feedbackEls.forEach(el => el.remove());
+
+					// Remove invalid classes
+					const allMemberInputs = familyFieldsDiv.querySelectorAll("input[name^='member_fname_'], input[name^='member_mname_'], input[name^='member_lname_']");
+					allMemberInputs.forEach(inp => inp.classList.remove('is-invalid'));
+
+					const seen = {}; // key -> array of indexes
+					let hasDup = false;
+
+					for (let i = 1; i <= count; i++) {
+						const fnEl = document.querySelector(`[name='member_fname_${i}']`);
+						const mnEl = document.querySelector(`[name='member_mname_${i}']`);
+						const lnEl = document.querySelector(`[name='member_lname_${i}']`);
+						const fn = normalize(fnEl ? fnEl.value : '');
+						const mn = normalize(mnEl ? mnEl.value : '');
+						const ln = normalize(lnEl ? lnEl.value : '');
+
+						// Skip empty rows
+						if (!fn && !mn && !ln) continue;
+
+						const key = `${fn}|${mn}|${ln}`;
+
+						// Check against head (re-read head fields each time for real-time validation)
+						const headFirst = normalize(document.getElementById('f_name') ? document.getElementById('f_name').value : '');
+						const headMiddle = normalize(document.getElementById('m_name') ? document.getElementById('m_name').value : '');
+						const headLast = normalize(document.getElementById('l_name') ? document.getElementById('l_name').value : '');
+						if (headFirst || headMiddle || headLast) {
+							if (fn === headFirst && mn === headMiddle && ln === headLast) {
+								hasDup = true;
+								[fnEl, mnEl, lnEl].forEach(el => el && el.classList.add('is-invalid'));
+								attachFeedback(fnEl || mnEl || lnEl, 'Duplicate of head name');
+							}
+						}
+
+						if (seen[key]) {
+							// mark both current and previous entries as duplicates
+							hasDup = true;
+							[fnEl, mnEl, lnEl].forEach(el => el && el.classList.add('is-invalid'));
+							// mark previous ones
+							seen[key].forEach(prevIdx => {
+								const pfn = document.querySelector(`[name='member_fname_${prevIdx}']`);
+								const pmn = document.querySelector(`[name='member_mname_${prevIdx}']`);
+								const pln = document.querySelector(`[name='member_lname_${prevIdx}']`);
+								[pfn, pmn, pln].forEach(el => el && el.classList.add('is-invalid'));
+								attachFeedback(pfn || pmn || pln, 'Duplicate name among members');
+							});
+							attachFeedback(fnEl || mnEl || lnEl, 'Duplicate name among members');
+							seen[key].push(i);
+						} else {
+							seen[key] = [i];
+						}
+					}
+
+					// Disable submit if duplicates exist
+					const submit = document.getElementById('submitBtn');
+					if (submit) submit.disabled = hasDup;
+				}
+
+				function attachFeedback(el, msg) {
+					if (!el) return;
+					// Find the name inputs row to place feedback below the name fields
+					const nameRow = el.closest('.row');
+					const container = nameRow && nameRow.parentElement ? nameRow.parentElement : el.parentElement;
+					if (!container) return;
+					// Don't create duplicate feedback nodes
+					let fb = container.querySelector('.duplicate-feedback');
+					if (!fb) {
+						fb = document.createElement('div');
+						fb.className = 'form-text text-danger duplicate-feedback';
+						fb.style.marginTop = '4px';
+						// Insert after the name row if possible
+						if (nameRow && nameRow.nextSibling) {
+							nameRow.parentElement.insertBefore(fb, nameRow.nextSibling);
+						} else if (nameRow) {
+							nameRow.parentElement.appendChild(fb);
+						} else {
+							container.appendChild(fb);
+						}
+					}
+					fb.textContent = msg;
+				}
+			}
+		}
+	});
 </script>
 <script>
 	document.addEventListener("DOMContentLoaded", function() {
@@ -1089,149 +1205,149 @@ document.addEventListener('DOMContentLoaded', function() {
 					</div>
 					<div class="col-md-6">
 						<div class="container-fluid">
-						<div class="row g-3">
-							<div class="col-12">
-								<div class="id-card family-card">
-									<div class="card-header">
-										<div class="card-title">KANLAON EVACUATION PLAN</div>
-										<div class="card-subtitle">BAKWIT CARD</div>
-										<!-- <div class="registration-type">FAMILY</div> -->
-									</div>
-		
-									<div class="form-section">
-										<table class="form-table">
-											<tr>
-												<td>
-													HOUSEHOLD HEAD:
+							<div class="row g-3">
+								<div class="col-12">
+									<div class="id-card family-card">
+										<div class="card-header">
+											<div class="card-title">KANLAON EVACUATION PLAN</div>
+											<div class="card-subtitle">BAKWIT CARD</div>
+											<!-- <div class="registration-type">FAMILY</div> -->
+										</div>
+
+										<div class="form-section">
+											<table class="form-table">
+												<tr>
+													<td>
+														HOUSEHOLD HEAD:
 														<span class="form-label-local">(PANGULO SANG PANIMALAY)</span>
-												</td>
-												<td id="householdHeadCell"></td>
-											</tr>
-											<tr>
-												<td>
-													NO. OF HOUSEHOLD MEMBER:
-													<span class="form-label-local">(KADAMUON/KADAGHANON SA PANIMALAY)</span>
-												</td>
-												<td id="memberCountCell"></td>
-											</tr>
-											<tr>
-												<td>
-													ADDRESS:
-													<span class="form-label-local">(PULOY-AN/PUY-ANAN)</span>
-												</td>
-												<td id="addressCell"></td>
-											</tr>
-											<tr>
-												<td>
-													COLLECTION POINT/PICKUP POINT:
-													<span class="form-label-local">(TILIPUNAN PARA SA BAKWIT)</span>
-												</td>
-												<td id="collectionPointCell"></td>
-											</tr>
-											<tr>
-												<td>
-													ASSIGNED EVACUATION CENTER:
-													<span class="form-label-local">(GINTALANA NGA EVACUATION CENTER)</span>
-												</td>
-												<td id="evacuationCenterCell"></td>
-											</tr>
-											<tr>
-												<td>
-													PHONE NUMBER OF FAMILY LEADER:
-													<span class="form-label-local">(NUMERO SA SELPON SANG PANGULO SANG PANIMALAY)</span>
-												</td>
-												<td id="phoneNumberCell"></td>
-											</tr>
-											<tr>
-												<td>
-													PERSONS WITH SPECIAL NEEDS:
-													<span class="form-label-local">(MIYEMBRO NGA MAY ESPESYAL NGA PANGINAHANGLANON)</span>
-												</td>
-												<td>N/A</td>
-                                        	</tr>
-											<tr>
-												<td>STAYING IN CENTER?</td>
-												<td>
-													<div class="checkbox-group" style="display: flex; gap: 20px; align-items: center;">
-														<div class="checkbox-item">
-															<div class="checkbox-box checked"></div>
-															<span>YES</span>
+													</td>
+													<td id="householdHeadCell"></td>
+												</tr>
+												<tr>
+													<td>
+														NO. OF HOUSEHOLD MEMBER:
+														<span class="form-label-local">(KADAMUON/KADAGHANON SA PANIMALAY)</span>
+													</td>
+													<td id="memberCountCell"></td>
+												</tr>
+												<tr>
+													<td>
+														ADDRESS:
+														<span class="form-label-local">(PULOY-AN/PUY-ANAN)</span>
+													</td>
+													<td id="addressCell"></td>
+												</tr>
+												<tr>
+													<td>
+														COLLECTION POINT/PICKUP POINT:
+														<span class="form-label-local">(TILIPUNAN PARA SA BAKWIT)</span>
+													</td>
+													<td id="collectionPointCell"></td>
+												</tr>
+												<tr>
+													<td>
+														ASSIGNED EVACUATION CENTER:
+														<span class="form-label-local">(GINTALANA NGA EVACUATION CENTER)</span>
+													</td>
+													<td id="evacuationCenterCell"></td>
+												</tr>
+												<tr>
+													<td>
+														PHONE NUMBER OF FAMILY LEADER:
+														<span class="form-label-local">(NUMERO SA SELPON SANG PANGULO SANG PANIMALAY)</span>
+													</td>
+													<td id="phoneNumberCell"></td>
+												</tr>
+												<tr>
+													<td>
+														PERSONS WITH SPECIAL NEEDS:
+														<span class="form-label-local">(MIYEMBRO NGA MAY ESPESYAL NGA PANGINAHANGLANON)</span>
+													</td>
+													<td>N/A</td>
+												</tr>
+												<tr>
+													<td>STAYING IN CENTER?</td>
+													<td>
+														<div class="checkbox-group" style="display: flex; gap: 20px; align-items: center;">
+															<div class="checkbox-item">
+																<div class="checkbox-box checked"></div>
+																<span>YES</span>
+															</div>
+															<div class="checkbox-item">
+																<div class="checkbox-box"></div>
+																<span>NO</span>
+															</div>
+															<div style="border-left: 2px solid #000; height: 40px; margin: 0 10px;"></div>
+															<span>QR CODE:</span>
+															<img id="qrCodeImg" src="../../../qrcodes/default.png" alt="QR Code" style="width: 80px; height: 80px;">
 														</div>
-														<div class="checkbox-item">
-															<div class="checkbox-box"></div>
-															<span>NO</span>
-														</div>
-														<div style="border-left: 2px solid #000; height: 40px; margin: 0 10px;"></div>
-														<span>QR CODE:</span>
-														<img id="qrCodeImg" src="../../../qrcodes/default.png" alt="QR Code" style="width: 80px; height: 80px;">
+													</td>
+												</tr>
+											</table>
+										</div>
+										<div class="authority-section">
+											<div class="logo-placeholder">
+												Place LGU logo here
+											</div>
+
+											<div class="authority-list">
+												<div class="authority-item">
+													<div class="authority-name">LDRRMO</div>
+													<div class="authority-line"></div>
+												</div>
+												<div class="authority-item">
+													<div class="authority-name">PUNONG BARANGAY</div>
+													<div class="authority-line"></div>
+												</div>
+												<div class="authority-item">
+													<div class="authority-name">PUROK LEADER</div>
+													<div class="authority-line"></div>
+												</div>
+												<div class="authority-item">
+													<div class="authority-name">LOCAL POLICE STATION</div>
+													<div class="authority-line"></div>
+												</div>
+												<div class="authority-item">
+													<div class="authority-name">OFFICE OF CIVIL DEFENSE NIR</div>
+													<div class="authority-line">
+														<span class="authority-phone">09956112342 / 09177040134</span>
 													</div>
-												</td>
-											</tr>
-										</table>
-									</div>
-									<div class="authority-section">
-									<div class="logo-placeholder">
-										Place LGU logo here
-									</div>
-									
-									<div class="authority-list">
-										<div class="authority-item">
-											<div class="authority-name">LDRRMO</div>
-											<div class="authority-line"></div>
+												</div>
+											</div>
 										</div>
-										<div class="authority-item">
-											<div class="authority-name">PUNONG BARANGAY</div>
-											<div class="authority-line"></div>
-										</div>
-										<div class="authority-item">
-											<div class="authority-name">PUROK LEADER</div>
-											<div class="authority-line"></div>
-										</div>
-										<div class="authority-item">
-											<div class="authority-name">LOCAL POLICE STATION</div>
-											<div class="authority-line"></div>
-										</div>
-										<div class="authority-item">
-											<div class="authority-name">OFFICE OF CIVIL DEFENSE NIR</div>
-											<div class="authority-line">
-												<span class="authority-phone">09956112342 / 09177040134</span>
+
+										<!-- Footer -->
+										<div class="footer">
+											<div class="footer-content" style="border-radius:30px">
+												<div class="footer-text">REGIONAL TASK FORCE KANLAON</div>
+												<div class="volcano-logo"></div>
 											</div>
 										</div>
 									</div>
 								</div>
-
-                                <!-- Footer -->
-                                <div class="footer">
-                                    <div class="footer-content" style="border-radius:30px">
-                                        <div class="footer-text">REGIONAL TASK FORCE KANLAON</div>
-                                        <div class="volcano-logo"></div>
-                                    </div>
-                                </div>
-								</div>
 							</div>
 						</div>
-					</div>
-					<!-- <div class="col-md-6"> -->
+						<!-- <div class="col-md-6"> -->
 						<!-- Family Member Information -->
-						
-						
-					<!-- </div> -->
+
+
+						<!-- </div> -->
 
 					</div>
 					<div class="card">
-							<div class="card-header bg-success text-white">
-								<h6 class="mb-0"><i class="fas fa-users me-2"></i>Family Members</h6>
+						<div class="card-header bg-success text-white">
+							<h6 class="mb-0"><i class="fas fa-users me-2"></i>Family Members</h6>
+						</div>
+						<div class="card-body">
+							<div id="familyInfo" class="text-center py-4">
+								<i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+								<p class="text-muted">No family member scanned yet</p>
 							</div>
-							<div class="card-body">
-								<div id="familyInfo" class="text-center py-4">
-									<i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
-									<p class="text-muted">No family member scanned yet</p>
-								</div>
-								<div id="familyList" style="max-height: 300px; overflow-y: auto; display: none;">
-									<!-- Dynamic content will appear here -->
-								</div>
+							<div id="familyList" style="max-height: 300px; overflow-y: auto; display: none;">
+								<!-- Dynamic content will appear here -->
 							</div>
 						</div>
+					</div>
 				</div>
 				<!-- Selected Family Members -->
 				<div class="card mt-3">
@@ -1311,440 +1427,452 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-	   .container {
-    max-width: 900px;
-    margin: 0 auto;
-    background: white;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
+	.container {
+		max-width: 900px;
+		margin: 0 auto;
+		background: white;
+		padding: 15px;
+		border-radius: 8px;
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+	}
 
-.preview-header {
-    text-align: center;
-    margin-bottom: 15px;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
+	.preview-header {
+		text-align: center;
+		margin-bottom: 15px;
+		padding: 10px;
+		background: #f8f9fa;
+		border-radius: 8px;
+	}
 
-.preview-header h1 {
-    color: #333;
-    margin-bottom: 5px;
-    font-size: 1.2rem;
-}
+	.preview-header h1 {
+		color: #333;
+		margin-bottom: 5px;
+		font-size: 1.2rem;
+	}
 
-.preview-header p {
-    color: #666;
-    margin: 3px 0;
-    font-size: 0.9rem;
-}
+	.preview-header p {
+		color: #666;
+		margin: 3px 0;
+		font-size: 0.9rem;
+	}
 
-.id-card {
-    background: white;
-    color: black;
-    padding: 1rem;
-    border: 2px solid #000;
-    border-radius: 0;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    position: relative;
-    margin-bottom: 20px;
-    font-family: Arial, sans-serif;
-    font-size: 12px;
-    line-height: 1.3;
-}
+	.id-card {
+		background: white;
+		color: black;
+		padding: 1rem;
+		border: 2px solid #000;
+		border-radius: 0;
+		box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+		position: relative;
+		margin-bottom: 20px;
+		font-family: Arial, sans-serif;
+		font-size: 12px;
+		line-height: 1.3;
+	}
 
-.card-header {
-    text-align: center;
-    margin-bottom: 1rem;
-    border-bottom: 2px solid #000;
-    padding-bottom: 0.5rem;
-}
+	.card-header {
+		text-align: center;
+		margin-bottom: 1rem;
+		border-bottom: 2px solid #000;
+		padding-bottom: 0.5rem;
+	}
 
-.card-title {
-    font-size: 1.1rem;
-    font-weight: bold;
-    margin: 0;
-    color: #000;
-    text-transform: uppercase;
-}
+	.card-title {
+		font-size: 1.1rem;
+		font-weight: bold;
+		margin: 0;
+		color: #000;
+		text-transform: uppercase;
+	}
 
-.card-subtitle {
-    font-size: 1rem;
-    font-weight: bold;
-    margin: 0.3rem 0 0 0;
-    color: #dc3545;
-    text-transform: uppercase;
-}
+	.card-subtitle {
+		font-size: 1rem;
+		font-weight: bold;
+		margin: 0.3rem 0 0 0;
+		color: #dc3545;
+		text-transform: uppercase;
+	}
 
-.form-section {
-    margin-bottom: 1rem;
-	height: 400px;
-}
+	.form-section {
+		margin-bottom: 1rem;
+		height: 400px;
+	}
 
-.form-table {
-    width: 100%;
-    border-collapse: collapse;
-	border: 1px solid #000;
-}
+	.form-table {
+		width: 100%;
+		border-collapse: collapse;
+		border: 1px solid #000;
+	}
 
-.form-table td {
-    padding: 0rem 0;
-    vertical-align: top;
-}
+	.form-table td {
+		padding: 0rem 0;
+		vertical-align: top;
+	}
 
 
-.form-table td:first-child {
-    width: 25%;
-    font-size: 7px;
-    font-weight: bold;
-    text-transform: uppercase;
-    padding: 2px;
-    text-align: center;
-    vertical-align: middle;
-    border-right: 1px solid #000; /* Added vertical line between columns */
-    border-bottom: 1px solid #000; /* Added horizontal line */
-}
+	.form-table td:first-child {
+		width: 25%;
+		font-size: 7px;
+		font-weight: bold;
+		text-transform: uppercase;
+		padding: 2px;
+		text-align: center;
+		vertical-align: middle;
+		border-right: 1px solid #000;
+		/* Added vertical line between columns */
+		border-bottom: 1px solid #000;
+		/* Added horizontal line */
+	}
 
-.form-table td:last-child {
-    width: 75%; /* Adjusted to total 100% with first-child */
-    font-size: 9px;
-    padding: 2px 2px 2px 5px; /* Added padding */
-    border-bottom: 1px solid #000; /* Added horizontal line */
-    vertical-align: middle; /* Ensure consistent vertical alignment */
-}
+	.form-table td:last-child {
+		width: 75%;
+		/* Adjusted to total 100% with first-child */
+		font-size: 9px;
+		padding: 2px 2px 2px 5px;
+		/* Added padding */
+		border-bottom: 1px solid #000;
+		/* Added horizontal line */
+		vertical-align: middle;
+		/* Ensure consistent vertical alignment */
+	}
 
-.form-label-local {
-    font-size: 0.4rem;
-    color: #666;
-    font-style: italic;
-    text-transform: none;
-    font-weight: normal;
-    display: block;
-    margin-top: 0.1rem;
-}
+	.form-label-local {
+		font-size: 0.4rem;
+		color: #666;
+		font-style: italic;
+		text-transform: none;
+		font-weight: normal;
+		display: block;
+		margin-top: 0.1rem;
+	}
 
-.checkbox-group {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
+	.checkbox-group {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
 
-.checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-}
+	.checkbox-item {
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+	}
 
-.checkbox-box {
-    width: 16px;
-    height: 16px;
-    border: 1px solid #000;
-    display: inline-block;
-    position: relative;
-}
+	.checkbox-box {
+		width: 16px;
+		height: 16px;
+		border: 1px solid #000;
+		display: inline-block;
+		position: relative;
+	}
 
-.checkbox-box.checked {
-    background: #000;
-}
+	.checkbox-box.checked {
+		background: #000;
+	}
 
-.checkbox-box.checked::after {
-    content: '✓';
-    position: absolute;
-    top: -2px;
-    left: 1px;
-    font-weight: bold;
-    color: white;
-    font-size: 0.8rem;
-}
+	.checkbox-box.checked::after {
+		content: '✓';
+		position: absolute;
+		top: -2px;
+		left: 1px;
+		font-weight: bold;
+		color: white;
+		font-size: 0.8rem;
+	}
 
-.control-number-section {
-    margin-top: 0.5rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid #ccc;
-}
+	.control-number-section {
+		margin-top: 0.5rem;
+		padding-top: 0.5rem;
+		border-top: 1px solid #ccc;
+	}
 
-.control-number-table {
-    width: 100%;
-    border-collapse: collapse;
-}
+	.control-number-table {
+		width: 100%;
+		border-collapse: collapse;
+	}
 
-.control-number-table td {
-    padding: 0.3rem 0;
-    vertical-align: middle;
-}
+	.control-number-table td {
+		padding: 0.3rem 0;
+		vertical-align: middle;
+	}
 
-.control-number-table td:first-child {
-    width: 30%;
-    font-weight: bold;
-    text-transform: uppercase;
-    padding-right: 0.5rem;
-}
+	.control-number-table td:first-child {
+		width: 30%;
+		font-weight: bold;
+		text-transform: uppercase;
+		padding-right: 0.5rem;
+	}
 
-.control-number-table td:last-child {
-    width: 70%;
-}
+	.control-number-table td:last-child {
+		width: 70%;
+	}
 
-.control-number-box {
-    border: 1px solid #000;
-    padding: 0.3rem 0.5rem;
-    text-align: center;
-    font-weight: bold;
-    background: #f8f9fa;
-    display: inline-block;
-    min-width: 150px;
-    font-size: 0.9rem;
-}
+	.control-number-box {
+		border: 1px solid #000;
+		padding: 0.3rem 0.5rem;
+		text-align: center;
+		font-weight: bold;
+		background: #f8f9fa;
+		display: inline-block;
+		min-width: 150px;
+		font-size: 0.9rem;
+	}
 
-.authority-section {
-    display: flex;
-    justify-content: space-between;
-    margin-top: -100px;
-    padding: 0.8rem;
-    background: #f4a460;
-    border: 1px solid #000;
-}
+	.authority-section {
+		display: flex;
+		justify-content: space-between;
+		margin-top: -100px;
+		padding: 0.8rem;
+		background: #f4a460;
+		border: 1px solid #000;
+	}
 
-.logo-placeholder {
-    width: 80px;
-    height: 80px;
-    border: 1px dashed #8b4513;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #deb887;
-    font-size: 0.6rem;
-    color: #8b4513;
-    text-align: center;
-    flex-shrink: 0;
-}
+	.logo-placeholder {
+		width: 80px;
+		height: 80px;
+		border: 1px dashed #8b4513;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: #deb887;
+		font-size: 0.6rem;
+		color: #8b4513;
+		text-align: center;
+		flex-shrink: 0;
+	}
 
-.authority-list {
-    flex-grow: 1;
-    margin-left: 1rem;
-}
+	.authority-list {
+		flex-grow: 1;
+		margin-left: 1rem;
+	}
 
-.authority-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.3rem;
-}
+	.authority-item {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.3rem;
+	}
 
-.authority-name {
-    font-weight: bold;
-    text-transform: uppercase;
-    font-size: 0.7rem;
-}
+	.authority-name {
+		font-weight: bold;
+		text-transform: uppercase;
+		font-size: 0.7rem;
+	}
 
-.authority-line {
-    border-bottom: 1px solid #000;
-    flex-grow: 1;
-    margin-left: 0.5rem;
-    min-width: 100px;
-}
+	.authority-line {
+		border-bottom: 1px solid #000;
+		flex-grow: 1;
+		margin-left: 0.5rem;
+		min-width: 100px;
+	}
 
-.authority-phone {
-    font-size: 0.6rem;
-    color: #666;
-}
+	.authority-phone {
+		font-size: 0.6rem;
+		color: #666;
+	}
 
-.footer {
-    margin-top: 0.5rem;
-	border-radius: 20px ;
-    background-color: lightblue;
-    padding: 0; /* Remove all internal padding */
-    box-sizing: border-box; /* Include border in width calculation */
-}
+	.footer {
+		margin-top: 0.5rem;
+		border-radius: 20px;
+		background-color: lightblue;
+		padding: 0;
+		/* Remove all internal padding */
+		box-sizing: border-box;
+		/* Include border in width calculation */
+	}
 
-.footer-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0; /* Ensures no gap between items */
-}
+	.footer-content {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 0;
+		/* Ensures no gap between items */
+	}
 
-.footer-text {
-    font-weight: bold;
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    text-align: center;
-    flex-grow: 1;
-    padding-right: 0; /* Removed padding */
-    /* margin-right: -10px; Pulls logo closer by negative margin */
-}
+	.footer-text {
+		font-weight: bold;
+		text-transform: uppercase;
+		font-size: 0.8rem;
+		text-align: center;
+		flex-grow: 1;
+		padding-right: 0;
+		/* Removed padding */
+		/* margin-right: -10px; Pulls logo closer by negative margin */
+	}
 
-.volcano-logo {
-    width: 80px;
-    height: 80px;
-    border: 1px solid #000;
-    border-radius: 50%;
-    background: #ff8c00;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: 0; /* Removed margin */
-    transform: translateX(4px); /* Fine-tune positioning */
-	/* margin-right:100px; */
-}
+	.volcano-logo {
+		width: 80px;
+		height: 80px;
+		border: 1px solid #000;
+		border-radius: 50%;
+		background: #ff8c00;
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-left: 0;
+		/* Removed margin */
+		transform: translateX(4px);
+		/* Fine-tune positioning */
+		/* margin-right:100px; */
+	}
 
-/* Keep volcano logo details the same */
-.volcano-logo::before {
-    content: '🌋';
-    position: absolute;
-    font-size: 3rem;
-}
+	/* Keep volcano logo details the same */
+	.volcano-logo::before {
+		content: '🌋';
+		position: absolute;
+		font-size: 3rem;
+	}
 
-.volcano-logo::after {
-    content: 'TASK FORCE\A KANLAON';
-    position: absolute;
-    bottom: 2px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.3rem;
-    text-align: center;
-    line-height: 1;
-    white-space: pre-line;
+	.volcano-logo::after {
+		content: 'TASK FORCE\A KANLAON';
+		position: absolute;
+		bottom: 2px;
+		left: 50%;
+		transform: translateX(-50%);
+		font-size: 0.3rem;
+		text-align: center;
+		line-height: 1;
+		white-space: pre-line;
 
-}
+	}
 
-.print-info {
-    background: #e9ecef;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    font-size: 12px;
-}
+	.print-info {
+		background: #e9ecef;
+		padding: 10px;
+		border-radius: 8px;
+		margin-bottom: 15px;
+		font-size: 12px;
+	}
 
-.print-info h3 {
-    margin-top: 0;
-    color: #333;
-    font-size: 1rem;
-}
+	.print-info h3 {
+		margin-top: 0;
+		color: #333;
+		font-size: 1rem;
+	}
 
-.print-info ul {
-    margin: 8px 0;
-    padding-left: 15px;
-}
+	.print-info ul {
+		margin: 8px 0;
+		padding-left: 15px;
+	}
 
-.print-info li {
-    margin: 3px 0;
-    font-size: 0.8rem;
-}
+	.print-info li {
+		margin: 3px 0;
+		font-size: 0.8rem;
+	}
 </style>
 
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    var disasterSelect = document.getElementById('disasterSelect');
-    var form = document.getElementById('idpRegistrationForm');
-    if (disasterSelect) {
-        disasterSelect.addEventListener('change', function() {
-            var selectedValue = disasterSelect.value;
-            // If the selected value is empty or the 'No disaster events found' option
-            if (!selectedValue || selectedValue === '' || disasterSelect.options[disasterSelect.selectedIndex].text === 'No disaster events found') {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'No Disaster Selected',
-                    text: 'Please select a valid disaster event before proceeding.'
-                });
-                disasterSelect.selectedIndex = 0; // Reset to default
-            }
-        });
-    }
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            var selectedValue = disasterSelect ? disasterSelect.value : '';
-            if (!selectedValue || selectedValue === '' || (disasterSelect && disasterSelect.options[disasterSelect.selectedIndex].text === 'No disaster events found')) {
-                e.preventDefault();
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'No Disaster Selected',
-                    text: 'Please select a valid disaster event before submitting the form.'
-                });
-                return false;
-            }
-        });
-    }
-});
+	document.addEventListener('DOMContentLoaded', function() {
+		var disasterSelect = document.getElementById('disasterSelect');
+		var form = document.getElementById('idpRegistrationForm');
+		if (disasterSelect) {
+			disasterSelect.addEventListener('change', function() {
+				var selectedValue = disasterSelect.value;
+				// If the selected value is empty or the 'No disaster events found' option
+				if (!selectedValue || selectedValue === '' || disasterSelect.options[disasterSelect.selectedIndex].text === 'No disaster events found') {
+					Swal.fire({
+						icon: 'warning',
+						title: 'No Disaster Selected',
+						text: 'Please select a valid disaster event before proceeding.'
+					});
+					disasterSelect.selectedIndex = 0; // Reset to default
+				}
+			});
+		}
+		if (form) {
+			form.addEventListener('submit', function(e) {
+				var selectedValue = disasterSelect ? disasterSelect.value : '';
+				if (!selectedValue || selectedValue === '' || (disasterSelect && disasterSelect.options[disasterSelect.selectedIndex].text === 'No disaster events found')) {
+					e.preventDefault();
+					Swal.fire({
+						icon: 'warning',
+						title: 'No Disaster Selected',
+						text: 'Please select a valid disaster event before submitting the form.'
+					});
+					return false;
+				}
+			});
+		}
+	});
 </script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    var form = document.getElementById('idpRegistrationForm');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            var formData = new FormData(form);
-            fetch(form.action, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success',
-                        text: data.message
-                    }).then(() => {
-                        form.reset();
-                        // Optionally, reset custom UI fields (e.g., previews, dynamic fields)
-                        var assignedRoomDisplay = document.getElementById('assignedRoomDisplay');
-                        if (assignedRoomDisplay) {
-                            assignedRoomDisplay.innerHTML = '';
-                            assignedRoomDisplay.style.display = 'none';
-                        }
-                        var profilePicPreview = document.getElementById('profilePicPreview');
-                        if (profilePicPreview) {
-                            profilePicPreview.classList.add('d-none');
-                        }
-                        var signaturePreview = document.getElementById('signaturePreview');
-                        if (signaturePreview) {
-                            signaturePreview.src = '#';
-                            signaturePreview.style.display = 'none';
-                        }
-                        // Reset family members section if present
-                        var familySection = document.getElementById('familyMembersSection');
-                        var familyFieldsDiv = document.getElementById('familyMembersFields');
-                        var numMembersInput = document.getElementById('numFamilyMembers');
-                        if (familySection && familyFieldsDiv && numMembersInput) {
-                            familySection.style.display = 'none';
-                            familyFieldsDiv.innerHTML = '';
-                            numMembersInput.value = '';
-                        }
-                        // Reset room dropdown
-                        var roomDropdown = document.getElementById('room');
-                        if (roomDropdown) {
-                            roomDropdown.selectedIndex = 0;
-                        }
-                        // Reset disaster event display
-                        var disasterEventName = document.getElementById('disasterEventName');
-                        if (disasterEventName) {
-                            disasterEventName.textContent = 'No disaster selected';
-                        }
-                        var disasterIdHidden = document.getElementById('disasterIdHidden');
-                        if (disasterIdHidden) {
-                            disasterIdHidden.value = '';
-                        }
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message
-                    });
-                }
-            })
-            .catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'An error occurred while submitting the form.'
-                });
-            });
-        });
-    }
-});
+	document.addEventListener('DOMContentLoaded', function() {
+		var form = document.getElementById('idpRegistrationForm');
+		if (form) {
+			form.addEventListener('submit', function(e) {
+				e.preventDefault();
+				var formData = new FormData(form);
+				fetch(form.action, {
+						method: 'POST',
+						body: formData
+					})
+					.then(response => response.json())
+					.then(data => {
+						if (data.success) {
+							Swal.fire({
+								icon: 'success',
+								title: 'Success',
+								text: data.message
+							}).then(() => {
+								form.reset();
+								// Optionally, reset custom UI fields (e.g., previews, dynamic fields)
+								var assignedRoomDisplay = document.getElementById('assignedRoomDisplay');
+								if (assignedRoomDisplay) {
+									assignedRoomDisplay.innerHTML = '';
+									assignedRoomDisplay.style.display = 'none';
+								}
+								var profilePicPreview = document.getElementById('profilePicPreview');
+								if (profilePicPreview) {
+									profilePicPreview.classList.add('d-none');
+								}
+								var signaturePreview = document.getElementById('signaturePreview');
+								if (signaturePreview) {
+									signaturePreview.src = '#';
+									signaturePreview.style.display = 'none';
+								}
+								// Reset family members section if present
+								var familySection = document.getElementById('familyMembersSection');
+								var familyFieldsDiv = document.getElementById('familyMembersFields');
+								var numMembersInput = document.getElementById('numFamilyMembers');
+								if (familySection && familyFieldsDiv && numMembersInput) {
+									familySection.style.display = 'none';
+									familyFieldsDiv.innerHTML = '';
+									numMembersInput.value = '';
+								}
+								// Reset room dropdown
+								var roomDropdown = document.getElementById('room');
+								if (roomDropdown) {
+									roomDropdown.selectedIndex = 0;
+								}
+								// Reset disaster event display
+								var disasterEventName = document.getElementById('disasterEventName');
+								if (disasterEventName) {
+									disasterEventName.textContent = 'No disaster selected';
+								}
+								var disasterIdHidden = document.getElementById('disasterIdHidden');
+								if (disasterIdHidden) {
+									disasterIdHidden.value = '';
+								}
+							});
+						} else {
+							Swal.fire({
+								icon: 'error',
+								title: 'Error',
+								text: data.message
+							});
+						}
+					})
+					.catch(error => {
+						Swal.fire({
+							icon: 'error',
+							title: 'Error',
+							text: 'An error occurred while submitting the form.'
+						});
+					});
+			});
+		}
+	});
 </script>

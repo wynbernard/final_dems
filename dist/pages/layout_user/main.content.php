@@ -113,6 +113,11 @@
   let userLng = null;
   let userMarker = null;
   let routingControl = null;
+  // Router provider: 'osrm' (default), 'openrouteservice', 'mapbox'
+  const ROUTER_PROVIDER = '<?php echo isset($router_provider) ? $router_provider : 'osrm'; ?>';
+  // If using a provider that requires an API key (openrouteservice, mapbox), set it in server-side variable $router_api_key
+  const ROUTER_API_KEY = '<?php echo isset($router_api_key) ? $router_api_key : ''; ?>';
+  let routeLayer = null; // for non-LRM rendered routes
 
   const map = L.map("map").setView([barangayLat, barangayLng], 13);
 
@@ -268,7 +273,6 @@
             <div class="route-steps mt-2 text-muted small"></div>
             <div class="d-flex flex-row gap-2 mt-2 align-items-center">
               <button class="btn btn-sm btn-outline-primary" onclick="createRoute(${center.lat}, ${center.lng}, this)">Get Route</button>
-              // <button class="btn btn-sm btn-success btn-arrive" data-evac-id="${center.evac_loc_id}">Arrive</button>
             </div>
           </div>
         `;
@@ -316,7 +320,16 @@
     }
 
     if (routingControl) {
-      map.removeControl(routingControl);
+      try {
+        map.removeControl(routingControl);
+      } catch (e) {}
+      routingControl = null;
+    }
+    if (routeLayer) {
+      try {
+        map.removeLayer(routeLayer);
+      } catch (e) {}
+      routeLayer = null;
     }
 
     // Find the .route-steps container: in list (li) or in marker popup
@@ -341,43 +354,126 @@
       stepDiv.innerHTML = "<em>Loading directions...</em>";
     }
 
-    routingControl = L.Routing.control({
-      waypoints: [
-        L.latLng(userLat, userLng),
-        L.latLng(destLat, destLng)
-      ],
-      router: new L.Routing.OSRMv1({
-        serviceUrl: 'https://router.project-osrm.org/route/v1'
-      }),
-      routeWhileDragging: false,
-      draggableWaypoints: false,
-      addWaypoints: false,
-      fitSelectedRoutes: true,
-      showAlternatives: false,
-      createMarker: () => null,
-      lineOptions: {
-        styles: [{
-          color: 'blue',
-          weight: 5
-        }]
-      },
-      show: false // disable default instruction panel
-    }).addTo(map);
+    // Choose routing provider
+    if (ROUTER_PROVIDER === 'osrm' || !ROUTER_PROVIDER) {
+      // Use existing Leaflet Routing Machine + OSRM
+      routingControl = L.Routing.control({
+        waypoints: [
+          L.latLng(userLat, userLng),
+          L.latLng(destLat, destLng)
+        ],
+        router: new L.Routing.OSRMv1({
+          serviceUrl: 'https://router.project-osrm.org/route/v1'
+        }),
+        routeWhileDragging: false,
+        draggableWaypoints: false,
+        addWaypoints: false,
+        fitSelectedRoutes: true,
+        showAlternatives: false,
+        createMarker: () => null,
+        lineOptions: {
+          styles: [{
+            color: 'blue',
+            weight: 5
+          }]
+        },
+        show: false
+      }).addTo(map);
 
-    routingControl.on('routesfound', e => {
-      const route = e.routes[0];
-      const summary = route.summary;
-      stepDiv.innerHTML = `
-        <strong>Route found:</strong><br>
-        ${ (summary.totalDistance / 1000).toFixed(2) } km, 
-        ${ Math.round(summary.totalTime / 60) } min
-      `;
-    });
+      routingControl.on('routesfound', e => {
+        const route = e.routes[0];
+        const summary = route.summary;
+        stepDiv.innerHTML = `<strong>Route found:</strong><br>${ (summary.totalDistance / 1000).toFixed(2) } km, ${ Math.round(summary.totalTime / 60) } min`;
+      });
 
-    routingControl.on('routingerror', err => {
-      console.error("Routing error:", err);
-      stepDiv.innerHTML = "<span class='text-danger'>Failed to get route.</span>";
-    });
+      routingControl.on('routingerror', err => {
+        console.error('Routing error:', err);
+        stepDiv.innerHTML = "<span class='text-danger'>Failed to get route.</span>";
+      });
+
+      return;
+    }
+
+    // For providers other than OSRM we'll call their HTTP APIs and draw a polyline on the map
+    stepDiv.innerHTML = '<em>Loading directions from ' + ROUTER_PROVIDER + '...</em>';
+
+    const start = [userLng, userLat];
+    const end = [destLng, destLat];
+
+    // Helper to render geojson coordinates (array of [lng,lat])
+    function renderRouteFromCoords(coords, distanceMeters, durationSec) {
+      const latlngs = coords.map(c => [c[1], c[0]]);
+      routeLayer = L.polyline(latlngs, {
+        color: 'blue',
+        weight: 5
+      }).addTo(map);
+      const bounds = L.latLngBounds(latlngs);
+      bounds.extend([userLat, userLng]);
+      map.fitBounds(bounds, {
+        padding: [20, 20]
+      });
+      stepDiv.innerHTML = `<strong>Route found:</strong><br>${ (distanceMeters/1000).toFixed(2) } km, ${ Math.round(durationSec/60) } min`;
+    }
+
+    if (ROUTER_PROVIDER === 'openrouteservice') {
+      if (!ROUTER_API_KEY) {
+        stepDiv.innerHTML = '<span class="text-danger">OpenRouteService API key not configured.</span>';
+        return;
+      }
+      // POST to ORS directions (geojson response)
+      fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': ROUTER_API_KEY
+        },
+        body: JSON.stringify({
+          coordinates: [start, end]
+        })
+      }).then(r => r.json()).then(data => {
+        if (data && data.features && data.features.length) {
+          const feat = data.features[0];
+          const coords = feat.geometry.coordinates; // [[lng,lat],...]
+          const props = feat.properties || {};
+          const summary = (props.summary) ? props.summary : {};
+          const distance = summary.distance || (props.segments && props.segments[0] && props.segments[0].distance) || 0;
+          const duration = summary.duration || (props.segments && props.segments[0] && props.segments[0].duration) || 0;
+          renderRouteFromCoords(coords, distance, duration);
+        } else {
+          stepDiv.innerHTML = '<span class="text-danger">No route returned from OpenRouteService.</span>';
+        }
+      }).catch(err => {
+        console.error('ORS error', err);
+        stepDiv.innerHTML = '<span class="text-danger">Failed to fetch route from OpenRouteService.</span>';
+      });
+      return;
+    }
+
+    if (ROUTER_PROVIDER === 'mapbox') {
+      if (!ROUTER_API_KEY) {
+        stepDiv.innerHTML = '<span class="text-danger">Mapbox access token not configured.</span>';
+        return;
+      }
+      const mbUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${userLng},${userLat};${destLng},${destLat}?geometries=geojson&overview=full&access_token=${encodeURIComponent(ROUTER_API_KEY)}`;
+      fetch(mbUrl).then(r => r.json()).then(data => {
+        if (data && data.routes && data.routes.length) {
+          const route = data.routes[0];
+          const coords = route.geometry.coordinates; // [[lng,lat],...]
+          const distance = route.distance || 0;
+          const duration = route.duration || 0;
+          renderRouteFromCoords(coords, distance, duration);
+        } else {
+          stepDiv.innerHTML = '<span class="text-danger">No route returned from Mapbox.</span>';
+        }
+      }).catch(err => {
+        console.error('Mapbox error', err);
+        stepDiv.innerHTML = '<span class="text-danger">Failed to fetch route from Mapbox.</span>';
+      });
+      return;
+    }
+
+    // Unknown provider
+    stepDiv.innerHTML = '<span class="text-danger">Unknown routing provider: ' + ROUTER_PROVIDER + '</span>';
   }
 
   // Geolocation
