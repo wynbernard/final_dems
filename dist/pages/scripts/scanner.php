@@ -182,7 +182,7 @@
 						// Update table dynamically
 						// document.getElementById('preRegIdCell').textContent = data.pre_reg_id;
 						document.getElementById('householdHeadCell').textContent = data.name;
-						document.getElementById('memberCountCell').textContent = data.solo_member_count || data.family_member_count || 0;
+						document.getElementById('memberCountCell').textContent = data.family_member_count || 0;
 
 						// Update table cell
 						document.getElementById('addressCell').textContent = data.solo_address || data.family_address || 'N/A';
@@ -212,20 +212,32 @@
 				isProcessing = true;
 				updateScannerStatus("Processing QR code...");
 
-				// Check for duplicate scans
-				if (scannedMembers.some(m => m.pre_reg_id === preRegId)) {
-					showAlert("This member has already been scanned", "warning");
+
+				// Check registration for this preRegId (current location and other locations)
+				const regCheck = await checkFamilyRegistration(preRegId);
+				if (regCheck === null) {
+					showAlert("Failed to verify registration status", "danger");
+					updateScannerStatus("Registration check failed");
 					return;
 				}
-
-				// Check if already registered BEFORE loading family data
-				const alreadyRegistered = await checkFamilyRegistration(preRegId);
-				if (alreadyRegistered) {
+				if (regCheck.isRegisteredHere) {
 					showAlert(`<i class="bi bi-exclamation-circle-fill"></i> Family is already registered at this location.`, "warning");
 					updateScannerStatus("Family already registered");
 					return; // Do NOT load or display family members
 				}
+				if (Array.isArray(regCheck.registeredOtherLocations) && regCheck.registeredOtherLocations.length > 0) {
+					const names = regCheck.registeredOtherLocations.map(r => r.location_name).join(', ');
+					showAlert(`<i class="bi bi-exclamation-circle-fill"></i> This family is already registered at other location(s): <b>${names}</b>.`, "warning");
+					updateScannerStatus("Registered at another location");
+					return;
+				}
 
+				// Check for duplicate scans in this session (after backend check)
+				if (scannedMembers.some(m => m.pre_reg_id === preRegId)) {
+					showAlert("This member has already been scanned in this session", "warning");
+					updateScannerStatus("Duplicate scan");
+					return;
+				}
 				updateScannerStatus("Fetching family data...");
 				const familyData = await getFamilyByPreRegId(preRegId);
 
@@ -238,9 +250,15 @@
 				// Check registration for each family member
 				const unregisteredMembers = [];
 				for (const member of familyData) {
-					// Check if this member is already registered
-					const isRegistered = await checkFamilyRegistration(member.pre_reg_id);
-					if (!isRegistered) {
+					// Check if this member is already registered anywhere
+					const mReg = await checkFamilyRegistration(member.pre_reg_id);
+					// If check failed, assume registered to avoid duplicates
+					if (mReg === null) {
+						console.warn(`Registration check failed for member ${member.pre_reg_id}, skipping`);
+						continue;
+					}
+					const isMemberRegisteredAnywhere = mReg.isRegisteredHere || (Array.isArray(mReg.registeredOtherLocations) && mReg.registeredOtherLocations.length > 0);
+					if (!isMemberRegisteredAnywhere) {
 						unregisteredMembers.push(member);
 					}
 				}
@@ -362,11 +380,16 @@
 		async function checkFamilyRegistration(preRegId) {
 			try {
 				const response = await fetch(`../qr_code_scanner/check_registration.php?pre_reg_id=${preRegId}&location_id=${currentLocationId}`);
+				if (!response.ok) {
+					console.error("Registration check HTTP error", response.status);
+					return null;
+				}
 				const data = await response.json();
-				return data.success && data.isRegistered;
+				// Return the full data object so callers can inspect isRegisteredHere and registeredOtherLocations
+				return data;
 			} catch (error) {
 				console.error("Family registration check error:", error);
-				return false;
+				return null;
 			}
 		}
 

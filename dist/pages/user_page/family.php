@@ -65,6 +65,10 @@
 											$family_id = $row['family_id'];
 											$address = $row['region'] . $row['province'] . $row['city_municipality'] . " , Bgry." . $row['barangay_name'] . $row['street'];
 											$OSM_address = $row['street'] . ", " . $row['barangay_name'] . ", " . $row['city_municipality'] . ", " . $row['province'] . ", " . "Philippines";
+											$coordinates = '';
+											if (!empty($row['latitude']) && !empty($row['longitude']) && $row['latitude'] != 0 && $row['longitude'] != 0) {
+												$coordinates = $row['latitude'] . ", " . $row['longitude'];
+											}
 											$head_name = $row['f_name'] . ' ' . $row['l_name'];
 											$familyStmt->close();
 											$fullAddress = $address;
@@ -188,8 +192,10 @@
 	</div>
 
 	<script>
+
 		document.addEventListener("DOMContentLoaded", function() {
 			const locationName = <?= json_encode($OSM_address ?? '') ?>;
+			const coordinates = <?= json_encode($coordinates ?? '') ?>;
 			const mapElement = document.getElementById("locationMap");
 			const coordinatesDisplay = document.getElementById("coordinatesDisplay");
 
@@ -198,6 +204,17 @@
 				[9.4, 122.2], // Southwest
 				[11.0, 123.2] // Northeast
 			);
+
+			// If coordinates are available, use them
+			if (coordinates && coordinates.trim() !== '' && coordinates !== ',') {
+				const [latStr, lonStr] = coordinates.split(',').map(s => s.trim());
+				const lat = parseFloat(latStr);
+				const lon = parseFloat(lonStr);
+				if (!isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0) {
+					displayMap(lat, lon, locationName);
+					return;
+				}
+			}
 
 			if (!locationName || locationName.trim() === "") {
 				mapElement.innerHTML = `
@@ -298,7 +315,7 @@
 						icon: customIcon
 					})
 					.addTo(map)
-					.bindPopup(`<strong>Family Location</strong><br>${label}`)
+					.bindPopup(`<strong>Family Location</strong><br>${label}<br><span style='font-size:12px;'>${lat.toFixed(6)}, ${lon.toFixed(6)}</span>`)
 					.openPopup();
 			}
 		});

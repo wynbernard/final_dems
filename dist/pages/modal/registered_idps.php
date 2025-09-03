@@ -1190,8 +1190,8 @@
 								<h6 class="mb-0"><i class="fas fa-qrcode me-2"></i>Scan QR Code</h6>
 							</div>
 							<div class="card-body text-center">
-								<div id="qrScanner" style="width: 100%; height: 300px; border: 2px dashed #ccc;"></div>
-								<div class="mt-3">
+								<div id="qrScanner" style="width: 100%; height: 400px; border: 2px dashed #ccc;"></div>
+								<div class="mt-5">
 									<button id="startScannerBtn" class="btn btn-primary me-2">
 										<i class="fas fa-play me-1"></i> Start Scanner
 									</button>

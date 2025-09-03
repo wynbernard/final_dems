@@ -55,7 +55,6 @@ try {
                 "family_barangay" => $row['family_barangay'],
                 "solo_member_count" => $row['solo_member_count'],
                 "family_member_count" => $row['family_member_count']
-
             ]
         ]);
     } else {
