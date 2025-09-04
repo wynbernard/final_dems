@@ -77,6 +77,7 @@ if (!$result) {
 												<th><i class="bi bi-person-fill"></i> IDP Name</th>
 												<th><i class="bi bi-box-seam"></i> Resource</th>
 												<th><i class="bi bi-stack"></i> Quantity</th>
+												<th><i class="bi bi-tags"></i> Distribution Type</th>
 												<th><i class="bi bi-calendar-check-fill"></i> Distribution Date</th>
 											</tr>
 										</thead>
@@ -92,6 +93,7 @@ if (!$result) {
 														<td><?= htmlspecialchars($row['f_name'] . ' ' . $row['l_name']) ?></td>
 														<td><?= htmlspecialchars($row['resource_name']) ?></td>
 														<td><?= htmlspecialchars($row['quantite']) ?></td>
+														<td><?= htmlspecialchars($row['distribution_type']) ?></td>
 														<td class="distribution-info"><?= $distribution_date ?></td>
 													</tr>
 											<?php }

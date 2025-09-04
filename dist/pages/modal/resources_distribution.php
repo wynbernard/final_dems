@@ -25,35 +25,50 @@
 
         <!-- Right: Resources + Family Info -->
         <div class="col-md-6">
-            <!-- Resources Selection -->
-            <div class="mb-4">
-                <h6>Select Resources to Distribute:</h6>
-                <form id="resource-selection-form">
-                    <?php
-                    include '../../../database/conn.php';
-                    $resourceQuery = "SELECT resource_id, resource_name, measurement_unit FROM resource_allocation_table ORDER BY resource_name ASC";
-                    $result = $conn->query($resourceQuery);
+			<!-- Resources Selection -->
+			<div class="mb-4">
+				<h6>Select Resources to Distribute:</h6>
+				<form id="resource-selection-form">
+					<div class="mb-2">
+						<label for="distributionType" class="form-label small mb-1">Distribution Type</label>
+						<select id="distributionType" name="distribution_type" class="form-select form-select-sm w-100">
+							<option value="family" selected>Family Distribution</option>
+							<option value="solo">Solo Distribution</option>
+						</select>
+					</div>
+					<div class="dropdown">
+						<button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="resourceDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+							<span id="resourceDropdownLabel">Select resources</span>
+						</button>
+						<div class="dropdown-menu p-3" aria-labelledby="resourceDropdownBtn" style="max-height:300px; overflow:auto; min-width:100%;">
+							<?php
+							include '../../../database/conn.php';
+							$resourceQuery = "SELECT resource_id, resource_name, measurement_unit FROM resource_allocation_table ORDER BY resource_name ASC";
+							$result = $conn->query($resourceQuery);
 
-                    if ($result && $result->num_rows > 0):
-                        while ($row = $result->fetch_assoc()):
-                            $resourceId = (int)$row['resource_id'];
-                            $resourceLabel = htmlspecialchars($row['resource_name']);
-                            $unit = htmlspecialchars($row['measurement_unit']);
-                    ?>
-                        <div class="form-check d-flex align-items-center mb-2">
-                            <input class="form-check-input me-2" type="checkbox" name="resources[]" value="<?= $resourceId ?>" id="res-<?= $resourceId ?>">
-                            <label class="form-check-label me-3" for="res-<?= $resourceId ?>"><?= $resourceLabel ?></label>
-                            <input type="number" name="quantity[<?= $resourceId ?>]" class="form-control form-control-sm w-auto" value="1" min="1" style="width: 80px;">
-                            <span class="ms-2"><?= $unit ?></span>
-                        </div>
-                    <?php
-                        endwhile;
-                    else:
-                        echo "<p class='text-muted'>No resources available to select.</p>";
-                    endif;
-                    ?>
-                </form>
-            </div>
+							if ($result && $result->num_rows > 0):
+								while ($row = $result->fetch_assoc()):
+									$resourceId = (int)$row['resource_id'];
+									$resourceLabel = htmlspecialchars($row['resource_name']);
+									$unit = htmlspecialchars($row['measurement_unit']);
+							?>
+								<div class="form-check d-flex align-items-center mb-2">
+									<input class="form-check-input me-2 resource-checkbox" type="checkbox" name="resources[]" value="<?= $resourceId ?>" id="res-<?= $resourceId ?>">
+									<label class="form-check-label me-3" for="res-<?= $resourceId ?>"><?= $resourceLabel ?></label>
+									<input type="number" name="quantity[<?= $resourceId ?>]" class="form-control form-control-sm w-auto resource-qty" value="1" min="1" style="width: 80px;" disabled>
+									<span class="ms-2 text-muted"><?= $unit ?></span>
+								</div>
+							<?php
+								endwhile;
+							else:
+								echo "<p class='text-muted'>No resources available to select.</p>";
+							endif;
+							?>
+						</div>
+					</div>
+				</form>
+				<small class="text-muted d-block mt-2" id="resource-help">Choose one or more resources and adjust quantities inside the dropdown.</small>
+			</div>
 
             <!-- Family Info -->
             <div id="family-info" class="d-none">
@@ -169,98 +184,141 @@
 						return;
 					}
 
-					// If location check passes, proceed with resource distribution
-					const form = document.getElementById("resource-selection-form");
-					const formData = new FormData(form);
-					formData.append("pre_reg_id", preRegId);
+					// If location check passes, perform validation depending on distribution type
+					const distributionType = document.getElementById('distributionType')?.value || 'family';
 
-					const response = await fetch("../fetch_data/recieve_resources_ajax.php", {
-						method: "POST",
-						body: formData
-					});
+					// helper to send distribution form
+					async function sendDistribution(targetPreRegId, overrideDistributionType = null) {
+						const form = document.getElementById("resource-selection-form");
+						const formData = new FormData(form);
+						formData.append("pre_reg_id", targetPreRegId);
+						if (overrideDistributionType) formData.set('distribution_type', overrideDistributionType);
 
-					// Check if response is ok
-					if (!response.ok) {
-						throw new Error(`Resource distribution failed: HTTP ${response.status} - ${response.statusText}`);
+						const resp = await fetch("../fetch_data/recieve_resources_ajax.php", {
+							method: "POST",
+							body: formData
+						});
+
+						if (!resp.ok) throw new Error(`Resource distribution failed: HTTP ${resp.status} - ${resp.statusText}`);
+						let respJson;
+						try { respJson = await resp.json(); } catch (je) { throw new Error('Invalid JSON from distribution service'); }
+						return respJson;
 					}
 
-					let data;
+					// Fetch family info for the scanned pre_reg_id
+					let familyInfo;
 					try {
-						data = await response.json();
-					} catch (jsonError) {
-						console.error("Distribution response JSON parse error:", jsonError);
-						Swal.fire({
-							icon: 'error',
-							title: 'Response Format Error',
-							text: 'Invalid response format from distribution service. Please contact system administrator.',
-							confirmButtonText: 'OK'
+						const vf = await fetch('../qr_code_scanner/verify_family_by_pre_reg.php', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ pre_reg_id: preRegId })
 						});
+						if (!vf.ok) throw new Error('Failed to verify family info');
+						familyInfo = await vf.json();
+					} catch (err) {
+						console.warn('Family verify failed, proceeding with individual distribution', err);
+						// fallback: perform individual distribution
+						try {
+							const result = await sendDistribution(preRegId);
+							if (result.success) {
+								document.getElementById("family-name").textContent = result.name || "N/A";
+								document.getElementById("evacuee-location").textContent = locationData.evacuee_location_name || "N/A";
+								document.getElementById("family-info").classList.remove("d-none");
+								Swal.fire({ icon: 'success', title: 'Distribution Successful!', text: result.message || 'Resources distributed.', timer: 3000, showConfirmButton: false });
+							} else {
+								Swal.fire({ icon: 'warning', title: 'Distribution Failed', text: result.message || 'Please try again.' });
+							}
+						} catch (e) {
+							Swal.fire({ icon: 'error', title: 'Distribution Error', text: e.message || 'Failed to distribute.' });
+						}
 						return;
 					}
 
-					if (data.success) {
-						// Display evacuee information
-						document.getElementById("family-name").textContent = data.name || "N/A";
-						document.getElementById("evacuee-location").textContent = locationData.evacuee_location_name || "N/A";
-						document.getElementById("family-info").classList.remove("d-none");
+					// familyInfo expected shape: { family_id, family_members: [...] }
+					const members = Array.isArray(familyInfo.family_members) ? familyInfo.family_members : [];
 
-						// Enhanced success message with more details
-						let successHtml = `
-							<p><strong>Resources distributed to:</strong> ${data.name || 'recipient'}</p>
-							<p><strong>Evacuee Location:</strong> ${locationData.evacuee_location_name}</p>
-							<p><strong>Staff Location:</strong> ${locationData.staff_location_name}</p>
-						`;
-
-						// Add cost information if available
-						if (data.total_cost) {
-							successHtml += `<p><strong>Total Cost:</strong> ₱${data.total_cost}</p>`;
+					if (distributionType === 'solo') {
+						// Solo distribution: always send to the scanned pre_reg_id (even if belongs to a family)
+						try {
+							const result = await sendDistribution(preRegId);
+							if (result.success) {
+								document.getElementById("family-name").textContent = result.name || "N/A";
+								document.getElementById("evacuee-location").textContent = locationData.evacuee_location_name || "N/A";
+								document.getElementById("family-info").classList.remove("d-none");
+								Swal.fire({ icon: 'success', title: 'Distribution Successful!', text: result.message || 'Resources distributed to individual.', timer: 3000, showConfirmButton: false });
+							} else {
+								Swal.fire({ icon: 'warning', title: 'Distribution Failed', text: result.message || 'Please try again.' });
+							}
+						} catch (e) {
+							Swal.fire({ icon: 'error', title: 'Distribution Error', text: e.message || 'Failed to distribute.' });
 						}
+						return;
+					}
 
-						// Add items count if available
-						if (data.items_count) {
-							successHtml += `<p><strong>Items Distributed:</strong> ${data.items_count} type(s)</p>`;
-						}
-
-						Swal.fire({
-							icon: 'success',
-							title: 'Distribution Successful!',
-							html: successHtml,
-							timer: 4000,
-							showConfirmButton: false
+					// distributionType === 'family'
+					if (members.length > 1) {
+						// Give user choice: distribute to whole family (mark family as received) or distribute to this individual only
+						const { value: action } = await Swal.fire({
+							title: 'Family detected',
+							html: `<p>This QR belongs to a family with ${members.length} members. How would you like to proceed?</p>`,
+							showDenyButton: true,
+							showCancelButton: true,
+							confirmButtonText: 'Family (mark family received)',
+							denyButtonText: 'Individual only',
 						});
 
-					} else {
-						// Handle specific error types from the PHP response
-						let errorTitle = 'Distribution Failed';
-						let errorIcon = 'warning';
+						if (action === undefined) {
+							// user cancelled
+							updateScannerStatus && updateScannerStatus('Distribution cancelled');
+							return;
+						}
 
-						// Check for specific error patterns
-						if (data.message) {
-							if (data.message.includes('Database error') || data.message.includes('database')) {
-								errorTitle = 'Database Error';
-								errorIcon = 'error';
-							} else if (data.message.includes('already received')) {
-								errorTitle = 'Already Received Aid';
-								errorIcon = 'info';
-							} else if (data.message.includes('not found') || data.message.includes('not registered')) {
-								errorTitle = 'Invalid Registration';
-								errorIcon = 'error';
-							} else if (data.message.includes('Insufficient stock')) {
-								errorTitle = 'Stock Unavailable';
-								errorIcon = 'warning';
-							} else if (data.message.includes('Unauthorized')) {
-								errorTitle = 'Access Denied';
-								errorIcon = 'error';
+						if (action === true) {
+							// Family distribution: send with distribution_type=family
+							try {
+								const result = await sendDistribution(preRegId, 'family');
+								if (result.success) {
+									document.getElementById("family-name").textContent = result.name || "N/A";
+									document.getElementById("evacuee-location").textContent = locationData.evacuee_location_name || "N/A";
+									document.getElementById("family-info").classList.remove("d-none");
+									Swal.fire({ icon: 'success', title: 'Family Distribution Successful', text: result.message || 'Family marked as received.', timer: 3000, showConfirmButton: false });
+								} else {
+									Swal.fire({ icon: 'warning', title: 'Distribution Failed', text: result.message || 'Please try again.' });
+								}
+							} catch (e) {
+								Swal.fire({ icon: 'error', title: 'Distribution Error', text: e.message || 'Failed to distribute.' });
+							}
+						} else {
+							// Individual only: send to scanned pre_reg_id but keep distribution_type as solo
+							try {
+								const result = await sendDistribution(preRegId, 'solo');
+								if (result.success) {
+									document.getElementById("family-name").textContent = result.name || "N/A";
+									document.getElementById("evacuee-location").textContent = locationData.evacuee_location_name || "N/A";
+									document.getElementById("family-info").classList.remove("d-none");
+									Swal.fire({ icon: 'success', title: 'Distribution Successful', text: result.message || 'Resources distributed to individual.', timer: 3000, showConfirmButton: false });
+								} else {
+									Swal.fire({ icon: 'warning', title: 'Distribution Failed', text: result.message || 'Please try again.' });
+								}
+							} catch (e) {
+								Swal.fire({ icon: 'error', title: 'Distribution Error', text: e.message || 'Failed to distribute.' });
 							}
 						}
-
-						Swal.fire({
-							icon: errorIcon,
-							title: errorTitle,
-							text: data.message || "Distribution failed. Please try again.",
-							timer: 3000,
-							showConfirmButton: true
-						});
+					} else {
+						// family has 0 or 1 member -> treat as individual
+						try {
+							const result = await sendDistribution(preRegId, 'family');
+							if (result.success) {
+								document.getElementById("family-name").textContent = result.name || "N/A";
+								document.getElementById("evacuee-location").textContent = locationData.evacuee_location_name || "N/A";
+								document.getElementById("family-info").classList.remove("d-none");
+								Swal.fire({ icon: 'success', title: 'Distribution Successful', text: result.message || 'Resources distributed.', timer: 3000, showConfirmButton: false });
+							} else {
+								Swal.fire({ icon: 'warning', title: 'Distribution Failed', text: result.message || 'Please try again.' });
+							}
+						} catch (e) {
+							Swal.fire({ icon: 'error', title: 'Distribution Error', text: e.message || 'Failed to distribute.' });
+						}
 					}
 
 				} catch (networkError) {
@@ -350,6 +408,38 @@
 
 	// Initialize staff location when page loads
 	document.addEventListener("DOMContentLoaded", initStaffLocation);
+	
+	// Resource dropdown behavior
+	document.addEventListener('DOMContentLoaded', function() {
+	    function updateDropdownLabel() {
+	        const checked = Array.from(document.querySelectorAll('.resource-checkbox:checked'));
+	        const label = document.getElementById('resourceDropdownLabel');
+	        if (checked.length === 0) {
+	            label.textContent = 'Select resources';
+	        } else if (checked.length === 1) {
+	            const first = checked[0].nextElementSibling.textContent.trim();
+	            label.textContent = first;
+	        } else {
+	            label.textContent = `${checked.length} selected`;
+	        }
+	    }
+	
+	    document.querySelectorAll('.resource-checkbox').forEach(cb => {
+	        cb.addEventListener('change', function() {
+	            const id = this.value;
+	            const qty = document.querySelector(`.resource-qty[name="quantity[${id}]"]`);
+	            if (this.checked) {
+	                qty.disabled = false;
+	            } else {
+	                qty.disabled = true;
+	            }
+	            updateDropdownLabel();
+	        });
+	    });
+	
+	    // Initialize label based on any pre-checked inputs
+	    updateDropdownLabel();
+	});
 </script>
 
 

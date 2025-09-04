@@ -13,6 +13,7 @@ try {
 	$preRegId = (int) $_POST['pre_reg_id'];
 	$resourceIds = array_map('intval', $_POST['resources']);
 	$quantities = $_POST['quantity'] ?? [];
+	$distributionType = isset($_POST['distribution_type']) ? trim($_POST['distribution_type']) : 'family';
 
 	// 1. Get evac_reg_id from pre_reg_id
 	$checkStmt = $conn->prepare("SELECT evac_reg_id FROM evac_reg_table WHERE pre_reg_id = ?");
@@ -40,8 +41,8 @@ try {
 		$dupResult = $checkDup->get_result();
 
 		if ($dupResult->num_rows === 0) {
-			$stmt = $conn->prepare("INSERT INTO resource_distribution_table (evac_reg_id, resource_id, quantity, date_time) VALUES (?, ?, ?, NOW())");
-			$stmt->bind_param("iii", $evacRegId, $resourceId, $qty);
+			$stmt = $conn->prepare("INSERT INTO resource_distribution_table (evac_reg_id, resource_id, quantity, date_time ,distribution_type) VALUES (?, ?, ?, NOW(), ?)");
+			$stmt->bind_param("iiis", $evacRegId, $resourceId, $qty, $distributionType);
 			$stmt->execute();
 			$inserted[] = $resourceId;
 		}
