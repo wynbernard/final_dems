@@ -32,6 +32,12 @@
         <?php else: ?>
           <!-- solo -->
         <?php endif; ?>
+         <li class="nav-item">
+          <a href="./history.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'history.php' ? 'active' : ''; ?>">
+            <i class="nav-icon bi bi-clock-history"></i>
+            <p>History</p>
+          </a>
+        </li>
       </ul>
     </nav>
   </div>
