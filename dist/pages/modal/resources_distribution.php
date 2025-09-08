@@ -33,7 +33,7 @@
 						<label for="distributionType" class="form-label small mb-1">Distribution Type</label>
 						<select id="distributionType" name="distribution_type" class="form-select form-select-sm w-100">
 							<option value="family" selected>Family Distribution</option>
-							<option value="solo">Solo Distribution</option>
+							<option value="solo">Individual Distribution</option>
 						</select>
 					</div>
 					<div class="dropdown">

@@ -29,7 +29,7 @@ try {
     $soloCount = 0;
     $familyCount = 0;
     $skipped = [];
-    
+
     // Age group counters
     $infantCount = 0;
     $toddlerCount = 0;
@@ -44,13 +44,14 @@ try {
     $ageClassQuery = $conn->prepare("SELECT age_class_id, classification FROM age_class_table");
     $ageClassQuery->execute();
     $ageClassResult = $ageClassQuery->get_result();
-    
+
     while ($row = $ageClassResult->fetch_assoc()) {
         $ageClassMap[$row['age_class_id']] = trim($row['classification']); // Keep original case
     }
 
     // Prepare statements
-    $checkStmt = $conn->prepare("SELECT pre_reg_id FROM evac_reg_table WHERE pre_reg_id = ?");
+    // Check latest evac_reg entry for the given pre_reg_id (allow re-register if status = 'Dispatched')
+    $checkStmt = $conn->prepare("SELECT evac_reg_id, status FROM evac_reg_table WHERE pre_reg_id = ? ORDER BY evac_reg_id DESC LIMIT 1");
     $insertStmt = $conn->prepare("INSERT INTO evac_reg_table (room_id, pre_reg_id, evac_loc_id, date_reg, status) VALUES (?, ?, ?, CURDATE(), 'Evacuated')");
     $logStmt = $conn->prepare("INSERT INTO logs_table (evac_reg_id, status, date_time) VALUES (?, ?, NOW())");
     $typeStmt = $conn->prepare("SELECT registered_as, age_class_id FROM pre_reg_table WHERE pre_reg_id = ?");
@@ -64,10 +65,11 @@ try {
     }
 
     // Function to map age classification to standard age groups
-    function getAgeGroupFromClassification($classification) {
+    function getAgeGroupFromClassification($classification)
+    {
         // Don't convert to lowercase, use case-insensitive comparison
         $classification = trim($classification);
-        
+
         // Use case-insensitive string search
         if (stripos($classification, 'Infant') !== false) {
             return 'infant';
@@ -84,7 +86,7 @@ try {
         } else if (stripos($classification, 'Senior') !== false) {
             return 'senior';
         }
-        
+
         // Return default if no match found
         return 'adult';
     }
@@ -92,9 +94,21 @@ try {
     foreach ($memberIds as $memberId) {
         $checkStmt->bind_param("i", $memberId);
         $checkStmt->execute();
-        $checkStmt->store_result();
+        $checkRes = $checkStmt->get_result();
 
-        if ($checkStmt->num_rows === 0) {
+        // Allow insert when there's no existing record, or the latest record status is 'Dispatched'
+        $allowInsert = false;
+        if (!$checkRes || $checkRes->num_rows === 0) {
+            $allowInsert = true;
+        } else {
+            $existing = $checkRes->fetch_assoc();
+            $existingStatus = strtolower(trim($existing['status'] ?? ''));
+            if ($existingStatus === 'dispatched') {
+                $allowInsert = true;
+            }
+        }
+
+        if ($allowInsert) {
             // Insert new registration
             $insertStmt->bind_param("iii", $roomId, $memberId, $locationId);
             if (!$insertStmt->execute()) {
@@ -114,7 +128,7 @@ try {
             if ($typeResult && $typeRow = $typeResult->fetch_assoc()) {
                 $groupType = strtolower(trim($typeRow['registered_as'])); // Convert to lowercase for comparison
                 $ageClassId = intval($typeRow['age_class_id']); // Ensure it's an integer
-                
+
                 // Count by registration type (fixed case comparison)
                 if ($groupType === 'solo') {
                     $soloCount++;
@@ -126,10 +140,10 @@ try {
                 if (isset($ageClassMap[$ageClassId]) && !empty($ageClassId)) {
                     $classification = $ageClassMap[$ageClassId];
                     $ageGroup = getAgeGroupFromClassification($classification);
-                    
+
                     // Debug logging
                     error_log("Processing Member ID: $memberId, Age Class ID: $ageClassId, Classification: '$classification', Mapped to: '$ageGroup'");
-                    
+
                     switch ($ageGroup) {
                         case 'infant':
                             $infantCount++;
@@ -245,4 +259,3 @@ try {
 }
 
 $conn->close();
-?>

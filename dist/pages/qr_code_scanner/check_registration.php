@@ -16,7 +16,7 @@ try {
 		FROM evac_reg_table r
 		WHERE r.pre_reg_id = ? AND r.room_id IN (
 			SELECT room_id FROM room_table WHERE evac_loc_id = ?
-		)
+		) AND r.status = 'Evacuated'
 		LIMIT 1");
 
 	if (!$stmt) {
@@ -29,14 +29,14 @@ try {
 	$stmt->store_result();
 	$isRegisteredHere = $stmt->num_rows > 0;
 	$stmt->free_result();
-	$stmt->close();	
+	$stmt->close();
 
 	// Find other locations where this pre_reg_id is registered
 	$stmt2 = $conn->prepare("SELECT rt.evac_loc_id, el.name
 		FROM evac_reg_table r
 		JOIN room_table rt ON r.room_id = rt.room_id
 		JOIN evac_loc_table el ON rt.evac_loc_id = el.evac_loc_id
-		WHERE r.pre_reg_id = ? AND rt.evac_loc_id != ?");
+		WHERE r.pre_reg_id = ? AND rt.evac_loc_id != ? AND r.status = 'Evacuated'");
 
 	if (!$stmt2) {
 		echo json_encode(['success' => false, 'error' => 'Prepare failed: ' . $conn->error]);
@@ -61,7 +61,6 @@ try {
 		'isRegisteredHere' => $isRegisteredHere,
 		'registeredOtherLocations' => $otherLocations
 	]);
-
 } catch (Exception $e) {
 	echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }

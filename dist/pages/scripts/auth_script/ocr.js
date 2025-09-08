@@ -186,4 +186,4 @@ document.getElementById('ic_image').addEventListener('change', function() {
 										confirmButtonColor: '#dc3545'
 									});
 								});
-							}
+}

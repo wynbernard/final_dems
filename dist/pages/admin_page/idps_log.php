@@ -1,12 +1,12 @@
 <?php
 include '../../../database/session.php';
 include '../layout/head_links.php';
-
+ 
 // Role-based log filtering
-$role = isset($_SESSION['role']) ? strtolower(trim($_SESSION['role'])) : '';
+$role = isset($_SESSION['role']) ? (trim($_SESSION['role'])) : '';
 $assigned_loc = isset($_SESSION['evac_loc_id']) ? $_SESSION['evac_loc_id'] : '';
 
-if ($role === 'Staff' && $assigned_loc !== '') {
+if ($role === 'Staff') {
 	// Staff: show only logs for assigned location
 	$query = "SELECT 
 				evac_reg_table.*,
@@ -28,7 +28,7 @@ if ($role === 'Staff' && $assigned_loc !== '') {
 			WHERE evac_reg_table.evac_loc_id = '" . mysqli_real_escape_string($conn, $assigned_loc) . "' 
 			";
 } else {
-	// Admin: show all logs
+// 	// Admin: show all logs
 	$query = "SELECT 
 				evac_reg_table.*,
 				pre_reg_table.f_name,

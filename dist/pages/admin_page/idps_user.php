@@ -11,6 +11,7 @@ LEFT JOIN disaster_table ON evac_reg_table.disaster_id = disaster_table.disaster
 LEFT JOIN room_table ON evac_reg_table.room_id = room_table.room_id
 LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
 LEFT JOIN age_class_table ON pre_reg_table.age_class_id = age_class_table.age_class_id
+WHERE evac_reg_table.status = 'Evacuated'
 ";
 
     // Execute the query
@@ -119,8 +120,10 @@ LEFT JOIN age_class_table ON pre_reg_table.age_class_id = age_class_table.age_cl
 
                                     <!-- Register Button -->
                                     <button type="button" class="btn btn-primary mb-2" data-bs-toggle="modal" data-bs-target="#registerChoiceModal">
-                                        <i class="fas fa-user-plus me-1"></i> Register IDP
+                                        <i class="fas fa-user-plus me-1"></i> Redgister IDP
                                     </button>
+
+                                   <button type="button" class="btn btn-danger mb-2 ms-2" id="dispatchAllBtn"><i class="fas fa-truck-moving me-1"></i> Dispatch All</button>
 
                                     <?php
                                     $locationId = $_GET['location_id'] ?? '';
@@ -187,6 +190,7 @@ LEFT JOIN age_class_table ON pre_reg_table.age_class_id = age_class_table.age_cl
 										l.name AS location_name,
 										r.room_name,
 										er.evac_reg_id,
+                                        er.status,
 										er.date_reg,
 										pr.f_name,
 										pr.l_name
@@ -207,11 +211,11 @@ LEFT JOIN age_class_table ON pre_reg_table.age_class_id = age_class_table.age_cl
                             // For staff users - always filter by their assigned location
                             if ($_SESSION['role'] == 'Staff') {
                                 $staff_location_id = $_SESSION['evac_loc_id'];
-                                $query .= " WHERE r.evac_loc_id = '$staff_location_id'";
+                                $query .= " WHERE r.evac_loc_id = '$staff_location_id' AND r.status = 'Evacuated' ";
                             }
                             // For admin users - filter by selected location if specified
                             elseif (!empty($locationId)) {
-                                $query .= " WHERE r.evac_loc_id = '$locationId'";
+                                $query .= " WHERE r.evac_loc_id = '$locationId' AND r.status = 'Evacuated'";
                             }
 
                             $query .= " ORDER BY l.name, rm.room_name, p.l_name";
@@ -284,6 +288,37 @@ LEFT JOIN age_class_table ON pre_reg_table.age_class_id = age_class_table.age_cl
     </div>
     <script src="../scripts/scripts.js"></script>
     <script src="../scripts/admin_script/idps_user.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const btn = document.getElementById('dispatchAllBtn');
+            if (!btn) return;
+            btn.addEventListener('click', function() {
+                if (!confirm('Are you sure you want to mark all evacuees at this location as Dispatched?')) return;
+                const loc = document.getElementById('locationSelect').value;
+                if (!loc) {
+                    alert('Please select a location');
+                    return;
+                }
+                fetch('../action/dispatch_all.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'location_id=' + encodeURIComponent(loc)
+                }).then(r => r.json()).then(data => {
+                    if (data.success) {
+                        alert((data.count ? data.count + ' evacuees dispatched.' : data.message));
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                }).catch(err => {
+                    console.error(err);
+                    alert('Server error');
+                });
+            });
+        });
+    </script>
     <div class="modal fade" id="idCardModal" tabindex="-1" aria-labelledby="idCardModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">

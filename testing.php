@@ -1,2 +1,11 @@
 layout_user/sidebar.php
 user_page/history.php
+action/dispatch_all.php
+admin_page/idps_log.php
+admin_page/idps_user.php
+auth/sample.png
+fecth_data/recieve_resources_ajax.php
+modal/resources_distribution.php
+qr_code_scanner/check_registration.php
+qr_code_scanner/register_family.php
+scripts/auth_script/ocr.js

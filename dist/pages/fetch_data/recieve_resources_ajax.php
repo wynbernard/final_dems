@@ -34,9 +34,9 @@ try {
 	foreach ($resourceIds as $resourceId) {
 		$qty = isset($quantities[$resourceId]) ? max(1, (int)$quantities[$resourceId]) : 1;
 
-		// Check if already distributed
-		$checkDup = $conn->prepare("SELECT 1 FROM resource_distribution_table WHERE evac_reg_id = ? AND resource_id = ?");
-		$checkDup->bind_param("ii", $evacRegId, $resourceId);
+		// Check if already distributed for the same distribution type
+		$checkDup = $conn->prepare("SELECT 1 FROM resource_distribution_table WHERE evac_reg_id = ? AND resource_id = ? AND distribution_type = ?");
+		$checkDup->bind_param("iis", $evacRegId, $resourceId, $distributionType);
 		$checkDup->execute();
 		$dupResult = $checkDup->get_result();
 
