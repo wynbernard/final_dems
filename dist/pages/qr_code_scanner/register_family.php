@@ -54,7 +54,7 @@ try {
     $checkStmt = $conn->prepare("SELECT evac_reg_id, status FROM evac_reg_table WHERE pre_reg_id = ? ORDER BY evac_reg_id DESC LIMIT 1");
     $insertStmt = $conn->prepare("INSERT INTO evac_reg_table (room_id, pre_reg_id, evac_loc_id, date_reg, status) VALUES (?, ?, ?, CURDATE(), 'Evacuated')");
     $logStmt = $conn->prepare("INSERT INTO logs_table (evac_reg_id, status, date_time) VALUES (?, ?, NOW())");
-    $typeStmt = $conn->prepare("SELECT registered_as, age_class_id FROM pre_reg_table WHERE pre_reg_id = ?");
+    $typeStmt = $conn->prepare("SELECT registered_as,age_class_id FROM pre_reg_table WHERE pre_reg_id = ?");
     $recordCheck = $conn->prepare("SELECT evacuation_id FROM evacuation_record_table WHERE evacuation_location = ? AND end_date IS NULL");
     $recordInsert = $conn->prepare("INSERT INTO evacuation_record_table (evacuation_location, start_date, total_solo, total_family, total_evacuation, total_infant, total_toddler, total_pre_school, total_school_age, total_teenage, total_adult, total_senior) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = total_solo + ?, total_family = total_family + ?, total_evacuation = total_evacuation + ?, total_infant = total_infant + ?, total_toddler = total_toddler + ?, total_pre_school = total_pre_school + ?, total_school_age = total_school_age + ?, total_teenage = total_teenage + ?, total_adult = total_adult + ?, total_senior = total_senior + ? WHERE evacuation_id = ?");
