@@ -89,8 +89,8 @@ if (!$result) {
 														<td class="cell-number"><?php echo $counter++; ?>.</td>
 														<td class="cell-location "><?php echo htmlspecialchars($barangay['barangay_name']); ?></td>
 														<td class="cell-address justify-content-center text-centerz"><?php echo htmlspecialchars($barangay['barangay_captain_name']); ?></td>
-														<td class="cell-population justify-content-center text-centerz"><?php echo htmlspecialchars($barangay['total_population']); ?></td>
-														<td class="cell-prereg text-center"><?php echo isset($barangay['pre_reg_count']) ? intval($barangay['pre_reg_count']) : 0; ?></td>
+														<td class="cell-population justify-content-center text-centerz"><?php echo number_format(htmlspecialchars($barangay['total_population'])); ?></td>
+														<td class="cell-prereg text-center"><?php echo isset($barangay['pre_reg_count']) ? number_format(intval($barangay['pre_reg_count']), 0) : 0; ?></td>
 														<!-- <td class="cell-signature">
 															<?php if (!empty($barangay['signature_brgy_captain'])): ?>
 																<img src="../<?php echo htmlspecialchars($barangay['signature_brgy_captain']); ?>" alt="Captain Signature" style="height: 50px; width: auto;">
