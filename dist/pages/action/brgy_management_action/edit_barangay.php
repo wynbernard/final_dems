@@ -5,6 +5,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$barangay_id = $_POST['barangay_id'];
 	$barangay_name = trim($_POST['barangay_name']);
 	$captain_name = trim($_POST['barangay_captain_name']);
+	$total_population = intval($_POST['total_population'] ?? 0);
 	$latitude = $_POST['latitude'];
 	$longitude = $_POST['longitude'];
 	$current_signature = $_POST['current_signature'];
@@ -37,8 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		}
 	}
 
-	$stmt = $conn->prepare("UPDATE barangay_manegement_table SET barangay_name=?, barangay_captain_name=?, latitude=?, longitude=?, signature_brgy_captain=? WHERE barangay_id=?");
-	$stmt->bind_param("ssddsi", $barangay_name, $captain_name, $latitude, $longitude, $new_signature_path, $barangay_id);
+	$stmt = $conn->prepare("UPDATE barangay_manegement_table SET barangay_name=?, barangay_captain_name=?, latitude=?, longitude=?, signature_brgy_captain=?, total_population=? WHERE barangay_id=?");
+	$stmt->bind_param("ssddsis", $barangay_name, $captain_name, $latitude, $longitude, $new_signature_path, $total_population, $barangay_id);
 
 	if ($stmt->execute()) {
 		$_SESSION['success'] = "<span style='color:mint;'><i class='bi bi-check-circle-fill'></i> Edit Barangay Successfully!</span>";

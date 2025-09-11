@@ -2,7 +2,16 @@
 include '../../../database/session.php';
 include '../layout/head_links.php';
 
-$query = "SELECT * FROM barangay_manegement_table";
+$query = "SELECT b.*,
+	(
+		SELECT COUNT(*)
+		FROM pre_reg_table pr
+		LEFT JOIN solo_address_table sat ON pr.solo_address_id = sat.solo_address_id
+		LEFT JOIN family_table ft ON pr.family_id = ft.family_id
+		WHERE (sat.barangay_id = b.barangay_id) OR (ft.barangay_id = b.barangay_id)
+	) AS pre_reg_count
+	FROM barangay_manegement_table b";
+
 $result = mysqli_query($conn, $query);
 
 if (!$result) {
@@ -60,14 +69,16 @@ if (!$result) {
 									<table id="locationTable" class="searchable-table table table-sm table-hover w-100">
 										<thead class="table-success sticky-header">
 											<tr>
-												<th> No.</th>
-												<th><i class="bi bi-geo-alt-fill"></i> Location</th>
-												<th><i class="bi bi-person-badge-fill"></i> Barangay Captain</th>
-												<th class="text-center" style="text-align: center; vertical-align: middle;">
-													<i class="bi bi-gear-fill"></i> Actions
-												</th>
+													<th> No.</th>
+													<th><i class="bi bi-geo-alt-fill"></i> Location</th>
+													<th><i class="bi bi-person-badge-fill"></i> Barangay Captain</th>
+													<th><i class="bi bi-people-fill"></i> Total Population</th>
+													<th><i class="bi bi-list-check"></i> Pre-registered</th>
+													<th class="text-center" style="text-align: center; vertical-align: middle;">
+														<i class="bi bi-gear-fill"></i> Actions
+													</th>
 
-											</tr>
+												</tr>
 										</thead>
 										<tbody>
 											<?php
@@ -78,6 +89,8 @@ if (!$result) {
 														<td class="cell-number"><?php echo $counter++; ?>.</td>
 														<td class="cell-location "><?php echo htmlspecialchars($barangay['barangay_name']); ?></td>
 														<td class="cell-address justify-content-center text-centerz"><?php echo htmlspecialchars($barangay['barangay_captain_name']); ?></td>
+														<td class="cell-population justify-content-center text-centerz"><?php echo htmlspecialchars($barangay['total_population']); ?></td>
+														<td class="cell-prereg text-center"><?php echo isset($barangay['pre_reg_count']) ? intval($barangay['pre_reg_count']) : 0; ?></td>
 														<!-- <td class="cell-signature">
 															<?php if (!empty($barangay['signature_brgy_captain'])): ?>
 																<img src="../<?php echo htmlspecialchars($barangay['signature_brgy_captain']); ?>" alt="Captain Signature" style="height: 50px; width: auto;">
@@ -91,6 +104,7 @@ if (!$result) {
 																data-name="<?php echo htmlspecialchars($barangay['barangay_name']); ?>"
 																data-captain="<?php echo htmlspecialchars($barangay['barangay_captain_name']); ?>"
 																data-signature="<?php echo htmlspecialchars($barangay['signature_brgy_captain']); ?>"
+																data-population="<?php echo htmlspecialchars($barangay['total_population']); ?>"
 																data-latitude="<?php echo htmlspecialchars($barangay['latitude']); ?>"
 																data-longitude="<?php echo htmlspecialchars($barangay['longitude']); ?>"
 																data-bs-toggle="modal" data-bs-target="#editLocationModal">
@@ -110,6 +124,7 @@ if (!$result) {
 																data-name1="<?php echo htmlspecialchars($barangay['barangay_name']); ?>"
 																data-captain="<?php echo htmlspecialchars($barangay['barangay_captain_name']); ?>"
 																data-signature="<?php echo htmlspecialchars($barangay['signature_brgy_captain']); ?>"
+																data-population="<?php echo htmlspecialchars($barangay['total_population']); ?>"
 																data-latitude="<?php echo htmlspecialchars($barangay['latitude']); ?>"
 																data-longitude="<?php echo htmlspecialchars($barangay['longitude']); ?>">
 																<i class="fas fa-eye"></i> View
@@ -119,7 +134,7 @@ if (!$result) {
 													</tr>
 											<?php endwhile;
 											} else {
-												echo "<tr><td colspan='5' class='text-center'>No location records found.</td></tr>";
+												echo "<tr><td colspan='6' class='text-center'>No location records found.</td></tr>";
 											}
 											?>
 										</tbody>

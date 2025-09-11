@@ -24,6 +24,46 @@
 <div class="app-content">
   <!--begin::Container-->
   <div class="container-fluid">
+    <?php
+    // If the logged-in user (pre_reg) is registered to an evacuation center, show it here
+    $user_pre_reg = $_SESSION['pre_reg_id'] ?? null;
+    $registeredLocation = null;
+  if ($user_pre_reg) {
+    // Include evac_loc id and coordinates so we can show the registered location on the map
+    $regStmt = $conn->prepare(
+      "SELECT er.date_reg, er.status, el.evac_loc_id, el.latitude AS evac_lat, el.longitude AS evac_lng, el.name AS evac_loc_name, r.room_name
+       FROM evac_reg_table er
+       LEFT JOIN evac_loc_table el ON er.evac_loc_id = el.evac_loc_id
+       LEFT JOIN room_table r ON er.room_id = r.room_id
+       WHERE er.pre_reg_id = ?
+       ORDER BY er.date_reg DESC LIMIT 1"
+    );
+        $regStmt->bind_param('i', $user_pre_reg);
+        $regStmt->execute();
+        $regRes = $regStmt->get_result();
+        if ($regRes && $regRes->num_rows > 0) {
+            $registeredLocation = $regRes->fetch_assoc();
+        }
+    }
+    ?>
+
+  <?php if (!empty($registeredLocation) && strtolower($registeredLocation['status'] ?? '') !== 'dispatched'): ?>
+      <div class="row mb-3">
+        <div class="col-12">
+          <div class="alert alert-info mb-0">
+      <strong>Registered Location:</strong>
+            <?= htmlspecialchars($registeredLocation['evac_loc_name'] ?? 'N/A') ?>
+            <?php if (!empty($registeredLocation['room_name'])): ?>
+              &mdash; <small>Room: <?= htmlspecialchars($registeredLocation['room_name']) ?></small>
+            <?php endif; ?>
+            &nbsp; <span class="text-muted">(Registered on: <?= htmlspecialchars(date('M d, Y H:i', strtotime($registeredLocation['date_reg'] ?? ''))) ?>)</span>
+            <?php if (!empty($registeredLocation['status'])): ?>
+              &nbsp; <span class="badge bg-secondary ms-2"><?= htmlspecialchars($registeredLocation['status']) ?></span>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+    <?php endif; ?>
     <!--begin::Row-->
     <div class="row">
       <!--begin::Col-->
@@ -109,6 +149,61 @@
   const barangayLng = <?php echo $barangayCoords['longitude']; ?>;
   const evacuationCenters = <?php echo json_encode($locations, JSON_NUMERIC_CHECK); ?>;
 
+  // If the PHP detected a registered evacuation for this logged-in user, expose it here.
+  const registeredLocation = <?php echo !empty($registeredLocation) ? json_encode([
+      'evac_loc_id' => isset($registeredLocation['evac_loc_id']) ? intval($registeredLocation['evac_loc_id']) : 0,
+      'name' => isset($registeredLocation['evac_loc_name']) ? $registeredLocation['evac_loc_name'] : '',
+      'latitude' => isset($registeredLocation['evac_lat']) ? floatval($registeredLocation['evac_lat']) : 0.0,
+      'longitude' => isset($registeredLocation['evac_lng']) ? floatval($registeredLocation['evac_lng']) : 0.0,
+      'status' => isset($registeredLocation['status']) ? $registeredLocation['status'] : ''
+  ], JSON_NUMERIC_CHECK) : 'null'; ?>;
+
+  // Helper to replace contents of the evacuationCenters array (keeps the same reference)
+  function replaceEvacCenters(newCenters) {
+    evacuationCenters.splice(0, evacuationCenters.length, ...newCenters);
+  }
+
+  // Behavior:
+  // - If user is registered and status === 'dispatched', show all centers EXCEPT the one they registered to.
+  // - Otherwise if user is registered, show only the registered center.
+  if (registeredLocation) {
+    const regId = parseInt(registeredLocation.evac_loc_id) || 0;
+    const regStatus = (registeredLocation.status || '').toString().toLowerCase();
+
+    if (regStatus === 'dispatched') {
+      // Filter out the registered center from the displayed centers
+      const filtered = evacuationCenters.filter(c => parseInt(c.evac_loc_id) !== regId);
+      if (filtered.length > 0) {
+        replaceEvacCenters(filtered);
+      } else {
+        // If filtering removed everything, keep original centers but notify in console
+        console.warn('All evacuation centers were filtered out after excluding registered location. Showing all centers.');
+      }
+    } else {
+      // Show only the registered center
+      replaceEvacCenters([{
+        evac_loc_id: regId,
+        name: registeredLocation.name,
+        latitude: registeredLocation.latitude,
+        longitude: registeredLocation.longitude,
+        barangay_name: '',
+        total_capacity: 0,
+        total_recommended: 0
+      }]);
+
+      // Center the map on the registered location if coordinates present
+      try {
+        const lat = parseFloat(registeredLocation.latitude);
+        const lng = parseFloat(registeredLocation.longitude);
+        if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+          map.setView([lat, lng], 14);
+        }
+      } catch (e) {
+        console.warn('Unable to center map on registered location', e);
+      }
+    }
+  }
+
   let userLat = null;
   let userLng = null;
   let userMarker = null;
@@ -120,6 +215,19 @@
   let routeLayer = null; // for non-LRM rendered routes
 
   const map = L.map("map").setView([barangayLat, barangayLng], 13);
+
+  // If the user is registered to a specific evacuation location, center the map there
+  if (registeredLocation) {
+    try {
+      const lat = parseFloat(registeredLocation.latitude);
+      const lng = parseFloat(registeredLocation.longitude);
+      if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+        map.setView([lat, lng], 14);
+      }
+    } catch (e) {
+      console.warn('Unable to center map on registered location', e);
+    }
+  }
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; OpenStreetMap contributors'
@@ -206,13 +314,16 @@
 
     function addEvacuationMarker(center, isRecommended = false, isFull = false) {
       const fullBadge = isFull ? '<span class="badge bg-danger mb-1">Full</span><br>' : '';
+      // Determine if this center is the registered location for the current user
+      const isRegistered = (typeof registeredLocation !== 'undefined' && registeredLocation && parseInt(center.evac_loc_id) === parseInt(registeredLocation.evac_loc_id));
+      const statusBadge = isRegistered ? '<span class="badge bg-primary mb-1">Registered Location</span><br>' : (isRecommended ? '<span class="badge bg-success mb-1">Recommended</span><br>' : '');
       const popupContent = `
           <strong>${center.name}</strong><br>
           <small>Barangay: ${center.barangay_name}</small><br>
-          ${isRecommended ? '<span class="badge bg-success mb-1">Recommended</span><br>' : ''}
+          ${statusBadge}
           ${fullBadge}
           <small class='text-muted'>${center.total_recommended || 0} / ${center.total_capacity || 0} Arrivals</small><br>
-          <button onclick=\"createRoute(${center.lat}, ${center.lng}, this)\">Get Route</button>
+          <button onclick="createRoute(${center.lat}, ${center.lng}, this)">Get Route</button>
         `;
       const greenIcon = L.icon({
         iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
@@ -230,7 +341,7 @@
         shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
         shadowSize: [41, 41]
       });
-      if (isRecommended) {
+  if (isRecommended && !isRegistered) {
         const recommendedDivIcon = L.divIcon({
           html: `<div style=\"display:flex;align-items:center;\"><img src='https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png' style='width:25px;height:41px;'><span style=\"background:#28a745;color:#fff;padding:2px 8px;border-radius:8px;font-size:0.9em;margin-left:4px;\">Recommended</span></div>`,
           iconSize: [100, 41],
@@ -261,12 +372,15 @@
 
       // Build list item
       const listItem = document.createElement("li");
-      listItem.className = "list-group-item d-flex justify-content-between align-items-start flex-column" + (isRecommended ? ' border-success border-2' : '');
+      // show a primary border if this is the user's registered location, otherwise highlight recommended
+      const regBorder = (typeof registeredLocation !== 'undefined' && registeredLocation && parseInt(center.evac_loc_id) === parseInt(registeredLocation.evac_loc_id)) ? ' border-primary border-2' : (isRecommended ? ' border-success border-2' : '');
+      listItem.className = "list-group-item d-flex justify-content-between align-items-start flex-column" + regBorder;
+      const registeredBadgeHtml = (typeof registeredLocation !== 'undefined' && registeredLocation && parseInt(center.evac_loc_id) === parseInt(registeredLocation.evac_loc_id)) ? '<span class="badge bg-primary">Registered Location</span><br>' : '';
       listItem.innerHTML = `
           <div class="w-100">
             <strong>${center.name}</strong><br>
             <small>Barangay: ${center.barangay_name}</small><br>
-            ${isRecommended ? '<span class="badge bg-success">Recommended</span><br>' : ''}
+            ${registeredBadgeHtml}${isRecommended && !(typeof registeredLocation !== 'undefined' && registeredLocation && parseInt(center.evac_loc_id) === parseInt(registeredLocation.evac_loc_id)) ? '<span class="badge bg-success">Recommended</span><br>' : ''}
             ${isFull ? '<span class="badge bg-danger">Full</span><br>' : ''}
             <small class="text-muted">${center.distance.toFixed(2)} km by route</small><br>
             <small class="text-muted">${center.total_recommended || 0} / ${center.total_capacity || 0} recommended people</small><br>

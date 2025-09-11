@@ -6,6 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	// Sanitize and validate input
 	$barangay_name = trim($_POST['barangay_name'] ?? '');
 	$captain_name = trim($_POST['barangay_captain_name'] ?? '');
+	$total_population = intval($_POST['total_population'] ?? 0);
 	$latitude = floatval($_POST['latitude'] ?? 0);
 	$longitude = floatval($_POST['longitude'] ?? 0);
 	$signature_option = $_POST['signature_option'] ?? 'draw';
@@ -59,8 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	}
 
 	// Insert into database
-	$stmt = $conn->prepare("INSERT INTO barangay_manegement_table (barangay_name, barangay_captain_name, latitude, longitude, signature_brgy_captain) VALUES (?, ?, ?, ?, ?)");
-	$stmt->bind_param("ssdds", $barangay_name, $captain_name, $latitude, $longitude, $signature_path);
+	$stmt = $conn->prepare("INSERT INTO barangay_manegement_table (barangay_name, barangay_captain_name, latitude, longitude, signature_brgy_captain, total_population) VALUES (?, ?, ?, ?, ?, ?)");
+	$stmt->bind_param("ssddsi", $barangay_name, $captain_name, $latitude, $longitude, $signature_path, $total_population);
 
 	if ($stmt->execute()) {
 		$_SESSION['success'] = "<span style='color:green;'><i class='bi bi-check-circle-fill'></i> Add Barangay Successfully!</span>";

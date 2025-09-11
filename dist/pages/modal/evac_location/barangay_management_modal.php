@@ -106,6 +106,10 @@
 								<label for="add_barangay_captain" class="form-label">Captain Name</label>
 								<input type="text" class="form-control" id="add_barangay_captain" name="barangay_captain_name" required>
 							</div>
+							<div>
+								<label for="add_barangay_population" class="form-label">Total Population</label>
+								<input type="number" class="form-control" id="add_barangay_population" name="total_population" required>
+							</div>
 
 							<!-- Signature Input Section -->
 							<div class="mb-3">
@@ -177,6 +181,10 @@
 							<div class="mb-3">
 								<label for="edit_barangay_captain" class="form-label fw-bold">Captain Name</label>
 								<input type="text" class="form-control" id="edit_barangay_captain" name="barangay_captain_name" required>
+							</div>
+							<div>
+								<label for="edit_total_population" class="form-label fw-bold">Total Population</label>
+								<input type="number" class="form-control" id="edit_total_population" name="total_population" required>
 							</div>
 
 							<div class="mb-3">
