@@ -49,8 +49,12 @@ if (!$result) {
 				<div class="row">
 					<div class="col-md-12">
 						<div class="card">
-							<div class="card-header d-flex align-items-center">
+							<div class="card-header d-flex align-items-center gap-2">
 								<input type="text" id="searchBox" class="form-control me-2" placeholder="Search..." style="max-width: 300px;">
+								<div class="btn-group">
+									<button id="activateSelectedBtn" class="btn btn-success btn-sm">Activate selected</button>
+									<button id="deactivateSelectedBtn" class="btn btn-secondary btn-sm">Deactivate selected</button>
+								</div>
 								<button type="button" class="btn btn-primary btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#addLocationModal">
 									<i class="fas fa-plus-circle"></i> Add Location
 								</button>
@@ -61,6 +65,7 @@ if (!$result) {
 									<table id="locationTable" class="table table-sm">
 										<thead class="table-success">
 											<tr class="justify-content-center text-center">
+												<th style="width:32px"><input type="checkbox" id="selectAllCheckbox" /></th>
 												<th> No.</th>
 												<th><i class="bi bi-geo-alt-fill"></i> Location</th>
 												<th><i class="bi bi-house-door-fill"></i> Address</th>
@@ -78,6 +83,7 @@ if (!$result) {
 													$address = $location['city'] . ', ' . $location['barangay_name'] . ' ,' . $location['purok'];
 											?>
 													<tr>
+														<td class="text-center"><input type="checkbox" class="row-select" data-id="<?php echo $location['evac_loc_id']; ?>" /></td>
 														<td><?php echo $counter++; ?>.</td>
 														<td class="location-name">
 															<?php echo htmlspecialchars($location['name']); ?>
@@ -92,11 +98,11 @@ if (!$result) {
 															<span class="badge bg-<?php echo $location['status'] === 'Active' ? 'success' : 'secondary'; ?>" id="status-badge-<?php echo $location['evac_loc_id']; ?>">
 																<?php echo htmlspecialchars($location['status']); ?>
 															</span>
-															<button class="btn btn-sm btn-outline-<?php echo $location['status'] === 'Active' ? 'secondary' : 'success'; ?> ms-2 status-toggle-btn"
+															<!-- <button class="btn btn-sm btn-outline-<?php echo $location['status'] === 'Active' ? 'secondary' : 'success'; ?> ms-2 status-toggle-btn"
 																data-id="<?php echo $location['evac_loc_id']; ?>"
 																data-status="<?php echo $location['status']; ?>">
 																Set <?php echo $location['status'] === 'Active' ? 'Inactive' : 'Active'; ?>
-															</button>
+															</button> -->
 														</td>
 														<td>
 															<a href="#" class="btn btn-sm btn-outline-success edit-btn shadow"
@@ -126,7 +132,7 @@ if (!$result) {
 													</tr>
 											<?php endwhile;
 											} else {
-												echo "<tr><td colspan='5' class='text-center'>No location records found.</td></tr>";
+												echo "<tr><td colspan='7' class='text-center'>No location records found.</td></tr>";
 											}
 											?>
 										</tbody>
@@ -189,42 +195,156 @@ if (!$result) {
 		}
 	</style>
 	<script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.status-toggle-btn').forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const id = this.getAttribute('data-id');
-            const currentStatus = this.getAttribute('data-status');
-            const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
-            const badge = document.getElementById('status-badge-' + id);
-            const button = this;
-            button.disabled = true;
-            fetch('update_location_status.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `evac_loc_id=${id}&status=${newStatus}`
-            })
-            .then(res => res.text())
-            .then(data => {
-                if (data.trim() === 'success') {
-                    badge.textContent = newStatus;
-                    badge.className = 'badge bg-' + (newStatus === 'Active' ? 'success' : 'secondary');
-                    button.textContent = 'Set ' + (newStatus === 'Active' ? 'Inactive' : 'Active');
-                    button.className = 'btn btn-sm btn-outline-' + (newStatus === 'Active' ? 'secondary' : 'success') + ' ms-2 status-toggle-btn';
-                    button.setAttribute('data-status', newStatus);
-                } else {
-                    alert('Failed to update status.');
-                }
-                button.disabled = false;
-            })
-            .catch(() => {
-                alert('Failed to update status.');
-                button.disabled = false;
-            });
-        });
-    });
-});
-</script>
+		document.addEventListener('DOMContentLoaded', function() {
+			document.querySelectorAll('.status-toggle-btn').forEach(function(btn) {
+				btn.addEventListener('click', function(e) {
+					e.preventDefault();
+					const id = this.getAttribute('data-id');
+					const currentStatus = this.getAttribute('data-status');
+					const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+					const badge = document.getElementById('status-badge-' + id);
+					const button = this;
+					button.disabled = true;
+					fetch('update_location_status.php', {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/x-www-form-urlencoded'
+							},
+							body: `evac_loc_id=${id}&status=${newStatus}`
+						})
+						.then(res => res.text())
+						.then(data => {
+							if (data.trim() === 'success') {
+								badge.textContent = newStatus;
+								badge.className = 'badge bg-' + (newStatus === 'Active' ? 'success' : 'secondary');
+								button.textContent = 'Set ' + (newStatus === 'Active' ? 'Inactive' : 'Active');
+								button.className = 'btn btn-sm btn-outline-' + (newStatus === 'Active' ? 'secondary' : 'success') + ' ms-2 status-toggle-btn';
+								button.setAttribute('data-status', newStatus);
+							} else {
+								alert('Failed to update status.');
+							}
+							button.disabled = false;
+						})
+						.catch(() => {
+							alert('Failed to update status.');
+							button.disabled = false;
+						});
+				});
+			});
+		});
+	</script>
+
+	<script>
+		document.addEventListener('DOMContentLoaded', function() {
+			const selectAll = document.getElementById('selectAllCheckbox');
+			const rowCheckboxes = document.querySelectorAll('.row-select');
+			const activateBtn = document.getElementById('activateSelectedBtn');
+			const deactivateBtn = document.getElementById('deactivateSelectedBtn');
+
+			function getSelectedIds() {
+				const ids = [];
+				document.querySelectorAll('.row-select:checked').forEach(cb => ids.push(cb.getAttribute('data-id')));
+				return ids;
+			}
+
+			if (selectAll) {
+				selectAll.addEventListener('change', function() {
+					const checked = !!this.checked;
+					document.querySelectorAll('.row-select').forEach(cb => cb.checked = checked);
+				});
+			}
+
+			async function bulkUpdate(status) {
+				const ids = getSelectedIds();
+				if (!ids.length) {
+					Swal.fire({
+						icon: "warning",
+						title: "No Selection",
+						text: "Please select at least one location.",
+						confirmButtonColor: "#3085d6"
+					});
+					return;
+				}
+
+				const result = await Swal.fire({
+					title: "Are you sure?",
+					text: `Set ${ids.length} location(s) to ${status}?`,
+					icon: "question",
+					showCancelButton: true,
+					confirmButtonText: "Yes, update",
+					cancelButtonText: "Cancel",
+					confirmButtonColor: "#28a745",
+					cancelButtonColor: "#d33"
+				});
+
+				if (!result.isConfirmed) return;
+
+				const btn = status === 'Active' ? activateBtn : deactivateBtn;
+				btn.disabled = true;
+
+				// Show loading modal
+				Swal.fire({
+					title: "Updating...",
+					text: `Please wait while we update ${ids.length} location(s).`,
+					allowOutsideClick: false,
+					didOpen: () => {
+						Swal.showLoading();
+					}
+				});
+
+				try {
+					const res = await fetch('update_location_status_bulk.php', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/x-www-form-urlencoded'
+						},
+						body: 'ids=' + encodeURIComponent(ids.join(',')) + '&status=' + encodeURIComponent(status)
+					});
+					const text = await res.text();
+					if (text.trim() === 'success') {
+						// update UI badges and buttons
+						ids.forEach(id => {
+							const badge = document.getElementById('status-badge-' + id);
+							const btn = document.querySelector('.status-toggle-btn[data-id="' + id + '"]');
+							if (badge) {
+								badge.textContent = status;
+								badge.className = 'badge bg-' + (status === 'Active' ? 'success' : 'secondary');
+							}
+							if (btn) {
+								btn.textContent = 'Set ' + (status === 'Active' ? 'Inactive' : 'Active');
+								btn.className = 'btn btn-sm btn-outline-' + (status === 'Active' ? 'secondary' : 'success') + ' ms-2 status-toggle-btn';
+								btn.setAttribute('data-status', status);
+							}
+						});
+						Swal.fire({
+							icon: "success",
+							title: "Updated!",
+							text: "The locations have been updated successfully.",
+							timer: 2000,
+							showConfirmButton: false
+						});
+					} else {
+						Swal.fire({
+							icon: "error",
+							title: "Update Failed",
+							text: text
+						});
+					}
+				} catch (e) {
+					console.error(e);
+					Swal.fire({
+						icon: "error",
+						title: "Error",
+						text: "Bulk update failed due to a network/server issue."
+					});
+				} finally {
+					btn.disabled = false;
+				}
+			}
+			if (activateBtn) activateBtn.addEventListener('click', () => bulkUpdate('Active'));
+			if (deactivateBtn) deactivateBtn.addEventListener('click', () => bulkUpdate('Inactive'));
+		});
+	</script>
 	<script src="../scripts/scripts.js"></script>
 </body>
 

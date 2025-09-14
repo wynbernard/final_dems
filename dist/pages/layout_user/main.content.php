@@ -28,30 +28,30 @@
     // If the logged-in user (pre_reg) is registered to an evacuation center, show it here
     $user_pre_reg = $_SESSION['pre_reg_id'] ?? null;
     $registeredLocation = null;
-  if ($user_pre_reg) {
-    // Include evac_loc id and coordinates so we can show the registered location on the map
-    $regStmt = $conn->prepare(
-      "SELECT er.date_reg, er.status, el.evac_loc_id, el.latitude AS evac_lat, el.longitude AS evac_lng, el.name AS evac_loc_name, r.room_name
+    if ($user_pre_reg) {
+      // Include evac_loc id and coordinates so we can show the registered location on the map
+      $regStmt = $conn->prepare(
+        "SELECT er.date_reg, er.status, el.evac_loc_id, el.latitude AS evac_lat, el.longitude AS evac_lng, el.name AS evac_loc_name, r.room_name
        FROM evac_reg_table er
        LEFT JOIN evac_loc_table el ON er.evac_loc_id = el.evac_loc_id
        LEFT JOIN room_table r ON er.room_id = r.room_id
        WHERE er.pre_reg_id = ?
        ORDER BY er.date_reg DESC LIMIT 1"
-    );
-        $regStmt->bind_param('i', $user_pre_reg);
-        $regStmt->execute();
-        $regRes = $regStmt->get_result();
-        if ($regRes && $regRes->num_rows > 0) {
-            $registeredLocation = $regRes->fetch_assoc();
-        }
+      );
+      $regStmt->bind_param('i', $user_pre_reg);
+      $regStmt->execute();
+      $regRes = $regStmt->get_result();
+      if ($regRes && $regRes->num_rows > 0) {
+        $registeredLocation = $regRes->fetch_assoc();
+      }
     }
     ?>
 
-  <?php if (!empty($registeredLocation) && strtolower($registeredLocation['status'] ?? '') !== 'dispatched'): ?>
+    <?php if (!empty($registeredLocation) && strtolower($registeredLocation['status'] ?? '') !== 'dispatched'): ?>
       <div class="row mb-3">
         <div class="col-12">
           <div class="alert alert-info mb-0">
-      <strong>Registered Location:</strong>
+            <strong>Registered Location:</strong>
             <?= htmlspecialchars($registeredLocation['evac_loc_name'] ?? 'N/A') ?>
             <?php if (!empty($registeredLocation['room_name'])): ?>
               &mdash; <small>Room: <?= htmlspecialchars($registeredLocation['room_name']) ?></small>
@@ -151,12 +151,12 @@
 
   // If the PHP detected a registered evacuation for this logged-in user, expose it here.
   const registeredLocation = <?php echo !empty($registeredLocation) ? json_encode([
-      'evac_loc_id' => isset($registeredLocation['evac_loc_id']) ? intval($registeredLocation['evac_loc_id']) : 0,
-      'name' => isset($registeredLocation['evac_loc_name']) ? $registeredLocation['evac_loc_name'] : '',
-      'latitude' => isset($registeredLocation['evac_lat']) ? floatval($registeredLocation['evac_lat']) : 0.0,
-      'longitude' => isset($registeredLocation['evac_lng']) ? floatval($registeredLocation['evac_lng']) : 0.0,
-      'status' => isset($registeredLocation['status']) ? $registeredLocation['status'] : ''
-  ], JSON_NUMERIC_CHECK) : 'null'; ?>;
+                                'evac_loc_id' => isset($registeredLocation['evac_loc_id']) ? intval($registeredLocation['evac_loc_id']) : 0,
+                                'name' => isset($registeredLocation['evac_loc_name']) ? $registeredLocation['evac_loc_name'] : '',
+                                'latitude' => isset($registeredLocation['evac_lat']) ? floatval($registeredLocation['evac_lat']) : 0.0,
+                                'longitude' => isset($registeredLocation['evac_lng']) ? floatval($registeredLocation['evac_lng']) : 0.0,
+                                'status' => isset($registeredLocation['status']) ? $registeredLocation['status'] : ''
+                              ], JSON_NUMERIC_CHECK) : 'null'; ?>;
 
   // Helper to replace contents of the evacuationCenters array (keeps the same reference)
   function replaceEvacCenters(newCenters) {
@@ -300,7 +300,7 @@
     let recommendedIdx = 0;
     for (let i = 0; i < nearest.length; i++) {
       const cap = parseInt(nearest[i].total_capacity) || 0;
-      const rec = parseInt(nearest[i].total_recommended) || 0;
+      const rec = parseInt(nearest[i].total_registered) || 0;
       if (cap === 0 || rec < cap) {
         recommendedIdx = i;
         break;
@@ -322,7 +322,7 @@
           <small>Barangay: ${center.barangay_name}</small><br>
           ${statusBadge}
           ${fullBadge}
-          <small class='text-muted'>${center.total_recommended || 0} / ${center.total_capacity || 0} Arrivals</small><br>
+          <small class='text-muted'>${center.total_registered || 0} / ${center.total_capacity || 0} Arrivals</small><br>
           <button onclick="createRoute(${center.lat}, ${center.lng}, this)">Get Route</button>
         `;
       const greenIcon = L.icon({
@@ -341,7 +341,7 @@
         shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
         shadowSize: [41, 41]
       });
-  if (isRecommended && !isRegistered) {
+      if (isRecommended && !isRegistered) {
         const recommendedDivIcon = L.divIcon({
           html: `<div style=\"display:flex;align-items:center;\"><img src='https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png' style='width:25px;height:41px;'><span style=\"background:#28a745;color:#fff;padding:2px 8px;border-radius:8px;font-size:0.9em;margin-left:4px;\">Recommended</span></div>`,
           iconSize: [100, 41],
@@ -366,7 +366,7 @@
     nearest.forEach((center, idx) => {
       const isRecommended = idx === recommendedIdx;
       const cap = parseInt(center.total_capacity) || 0;
-      const rec = parseInt(center.total_recommended) || 0;
+      const rec = parseInt(center.total_registered) || 0;
       const isFull = cap > 0 && rec >= cap;
       addEvacuationMarker(center, isRecommended, isFull);
 
@@ -383,7 +383,7 @@
             ${registeredBadgeHtml}${isRecommended && !(typeof registeredLocation !== 'undefined' && registeredLocation && parseInt(center.evac_loc_id) === parseInt(registeredLocation.evac_loc_id)) ? '<span class="badge bg-success">Recommended</span><br>' : ''}
             ${isFull ? '<span class="badge bg-danger">Full</span><br>' : ''}
             <small class="text-muted">${center.distance.toFixed(2)} km by route</small><br>
-            <small class="text-muted">${center.total_recommended || 0} / ${center.total_capacity || 0} recommended people</small><br>
+            <small class="text-muted">${center.total_registered || 0} / ${center.total_capacity || 0} registered people</small><br>
             <div class="route-steps mt-2 text-muted small"></div>
             <div class="d-flex flex-row gap-2 mt-2 align-items-center">
               <button class="btn btn-sm btn-outline-primary" onclick="createRoute(${center.lat}, ${center.lng}, this)">Get Route</button>
@@ -591,6 +591,12 @@
   }
 
   // Geolocation
+  // Allow automatic saving by default, but if the server has asked the user for confirmation
+  // (prompt_save_location), disable automatic saves until the user accepts.
+  window._allowSaveCoordinates = <?php echo (isset($_SESSION['prompt_save_location']) && $_SESSION['prompt_save_location']) ? 'false' : 'true'; ?>;
+  // Require an explicit confirmation in this browser session before saving coordinates.
+  window._hasUserConfirmed = false; // only set true when user clicks 'Capture my location'
+
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(pos => {
       userLat = pos.coords.latitude;
@@ -605,26 +611,30 @@
           .openPopup();
       }
 
-      // Save user coordinates to server (solo_address_table or family_table)
-      (function saveCoords(lat, lng) {
-        fetch('../action_user/save_coordinates.php', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: `latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}`
-          })
-          .then(r => r.json())
-          .then(data => {
-            if (data.success) {
-              console.log('Coordinates saved:', data);
-            } else {
-              console.warn('Failed to save coordinates:', data.error || data);
-            }
-          }).catch(err => {
-            console.error('Network error while saving coordinates', err);
-          });
-      })(userLat, userLng);
+      // DO NOT automatically save coordinates on reload. Require explicit user confirmation.
+      if (window._allowSaveCoordinates && window._hasUserConfirmed) {
+        (function saveCoords(lat, lng) {
+          fetch('../action_user/save_coordinates.php', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+              },
+              body: `latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}`
+            })
+            .then(r => r.json())
+            .then(data => {
+              if (data.success) {
+                console.log('Coordinates saved after confirmation:', data);
+              } else {
+                console.warn('Failed to save coordinates:', data.error || data);
+              }
+            }).catch(err => {
+              console.error('Network error while saving coordinates', err);
+            });
+        })(userLat, userLng);
+      } else {
+        console.log('Automatic coordinate save is disabled until user explicitly confirms.');
+      }
 
       renderEvacuationCenters();
     }, err => {
@@ -639,3 +649,88 @@
     alert("Geolocation is not supported.");
   }
 </script>
+
+<?php if (isset($_SESSION['prompt_save_location']) && $_SESSION['prompt_save_location']): ?>
+  <!-- One-time modal to ask user to save current device coordinates -->
+  <div class="modal fade" id="saveLocationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Save your address coordinates?</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>If this device is at your registered address, we can capture the exact coordinates now to improve routing and recommendations.</p>
+          <div id="saveLocationStatus" class="small text-muted"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="dontSaveLocation" class="btn btn-secondary" data-bs-dismiss="modal">Not now</button>
+          <button type="button" id="doSaveLocation" class="btn btn-primary">Capture my location</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var modal = new bootstrap.Modal(document.getElementById('saveLocationModal'));
+      modal.show();
+
+      document.getElementById('doSaveLocation').addEventListener('click', function() {
+        var status = document.getElementById('saveLocationStatus');
+        if (!navigator.geolocation) {
+          status.textContent = 'Geolocation not supported';
+          return;
+        }
+        status.textContent = 'Requesting location...';
+        navigator.geolocation.getCurrentPosition(function(pos) {
+          var lat = pos.coords.latitude;
+          var lng = pos.coords.longitude;
+          // Mark that the user explicitly confirmed saving in this session
+          window._hasUserConfirmed = true;
+          window._allowSaveCoordinates = true;
+          status.textContent = 'Saving...';
+          var form = new FormData();
+          form.append('latitude', lat);
+          form.append('longitude', lng);
+          fetch('../action_user/save_coordinates.php', {
+              method: 'POST',
+              body: form
+            })
+            .then(r => r.json())
+            .then(res => {
+              if (res.success) {
+                status.textContent = 'Coordinates saved.';
+                console.log('User accepted saving coordinates:', {
+                  latitude: lat,
+                  longitude: lng
+                });
+                setTimeout(function() {
+                  modal.hide();
+                }, 800);
+              } else {
+                status.textContent = 'Failed to save: ' + (res.error || JSON.stringify(res));
+              }
+            }).catch(err => {
+              status.textContent = 'Network error';
+              console.error(err);
+            });
+        }, function(err) {
+          status.textContent = 'Unable to fetch location: ' + err.message;
+        }, {
+          enableHighAccuracy: true,
+          timeout: 10000
+        });
+      });
+
+      document.getElementById('dontSaveLocation').addEventListener('click', function() {
+        // Explicitly disable automatic coordinate saving for this session
+        window._hasUserConfirmed = false;
+        window._allowSaveCoordinates = false;
+        console.log('User chose not to save coordinates this session. Automatic saves disabled.');
+        modal.hide();
+      });
+    });
+  </script>
+<?php unset($_SESSION['prompt_save_location']);
+endif; ?>

@@ -1,5 +1,7 @@
-see what the location you register in the user dashboard if the use is the already registered
-count of the population of the barangay
-
-
-add field in barangay management table - total_population
+admin_page/loc_management.php
+admin_page/update_location_status_bulk.php
+deleted ==== admin_page/update_location_status.php
+auth/log_in.php
+fetch_data/location_evacuation.php
+layout_user/main_content.php
+user_page/family.php

@@ -45,6 +45,11 @@ $query = "SELECT
         FROM pre_reg_table
         WHERE recommended_location = evac_loc_table.evac_loc_id
     ) AS total_recommended
+    , (
+        SELECT COUNT(er.evac_reg_id)
+        FROM evac_reg_table er
+        WHERE er.evac_loc_id = evac_loc_table.evac_loc_id AND er.status = 'Evacuated'
+    ) AS total_registered
 FROM evac_loc_table
 LEFT JOIN barangay_manegement_table 
     ON evac_loc_table.barangay_id = barangay_manegement_table.barangay_id
@@ -57,9 +62,9 @@ HAVING status = 'Active'
 $stmt = $conn->prepare($query);
 $stmt->execute();
 $result = $stmt->get_result();
-    
+
 
 $locations = [];
 while ($row = $result->fetch_assoc()) {
-	$locations[] = $row;
+    $locations[] = $row;
 }

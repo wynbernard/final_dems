@@ -37,6 +37,10 @@
 							<div class="card-body">
 								<div id="locationMap" style="height: 250px;"></div>
 								<div id="coordinatesDisplay" class="mt-2 text-center text-muted"></div>
+								<div class="mt-2 text-center">
+									<button id="saveCurrentCoordsBtn" class="btn btn-sm btn-success">Save My Position AS My Address</button>
+									<span id="saveCoordsStatus" class="ms-2 text-muted small"></span>
+								</div>
 								<div class="mt-3">
 									<div class="d-flex justify-content-between align-items-center">
 										<h6 class="fw-bold mb-2"><i class="fas fa-home me-2"></i>Address</h6>
@@ -52,7 +56,9 @@
 											pre_reg_table.f_name,
 											pre_reg_table.l_name,
 											family_table.*,
-											barangay_manegement_table.barangay_name
+											barangay_manegement_table.barangay_name,
+											barangay_manegement_table.latitude AS barangay_lat,
+											barangay_manegement_table.longitude AS barangay_lng
 											FROM pre_reg_table 
 											LEFT JOIN family_table ON pre_reg_table.family_id = family_table.family_id
 											LEFT JOIN barangay_manegement_table ON family_table.barangay_id = barangay_manegement_table.barangay_id
@@ -66,8 +72,14 @@
 											$address = $row['region'] . $row['province'] . $row['city_municipality'] . " , Bgry." . $row['barangay_name'] . $row['street'];
 											$OSM_address = $row['street'] . ", " . $row['barangay_name'] . ", " . $row['city_municipality'] . ", " . $row['province'] . ", " . "Philippines";
 											$coordinates = '';
+											$coordinates_source = null; // 'exact' or 'barangay'
 											if (!empty($row['latitude']) && !empty($row['longitude']) && $row['latitude'] != 0 && $row['longitude'] != 0) {
 												$coordinates = $row['latitude'] . ", " . $row['longitude'];
+												$coordinates_source = 'exact';
+											} elseif (!empty($row['barangay_lat']) && !empty($row['barangay_lng']) && $row['barangay_lat'] != 0 && $row['barangay_lng'] != 0) {
+												// fallback to barangay center if the family address has no saved coords
+												$coordinates = $row['barangay_lat'] . ", " . $row['barangay_lng'];
+												$coordinates_source = 'barangay';
 											}
 											$head_name = $row['f_name'] . ' ' . $row['l_name'];
 											$familyStmt->close();
@@ -192,10 +204,10 @@
 	</div>
 
 	<script>
-
 		document.addEventListener("DOMContentLoaded", function() {
 			const locationName = <?= json_encode($OSM_address ?? '') ?>;
 			const coordinates = <?= json_encode($coordinates ?? '') ?>;
+			const coordinatesSource = <?= json_encode($coordinates_source ?? '') ?>;
 			const mapElement = document.getElementById("locationMap");
 			const coordinatesDisplay = document.getElementById("coordinatesDisplay");
 
@@ -289,7 +301,8 @@
 				});
 
 			function displayMap(lat, lon, label) {
-				coordinatesDisplay.innerHTML = `<strong>Coordinates:</strong> ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+				const note = (coordinatesSource === 'barangay') ? ' <small>(Barangay center)</small>' : '';
+				coordinatesDisplay.innerHTML = `<strong>Coordinates:</strong> ${lat.toFixed(6)}, ${lon.toFixed(6)}${note}`;
 				mapElement.innerHTML = "";
 
 				const map = L.map('locationMap', {
@@ -311,14 +324,102 @@
 					popupAnchor: [1, -34],
 				});
 
-				L.marker([lat, lon], {
-						icon: customIcon
-					})
-					.addTo(map)
-					.bindPopup(`<strong>Family Location</strong><br>${label}<br><span style='font-size:12px;'>${lat.toFixed(6)}, ${lon.toFixed(6)}</span>`)
-					.openPopup();
+				// Only add a pin when this is the exact saved address; if it's the barangay fallback, just center the map.
+				if (!coordinatesSource || coordinatesSource !== 'barangay') {
+					L.marker([lat, lon], {
+							icon: customIcon
+						})
+						.addTo(map)
+						.bindPopup(`<strong>Family Location</strong><br>${label}<br><span style='font-size:12px;'>${lat.toFixed(6)}, ${lon.toFixed(6)}</span>`)
+						.openPopup();
+				}
 			}
 		});
+
+		document.getElementById("saveCurrentCoordsBtn").addEventListener("click", function() {
+			const statusEl = document.getElementById("saveCoordsStatus");
+
+			if (!navigator.geolocation) {
+				Swal.fire("Error", "Geolocation is not supported by your browser.", "error");
+				return;
+			}
+
+			// Ask user first
+			Swal.fire({
+				title: "Save My Location?",
+				text: "Do you want to save your current location now?",
+				icon: "question",
+				showCancelButton: true,
+				confirmButtonText: "Yes, save it",
+				cancelButtonText: "Cancel"
+			}).then((result) => {
+				if (!result.isConfirmed) {
+					statusEl.textContent = "Action cancelled.";
+					return;
+				}
+
+				statusEl.textContent = "Getting location...";
+
+				navigator.geolocation.getCurrentPosition(
+					function(position) {
+						const lat = position.coords.latitude;
+						const lng = position.coords.longitude;
+
+						// Prepare form data
+						const formData = new FormData();
+						formData.append("latitude", lat);
+						formData.append("longitude", lng);
+
+						// Send to backend
+						fetch("../action_user/save_coordinates.php", {
+								method: "POST",
+								body: formData
+							})
+							.then(res => res.json())
+							.then(data => {
+								console.log("Response:", data); // for debugging
+
+								if (data.success) {
+									statusEl.textContent = `✅ Location saved at ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+									Swal.fire({
+										icon: "success",
+										title: "Location Saved",
+										text: "Your location has been saved successfully.",
+										timer: 2000,
+										showConfirmButton: false
+									});
+								} else {
+									statusEl.textContent = "⚠️ Failed to save location.";
+									Swal.fire("Error", data.error || "Failed to save coordinates.", "error");
+								}
+							})
+							.catch(() => {
+								statusEl.textContent = "⚠️ Network error.";
+								Swal.fire("Error", "Could not connect to the server.", "error");
+							});
+					},
+					function(error) {
+						let msg;
+						switch (error.code) {
+							case error.PERMISSION_DENIED:
+								msg = "❌ Permission denied.";
+								break;
+							case error.POSITION_UNAVAILABLE:
+								msg = "⚠️ Position unavailable.";
+								break;
+							case error.TIMEOUT:
+								msg = "⌛ Request timed out.";
+								break;
+							default:
+								msg = "⚠️ An unknown error occurred.";
+								break;
+						}
+						statusEl.textContent = msg;
+						Swal.fire("Error", msg, "error");
+					}
+				);
+			});
+		})
 	</script>
 
 	<!-- <?php include '../scripts/scripts.php'; ?> -->
