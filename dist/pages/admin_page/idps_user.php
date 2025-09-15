@@ -123,7 +123,7 @@ WHERE evac_reg_table.status = 'Evacuated'
                                         <i class="fas fa-user-plus me-1"></i> Redgister IDP
                                     </button>
 
-                                   <button type="button" class="btn btn-danger mb-2 ms-2" id="dispatchAllBtn"><i class="fas fa-truck-moving me-1"></i> Dispatch All</button>
+                                    <button type="button" class="btn btn-danger mb-2 ms-2" id="dispatchAllBtn"><i class="fas fa-truck-moving me-1"></i> Dispatch All</button>
 
                                     <?php
                                     $locationId = $_GET['location_id'] ?? '';
@@ -202,11 +202,13 @@ WHERE evac_reg_table.status = 'Evacuated'
 
 
                             // Initialize base query
-                            $query = "SELECT r.evac_reg_id, p.f_name, p.l_name, p.m_name, l.name AS location_name, rm.room_name , r.date_reg 
+                            $query = "SELECT r.evac_reg_id, p.f_name, p.l_name, p.m_name, l.name AS location_name, rm.room_name , r.date_reg , r.status
 									FROM evac_reg_table r
 									LEFT JOIN pre_reg_table p ON r.pre_reg_id = p.pre_reg_id
 									JOIN evac_loc_table l ON r.evac_loc_id = l.evac_loc_id
-									LEFT JOIN room_table rm ON r.room_id = rm.room_id";
+									LEFT JOIN room_table rm ON r.room_id = rm.room_id
+                                    WHERE r.status = 'Evacuated'
+                                    ";
 
                             // For staff users - always filter by their assigned location
                             if ($_SESSION['role'] == 'Staff') {

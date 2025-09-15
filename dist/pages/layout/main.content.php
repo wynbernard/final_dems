@@ -6,7 +6,8 @@
     <div class="row">
       <div class="col-sm-6">
         <h3 class="mb-0">
-          <i class="bi bi-speedometer2 me-2"></i> Admin Dashboard
+          <i class="bi bi-speedometer2 me-2"></i>
+          <?php echo ($_SESSION['role'] === 'Admin') ? 'Admin Dashboard' : 'Staff Dashboard'; ?>
         </h3>
       </div>
       <div class="col-sm-6">
@@ -181,10 +182,21 @@
         <div class="small-box text-bg-warning">
           <div class="inner">
             <?php
-            $query = "SELECT COUNT(*) AS evac_reg FROM evac_reg_table";
-            $result = mysqli_query($conn, $query);
-            $row = mysqli_fetch_assoc($result);
-            $total_evac_reg = $row['evac_reg'];
+            if ($_SESSION['role'] == 'Staff') {
+              $query = "SELECT COUNT(*) AS evac_reg FROM evac_reg_table WHERE status = 'Evacuated' AND evac_loc_id = ?";
+              $stmt = $conn->prepare($query);
+              $stmt->bind_param("i", $_SESSION['evac_loc_id']);
+              $stmt->execute();
+              $result = $stmt->get_result();
+              $row = mysqli_fetch_assoc($result);
+              $total_evac_reg = $row['evac_reg'];
+              $stmt->close();
+            } else {
+              $query = "SELECT COUNT(*) AS evac_reg FROM evac_reg_table WHERE status = 'Evacuated'";
+              $result = mysqli_query($conn, $query);
+              $row = mysqli_fetch_assoc($result);
+              $total_evac_reg = $row['evac_reg'];
+            }
             ?>
             <h3 style="color:#333"><?php echo htmlspecialchars($total_evac_reg) ?></h3>
             <p>Registered Evacuees</p>
@@ -257,7 +269,7 @@
     $genderQuery = "SELECT classification, COUNT(*) as count FROM evac_reg_table
           LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
           LEFT JOIN age_class_table ON pre_reg_table.pre_reg_id = age_class_table.age_class_id
-          WHERE age_class_table.classification IS NOT NULL
+          WHERE age_class_table.classification IS NOT NULL AND evac_reg_table.status = 'Evacuated'
           GROUP BY classification";
     $genderResult = mysqli_query($conn, $genderQuery);
     if ($genderResult) {
@@ -363,7 +375,7 @@
               WHEN end_date IS NULL OR end_date = '0000-00-00 00:00:00' THEN 'Ongoing'
               ELSE 'Completed'
             END AS event_status
-          FROM evacuation_record_table 
+          FROM evacuation_record_table
           ORDER BY start_date ASC 
           LIMIT 100";
 
@@ -493,9 +505,11 @@
     include '../../../database/conn.php';
 
     $evacMapLocations = [];
+    $assignedLocations = ($_SESSION['evac_loc_id']);
 
     // Query to get evacuation locations with coordinates
-    $locQuery = "
+    if ($_SESSION['role'] === 'Staff') {
+      $locQuery = "
 SELECT
     rm.room_capacity,
     evc.evac_loc_id,
@@ -506,6 +520,41 @@ SELECT
     evc.total_capacity,
     evc.longitude,
     evc.latitude,
+    ert.status,
+    rm.room_id,
+    rm.room_name,
+    COUNT(ert.evac_loc_id) AS occupied_count,
+    COUNT(rm.room_id) OVER (PARTITION BY evc.evac_loc_id) AS room_count, 
+    (rm.room_capacity - COUNT(ert.evac_reg_id)) AS available_space
+FROM room_table rm
+JOIN evac_loc_table evc 
+    ON rm.evac_loc_id = evc.evac_loc_id
+LEFT JOIN barangay_manegement_table bmt
+    ON evc.barangay_id = bmt.barangay_id
+LEFT JOIN evac_reg_table ert
+    ON rm.room_id = ert.room_id
+    AND ert.status = 'IN' -- ✅ optional: only count people currently inside
+WHERE evc.latitude IS NOT NULL 
+  AND evc.longitude IS NOT NULL
+  AND evc.status = 'Active'
+  AND evc.evac_loc_id = $assignedLocations
+GROUP BY rm.room_id
+ORDER BY evc.name, rm.room_name;
+";
+    } else {
+
+      $locQuery = "
+SELECT
+    rm.room_capacity,
+    evc.evac_loc_id,
+    evc.name,
+    evc.city,
+    bmt.barangay_name AS barangay,
+    evc.purok,
+    evc.total_capacity,
+    evc.longitude,
+    evc.latitude,
+    ert.status,
     rm.room_id,
     rm.room_name,
     COUNT(ert.evac_loc_id) AS occupied_count,
@@ -525,6 +574,7 @@ WHERE evc.latitude IS NOT NULL
 GROUP BY rm.room_id
 ORDER BY evc.name, rm.room_name;
 ";
+    }
 
     $locResult = mysqli_query($conn, $locQuery);
 
@@ -534,10 +584,11 @@ ORDER BY evc.name, rm.room_name;
       // Get total solo evacuees (registered as Solo or no family)
       $soloQuery = "
     SELECT COUNT(*) AS total_solo 
-    FROM evac_reg_table 
+    FROM evac_reg_table
     LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
     WHERE evac_loc_id = $locId 
       AND (registered_as = 'Solo' OR family_id IS NULL OR family_id = 0)
+      AND evac_reg_table.status = 'Evacuated'
   ";
       $soloResult = mysqli_query($conn, $soloQuery);
       $soloCount = ($soloResult && $rowSolo = mysqli_fetch_assoc($soloResult)) ? intval($rowSolo['total_solo']) : 0;
@@ -551,6 +602,7 @@ ORDER BY evc.name, rm.room_name;
       AND registered_as = 'Family'
       AND family_id IS NOT NULL
       AND family_id > 0
+      AND evac_reg_table.status = 'Evacuated'
   ";
 
       $totalEvacueesQuery = "
@@ -558,6 +610,7 @@ ORDER BY evc.name, rm.room_name;
     FROM evac_reg_table 
     LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
     WHERE evac_loc_id = $locId
+    AND evac_reg_table.status = 'Evacuated'
   ";
 
       $totalEvacueesResult = mysqli_query($conn, $totalEvacueesQuery);
