@@ -225,12 +225,35 @@
         <div class="small-box text-bg-danger">
           <div class="inner">
             <?php
+            if($_SESSION['role'] == 'Staff'){
+              $assignlocation = $_SESSION['evac_loc_id'];
+              $query = "SELECT elt.name AS location_name FROM admin_table 
+              LEFT JOIN evac_loc_table elt ON admin_table.evac_loc_id = elt.evac_loc_id
+              WHERE admin_table.admin_id = ?";
+              $stmt = $conn->prepare($query);
+              $stmt->bind_param("i", $_SESSION['admin_id']);
+              $stmt->execute();
+              $result = $stmt->get_result();
+              $row = mysqli_fetch_assoc($result);
+              $assignlocation = $row['location_name'];
+            }else{
             $query = "SELECT COUNT(*) AS total_locations FROM evac_loc_table";
             $result = mysqli_query($conn, $query);
             $row = mysqli_fetch_assoc($result);
             $total_locations = $row['total_locations'];
+          }
             ?>
-            <h3 class="text-dark mb-1"><?php echo htmlspecialchars($total_locations); ?></h3>
+          <h3 class="text-dark mb-1"
+              style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block;"
+              title="<?php echo htmlspecialchars($assignlocation ?? $total_locations ?? ''); ?>">
+            <?php 
+              if ($_SESSION['role'] == 'Staff') {
+                  echo htmlspecialchars($assignlocation ?? 'N/A'); 
+              } else {
+                  echo htmlspecialchars($total_locations ?? '0'); 
+              }
+            ?>
+          </h3>
             <p>Evacuation Locations</p>
           </div>
           <!-- Location Pin Icon -->
@@ -366,18 +389,27 @@
       </div>
     </div>
     <?php
-    $query = "SELECT 
-            evacuation_location AS evacuation_center, 
-            start_date, 
-            end_date, 
-            total_evacuation AS total_evacuees,
-            CASE 
-              WHEN end_date IS NULL OR end_date = '0000-00-00 00:00:00' THEN 'Ongoing'
-              ELSE 'Completed'
-            END AS event_status
-          FROM evacuation_record_table
-          ORDER BY start_date ASC 
-          LIMIT 100";
+    // If the logged-in user is Staff, limit analytics to their assigned evacuation location.
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'Staff' && !empty($_SESSION['evac_loc_id'])) {
+      // Try to match by evac_loc_id if the evacuation_record_table stores evac_loc_id; otherwise fall back to name filtering.
+      // We assume evacuation_record_table may have an evac_loc_id column. Use it if present.
+      $checkCol = mysqli_query($conn, "SHOW COLUMNS FROM evacuation_record_table LIKE 'evac_loc_id'");
+      if ($checkCol && mysqli_num_rows($checkCol) > 0) {
+        $assignedId = intval($_SESSION['evac_loc_id']);
+        $query = "SELECT evacuation_location AS evacuation_center, start_date, end_date, total_evacuation AS total_evacuees, CASE WHEN end_date IS NULL OR end_date = '0000-00-00 00:00:00' THEN 'Ongoing' ELSE 'Completed' END AS event_status FROM evacuation_record_table WHERE evac_loc_id = $assignedId ORDER BY start_date ASC LIMIT 100";
+      } else {
+        // Fallback: find the evac location name for the staff's assigned evac_loc_id and filter by name
+        $assignedId = intval($_SESSION['evac_loc_id']);
+        $nameRes = mysqli_query($conn, "SELECT name FROM evac_loc_table WHERE evac_loc_id = $assignedId LIMIT 1");
+        $assignedName = '';
+        if ($nameRes && $nr = mysqli_fetch_assoc($nameRes)) {
+          $assignedName = mysqli_real_escape_string($conn, $nr['name']);
+        }
+        $query = "SELECT evacuation_location AS evacuation_center, start_date, end_date, total_evacuation AS total_evacuees, CASE WHEN end_date IS NULL OR end_date = '0000-00-00 00:00:00' THEN 'Ongoing' ELSE 'Completed' END AS event_status FROM evacuation_record_table WHERE evacuation_location = '$assignedName' ORDER BY start_date ASC LIMIT 100";
+      }
+    } else {
+      $query = "SELECT evacuation_location AS evacuation_center, start_date, end_date, total_evacuation AS total_evacuees, CASE WHEN end_date IS NULL OR end_date = '0000-00-00 00:00:00' THEN 'Ongoing' ELSE 'Completed' END AS event_status FROM evacuation_record_table ORDER BY start_date ASC LIMIT 100";
+    }
 
     $result = mysqli_query($conn, $query);
 
@@ -449,54 +481,6 @@
             <p id="evacuationLocationText" class="text-muted text-center mt-3">
               Showing data for <span id="currentCenterText"><?= htmlspecialchars(array_key_first($analyticsByCenter)) ?></span>.
             </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Age Group and Evacuee Type Charts -->
-    <div class="row mt-4">
-      <div class="col-lg-6">
-        <!-- Navbar-style tabs for source selection -->
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div>
-            <h6 class="mb-1 fw-bold">Age Classification Source:</h6>
-            <ul class="nav nav-pills custom-nav-pills">
-              <li class="nav-item">
-                <a class="nav-link <?= $selectedSource === 'pre' ? 'active' : '' ?>"
-                  href="?source=pre">
-                  <small>Pre-Registration</small>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link <?= $selectedSource === 'evac' ? 'active' : '' ?>"
-                  href="?source=evac">
-                  <small>Evacuation Registration</small>
-                </a>
-              </li>
-            </ul>
-
-          </div>
-          <div>
-            <span class="badge bg-primary">
-              <?= $selectedSource === 'pre' ? 'Showing: Pre-Registration' : 'Showing: Evacuation Registration' ?>
-            </span>
-          </div>
-        </div>
-        <!-- Chart Card -->
-        <div class="card shadow-sm border-0">
-          <div class="card-body">
-            <canvas id="ageChart"></canvas>
-          </div>
-        </div>
-      </div>
-      <div class="col-lg-6">
-        <div class="card shadow-sm border-0">
-          <div class="card-header bg-warning text-dark">Pre-Registration Registered Type</div>
-          <div class="card-body text-center">
-            <div style="max-width: 300px; margin: auto;">
-              <canvas id="evacTypeChart"></canvas>
-            </div>
           </div>
         </div>
       </div>
@@ -705,60 +689,6 @@ ORDER BY evc.name, rm.room_name;
     include '../scripts/dashboard_admin/graph_data_maps.php';
     ?>
 
-    <script>
-      const ageLabels = <?= json_encode(array_keys($ageGroups)) ?>;
-      const ageData = <?= json_encode(array_values($ageGroups)) ?>;
-
-      const ageCtx = document.getElementById('ageChart').getContext('2d');
-      new Chart(ageCtx, {
-        type: 'bar',
-        data: {
-          labels: ageLabels,
-          datasets: [{
-            label: 'No. of Individuals',
-            data: ageData,
-            backgroundColor: ['#4dc9f6', '#f67019', '#f53794', '#537bc4', '#acc236'],
-            borderRadius: 5
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: {
-              display: false
-            },
-            title: {
-              display: true,
-              text: 'Age Classification Breakdown'
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                stepSize: 1000,
-                callback: function(value) {
-                  return value.toLocaleString();
-                }
-              }
-            }
-          }
-        }
-      });
-      // Solo vs Family Chart
-      const evacCtx = document.getElementById('evacTypeChart').getContext('2d');
-      new Chart(evacCtx, {
-        type: 'pie',
-        data: {
-          labels: ['Solo', 'Family'],
-          datasets: [{
-            label: 'Evacuee Type',
-            data: [<?php echo $soloCount1; ?>, <?php echo $familyCount1; ?>],
-            backgroundColor: ['#9b59b6', '#2ecc71']
-          }]
-        }
-      });
-    </script>
     <!-- Include Select2 CSS & JS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>

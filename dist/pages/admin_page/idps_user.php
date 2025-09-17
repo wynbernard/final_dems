@@ -119,11 +119,11 @@ WHERE evac_reg_table.status = 'Evacuated'
                                     </select>
 
                                     <!-- Register Button -->
-                                    <button type="button" class="btn btn-primary mb-2" data-bs-toggle="modal" data-bs-target="#registerChoiceModal">
+                                    <button type="button" id="registerBtn" class="btn btn-primary mb-2">
                                         <i class="fas fa-user-plus me-1"></i> Redgister IDP
                                     </button>
 
-                                    <button type="button" class="btn btn-danger mb-2 ms-2" id="dispatchAllBtn"><i class="fas fa-truck-moving me-1"></i> Dispatch All</button>
+                                   <button type="button" class="btn btn-danger mb-2 ms-2" id="dispatchAllBtn"><i class="fas fa-truck-moving me-1"></i> Dispatch All</button>
 
                                     <?php
                                     $locationId = $_GET['location_id'] ?? '';
@@ -202,13 +202,11 @@ WHERE evac_reg_table.status = 'Evacuated'
 
 
                             // Initialize base query
-                            $query = "SELECT r.evac_reg_id, p.f_name, p.l_name, p.m_name, l.name AS location_name, rm.room_name , r.date_reg , r.status
+                            $query = "SELECT r.evac_reg_id, p.f_name, p.l_name, p.m_name, l.name AS location_name, rm.room_name , r.date_reg, r.status
 									FROM evac_reg_table r
 									LEFT JOIN pre_reg_table p ON r.pre_reg_id = p.pre_reg_id
 									JOIN evac_loc_table l ON r.evac_loc_id = l.evac_loc_id
-									LEFT JOIN room_table rm ON r.room_id = rm.room_id
-                                    WHERE r.status = 'Evacuated'
-                                    ";
+									LEFT JOIN room_table rm ON r.room_id = rm.room_id";
 
                             // For staff users - always filter by their assigned location
                             if ($_SESSION['role'] == 'Staff') {
@@ -293,32 +291,132 @@ WHERE evac_reg_table.status = 'Evacuated'
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const btn = document.getElementById('dispatchAllBtn');
-            if (!btn) return;
-            btn.addEventListener('click', function() {
-                if (!confirm('Are you sure you want to mark all evacuees at this location as Dispatched?')) return;
-                const loc = document.getElementById('locationSelect').value;
-                if (!loc) {
-                    alert('Please select a location');
-                    return;
-                }
-                fetch('../action/dispatch_all.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: 'location_id=' + encodeURIComponent(loc)
-                }).then(r => r.json()).then(data => {
-                    if (data.success) {
-                        alert((data.count ? data.count + ' evacuees dispatched.' : data.message));
-                        window.location.reload();
-                    } else {
-                        alert('Error: ' + data.message);
+            if (btn) {
+                btn.addEventListener('click', function() {
+                    const loc = document.getElementById('locationSelect').value;
+                    if (!loc) {
+                        if (window.Swal) {
+                            Swal.fire({ icon: 'warning', title: 'No location selected', text: 'Please select a location before dispatching.' });
+                        } else {
+                            alert('Please select a location');
+                        }
+                        return;
                     }
-                }).catch(err => {
-                    console.error(err);
-                    alert('Server error');
+
+                    // Check if the table currently has evacuees to dispatch
+                    const userTable = document.getElementById('usertable');
+                    if (userTable) {
+                        const tbody = userTable.querySelector('tbody');
+                        if (tbody) {
+                            const rows = Array.from(tbody.querySelectorAll('tr'));
+                            // Determine if any row represents an evacuee by looking for the action button
+                            const hasEvacuees = rows.some(r => !!r.querySelector('.view-idp-btn'));
+                            if (!hasEvacuees) {
+                                if (window.Swal) {
+                                    Swal.fire({ icon: 'info', title: 'No evacuees', text: 'There are no evacuees at the selected location to dispatch.' });
+                                } else {
+                                    alert('There are no evacuees at the selected location to dispatch.');
+                                }
+                                return;
+                            }
+                        }
+                    }
+
+                    const confirmAndDispatch = () => {
+                        // Show loading modal if Swal available
+                        if (window.Swal) {
+                            Swal.fire({
+                                title: 'Dispatching...',
+                                html: 'Please wait while evacuees are being dispatched.',
+                                allowOutsideClick: false,
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
+                            });
+                        }
+
+                        fetch('../action/dispatch_all.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: 'location_id=' + encodeURIComponent(loc)
+                        }).then(r => r.json()).then(data => {
+                            if (window.Swal) Swal.close();
+                            if (data.success) {
+                                if (window.Swal) {
+                                    Swal.fire({ icon: 'success', title: 'Dispatched', text: data.count ? data.count + ' evacuees dispatched.' : data.message }).then(() => window.location.reload());
+                                } else {
+                                    alert((data.count ? data.count + ' evacuees dispatched.' : data.message));
+                                    window.location.reload();
+                                }
+                            } else {
+                                if (window.Swal) {
+                                    Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to dispatch evacuees.' });
+                                } else {
+                                    alert('Error: ' + data.message);
+                                }
+                            }
+                        }).catch(err => {
+                            console.error(err);
+                            if (window.Swal) Swal.close();
+                            if (window.Swal) {
+                                Swal.fire({ icon: 'error', title: 'Server error', text: 'Could not complete the dispatch. Try again.' });
+                            } else {
+                                alert('Server error');
+                            }
+                        });
+                    };
+
+                    if (window.Swal) {
+                        Swal.fire({
+                            title: 'Confirm dispatch',
+                            text: 'Are you sure you want to mark all evacuees at this location as Dispatched?',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'Yes, dispatch',
+                            cancelButtonText: 'Cancel'
+                        }).then((res) => {
+                            if (res.isConfirmed) confirmAndDispatch();
+                        });
+                    } else {
+                        if (confirm('Are you sure you want to mark all evacuees at this location as Dispatched?')) confirmAndDispatch();
+                    }
                 });
-            });
+            }
+            // Register button: validate disaster selection before opening modal
+            const registerBtn = document.getElementById('registerBtn');
+            if (registerBtn) {
+                registerBtn.addEventListener('click', function(e) {
+                    const disasterSelect = document.getElementById('disasterSelect');
+                    const disasterVal = disasterSelect ? disasterSelect.value : '';
+                    // If no disaster selected, show SweetAlert2 warning (if available) or fallback to alert
+                    if (!disasterVal) {
+                        if (window.Swal) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'No disaster selected',
+                                text: 'Please select a disaster event before registering an IDP.',
+                                confirmButtonText: 'OK'
+                            });
+                        } else {
+                            alert('Please select a disaster event before registering an IDP.');
+                        }
+                        return;
+                    }
+
+                    // Open the register modal programmatically (Bootstrap 5)
+                    const modalEl = document.getElementById('registerChoiceModal');
+                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        const modal = new bootstrap.Modal(modalEl);
+                        modal.show();
+                    } else if (modalEl) {
+                        // Fallback: toggle attribute to trigger modal
+                        modalEl.classList.add('show');
+                        modalEl.style.display = 'block';
+                    }
+                });
+            }
         });
     </script>
     <div class="modal fade" id="idCardModal" tabindex="-1" aria-labelledby="idCardModalLabel" aria-hidden="true">

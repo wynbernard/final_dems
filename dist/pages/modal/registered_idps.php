@@ -1779,6 +1779,19 @@
 						text: 'Please select a valid disaster event before proceeding.'
 					});
 					disasterSelect.selectedIndex = 0; // Reset to default
+				} else {
+					// Valid selection: update URL with disasterId and reload
+					try {
+						var url = new URL(window.location.href);
+						url.searchParams.set('disasterId', selectedValue);
+						window.location.href = url.toString();
+					} catch (e) {
+						// Fallback for very old browsers
+						var qs = window.location.search.replace(/(^\?|\#).*$/,'');
+						var params = new URLSearchParams(qs);
+						params.set('disasterId', selectedValue);
+						window.location.search = params.toString();
+					}
 				}
 			});
 		}
