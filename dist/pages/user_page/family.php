@@ -168,6 +168,19 @@
 																	data-qr="<?= $member['code'] ?>">
 																	<i class="fas fa-eye me-1"></i> View
 																</button>
+																<button class="btn btn-sm btn-outline-secondary edit-family-btn ms-1"
+																	data-id="<?= $member['pre_reg_id'] ?>"
+																	data-f_name="<?= htmlspecialchars($member['f_name']) ?>"
+																	data-l_name="<?= htmlspecialchars($member['l_name']) ?>"
+																	data-gender="<?= htmlspecialchars($member['gender']) ?>"
+																	data-contact_no="<?= htmlspecialchars($member['contact_no']) ?>"
+																	data-dob="<?= htmlspecialchars($member['date_of_birth']) ?>"
+																	data-relation="<?= htmlspecialchars($member['relation_to_family']) ?>"
+																	data-qr="<?= $member['code'] ?>"
+																	data-bs-toggle="modal"
+																	data-bs-target="#editFamilyMemberModal">
+																	<i class="fas fa-edit me-1"></i> Edit
+																</button>
 																<button class="btn btn-sm btn-outline-danger"
 																	data-bs-toggle="modal"
 																	data-bs-target="#deleteFamilyMemberModal<?= $member['pre_reg_id'] ?>">

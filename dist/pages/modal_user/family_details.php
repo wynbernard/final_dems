@@ -105,9 +105,6 @@
 				<button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
 					<i class="fas fa-times me-2"></i> Close
 				</button>
-				<button type="button" class="btn btn-primary px-4">
-					<i class="fas fa-edit me-2"></i> Edit Profile
-				</button>
 			</div>
 		</div>
 	</div>
@@ -481,6 +478,143 @@
 $familyResult->data_seek(0);
 while ($member = $familyResult->fetch_assoc()) :
 ?>
+
+	<!-- Edit Family Member Modal -->
+	<div class="modal fade" id="editFamilyMemberModal" tabindex="-1" aria-labelledby="editFamilyMemberModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content border-0 shadow-lg">
+				<div class="modal-header bg-gradient-primary text-white rounded-top-4">
+					<h5 class="modal-title fw-semibold mb-0" id="editFamilyMemberModalLabel">Edit Family Member</h5>
+					<button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body px-4 py-4">
+					<form id="editFamilyForm" action="../action_user/edit_member.php" method="POST" class="needs-validation" novalidate>
+						<input type="hidden" id="edit_pre_reg_id" name="pre_reg_id" value="">
+						<div class="mb-3">
+							<label class="form-label">First Name</label>
+							<input type="text" id="edit_f_name" name="f_name" class="form-control" required>
+						</div>
+						<div class="mb-3">
+							<label class="form-label">Last Name</label>
+							<input type="text" id="edit_l_name" name="l_name" class="form-control" required>
+						</div>
+						<div class="mb-3">
+							<label class="form-label">Birthdate</label>
+							<input type="date" id="edit_dob" name="date_of_birth" class="form-control" required>
+						</div>
+						<div class="mb-3">
+							<label class="form-label">Contact No.</label>
+							<input type="tel" id="edit_contact_no" name="contact_no" class="form-control">
+						</div>
+						<div class="mb-3">
+							<label class="form-label">Gender</label>
+							<select id="edit_gender" name="gender" class="form-select" required>
+								<option value="">Select</option>
+								<option value="Male">Male</option>
+								<option value="Female">Female</option>
+							</select>
+						</div>
+						<div class="mb-3">
+							<label class="form-label">Relation</label>
+							<input type="text" id="edit_relation" name="relation_to_family" class="form-control">
+						</div>
+						<div class="modal-footer bg-light rounded-bottom-4">
+							<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+							<button type="submit" class="btn btn-primary">Save Changes</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		document.addEventListener('DOMContentLoaded', function() {
+			// Edit button handler (delegated)
+			document.querySelectorAll('.edit-family-btn').forEach(function(btn) {
+				btn.addEventListener('click', function() {
+					const id = this.getAttribute('data-id');
+					const f_name = this.getAttribute('data-f_name') || '';
+					const l_name = this.getAttribute('data-l_name') || '';
+					const gender = this.getAttribute('data-gender') || '';
+					const contact = this.getAttribute('data-contact_no') || '';
+					const dob = this.getAttribute('data-dob') || '';
+					const relation = this.getAttribute('data-relation') || '';
+
+					document.getElementById('edit_pre_reg_id').value = id;
+					document.getElementById('edit_f_name').value = f_name;
+					document.getElementById('edit_l_name').value = l_name;
+					document.getElementById('edit_gender').value = gender;
+					document.getElementById('edit_contact_no').value = contact;
+					document.getElementById('edit_dob').value = dob;
+					document.getElementById('edit_relation').value = relation;
+
+					const modal = new bootstrap.Modal(document.getElementById('editFamilyMemberModal'));
+					modal.show();
+				});
+			});
+		});
+	</script>
+
+	<script>
+		// Handle edit form submission with AJAX
+		document.addEventListener('DOMContentLoaded', function() {
+			const editForm = document.getElementById('editFamilyForm');
+			if (!editForm) return;
+			editForm.addEventListener('submit', function(e) {
+				e.preventDefault();
+				const formData = new FormData(editForm);
+				fetch(editForm.action, {
+						method: 'POST',
+						body: formData,
+						credentials: 'same-origin'
+					})
+					// Parse JSON even on non-2xx to get structured error messages from server
+					.then(res => res.json().then(data => ({
+						ok: res.ok,
+						status: res.status,
+						data
+					})))
+					.then(({
+						ok,
+						status,
+						data
+					}) => {
+						if (ok && data && data.success) {
+							// Close modal
+							const modalEl = document.getElementById('editFamilyMemberModal');
+							const modal = bootstrap.Modal.getInstance(modalEl);
+							if (modal) modal.hide();
+
+							// Show SweetAlert2 success if available, then reload; otherwise reload immediately
+							if (window.Swal) {
+								Swal.fire({
+									icon: 'success',
+									title: 'Updated',
+									text: data.message || 'Member updated successfully',
+									timer: 1400,
+									showConfirmButton: false
+								}).then(() => window.location.reload());
+							} else {
+								alert(data.message || 'Member updated successfully');
+								window.location.reload();
+							}
+
+							return;
+						}
+
+						// If server returned JSON with message, show it; otherwise show status code
+						const msg = (data && data.message) ? data.message : (status ? `Server error (${status})` : 'Failed to update member');
+						alert('Error: ' + msg);
+					})
+					.catch(err => {
+						// Network or parse error
+						console.error('Edit member request failed:', err);
+						alert('Network or server error: ' + (err.message || 'Please try again'));
+					});
+			});
+		});
+	</script>
 	<!-- Delete Confirmation Modal for each member -->
 	<div class="modal fade" id="deleteFamilyMemberModal<?= $member['pre_reg_id'] ?>" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
 		<div class="modal-dialog">
