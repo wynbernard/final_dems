@@ -1,4 +1,7 @@
 let map, marker;
+let addFenceMode = false;
+let addFencePoints = [];
+let addFencePolyline = null;
 
 	document.addEventListener("DOMContentLoaded", function() {
 		const modalElement = document.getElementById('addLocationModal');
@@ -18,24 +21,45 @@ let map, marker;
 
 		// Handle map click
 		map.on('click', function(e) {
-			const lat = e.latlng.lat.toFixed(6);
-			const lng = e.latlng.lng.toFixed(6);
-			let barangayName = document.getElementById('add_barangay_name').value;
-			// Remove existing marker
-			if (marker) {
-				map.removeLayer(marker);
+			if (addFenceMode) {
+				// Add fence point
+				const lat = parseFloat(e.latlng.lat.toFixed(6));
+				const lng = parseFloat(e.latlng.lng.toFixed(6));
+				addFencePoints.push([lat, lng]);
+				updateAddFenceLine();
+				updateAddFenceJSON();
+			} else {
+				// Set marker location
+				const lat = e.latlng.lat.toFixed(6);
+				const lng = e.latlng.lng.toFixed(6);
+				let barangayName = document.getElementById('add_barangay_name').value;
+				// Remove existing marker
+				if (marker) {
+					map.removeLayer(marker);
+				}
+
+				// Add new marker
+				marker = L.marker([lat, lng]).addTo(map)
+					.bindPopup(`📍Brgy.  ${barangayName}`)
+					.openPopup();
+
+				// Update hidden inputs
+				document.getElementById('latitude').value = lat;
+				document.getElementById('longitude').value = lng;
+				document.getElementById('coordinatesDisplay').textContent = `Latitude: ${lat}, Longitude: ${lng}`;
 			}
-
-			// Add new marker
-			marker = L.marker([lat, lng]).addTo(map)
-				.bindPopup(`📍Brgy.  ${barangayName}`)
-				.openPopup();
-
-			// Update hidden inputs
-			document.getElementById('latitude').value = lat;
-			document.getElementById('longitude').value = lng;
-			document.getElementById('coordinatesDisplay').textContent = `Latitude: ${lat}, Longitude: ${lng}`;
 		});
+		
+		// Setup fence mode buttons for add modal
+		const toggleAddFenceBtn = document.getElementById('toggleAddFenceMode');
+		const clearAddFenceBtn = document.getElementById('clearAddFence');
+		
+		if (toggleAddFenceBtn) {
+			toggleAddFenceBtn.addEventListener('click', toggleAddFenceMode);
+		}
+		if (clearAddFenceBtn) {
+			clearAddFenceBtn.addEventListener('click', clearAddFence);
+		}
 	});
 
 	let canvas, ctx, drawing = false;
@@ -122,6 +146,10 @@ let map, marker;
 
 // EDIT MAP 
 let editMap, editMarker;
+let editFenceMode = false;
+let editFencePoints = [];
+let editFencePolyline = null;
+let currentBoundaryBarangay = '';
 
 	function initEditMap(lat = 10.3157, lng = 123.8854) {
 		const container = L.DomUtil.get('editLocationMap');
@@ -142,11 +170,20 @@ let editMap, editMarker;
 			updateEditCoordinates(pos.lat, pos.lng);
 		});
 
-		editMap.on('click', function (e) {
+	editMap.on('click', function (e) {
+		if (editFenceMode) {
+			// Add fence point
+			const { lat, lng } = e.latlng;
+			editFencePoints.push([lat, lng]);
+			updateFenceLine();
+			updateFenceJSON();
+		} else {
+			// Move marker
 			const { lat, lng } = e.latlng;
 			editMarker.setLatLng([lat, lng]);
 			updateEditCoordinates(lat, lng);
-		});
+		}
+	});
 	}
 
 	function updateEditCoordinates(lat, lng) {
@@ -154,6 +191,114 @@ let editMap, editMarker;
 		document.getElementById('edit_longitude').value = lng;
 		document.getElementById('editCoordinatesDisplay').innerText =
 			`Latitude: ${lat.toFixed(6)}, Longitude: ${lng.toFixed(6)}`;
+	}
+
+	function toggleEditFenceMode() {
+		editFenceMode = !editFenceMode;
+		const toggleBtn = document.getElementById('toggleFenceMode');
+		const clearBtn = document.getElementById('clearFence');
+		
+		if (editFenceMode) {
+			toggleBtn.innerHTML = '<i class="bi bi-geo-alt"></i> Move Marker';
+			toggleBtn.className = 'btn btn-sm btn-secondary';
+			clearBtn.style.display = 'inline-block';
+			editMarker.dragging.disable();
+		} else {
+			toggleBtn.innerHTML = '<i class="bi bi-vector-pen"></i> Draw Fence';
+			toggleBtn.className = 'btn btn-sm btn-outline-primary';
+			clearBtn.style.display = 'none';
+			editMarker.dragging.enable();
+		}
+	}
+
+	function updateFenceLine() {
+		if (editFencePolyline) {
+			editMap.removeLayer(editFencePolyline);
+		}
+		if (editFencePoints.length > 1) {
+			editFencePolyline = L.polyline(editFencePoints, {
+				color: '#f97316',
+				weight: 3,
+				opacity: 0.8
+			}).addTo(editMap);
+		}
+	}
+
+	function updateFenceJSON() {
+		const coords = editFencePoints.map(point => [point[0], point[1]]);
+		const jsonValue = JSON.stringify(coords);
+		document.getElementById('edit_boundary_json').value = jsonValue;
+		console.log('Updated boundary coordinates:', jsonValue);
+	}
+
+	function clearEditFence() {
+		editFencePoints = [];
+		if (editFencePolyline) {
+			editMap.removeLayer(editFencePolyline);
+			editFencePolyline = null;
+		}
+		document.getElementById('edit_boundary_json').value = '';
+		
+		// Also remove from local boundary data
+		if (currentBoundaryBarangay && window.barangayBoundaries) {
+			delete window.barangayBoundaries[currentBoundaryBarangay];
+			console.log('Cleared boundary data for:', currentBoundaryBarangay);
+		}
+	}
+
+	function loadExistingFence(barangayName) {
+		if (window.barangayBoundaries && window.barangayBoundaries[barangayName] && window.barangayBoundaries[barangayName].coordinates) {
+			editFencePoints = window.barangayBoundaries[barangayName].coordinates.map(c => [c.lat, c.lng]);
+			updateFenceLine();
+			updateFenceJSON();
+		}
+	}
+
+	// Add modal fence functions
+	function toggleAddFenceMode() {
+		addFenceMode = !addFenceMode;
+		const toggleBtn = document.getElementById('toggleAddFenceMode');
+		const clearBtn = document.getElementById('clearAddFence');
+		
+		if (addFenceMode) {
+			toggleBtn.innerHTML = '<i class="bi bi-geo-alt"></i> Set Location';
+			toggleBtn.className = 'btn btn-sm btn-secondary';
+			clearBtn.style.display = 'inline-block';
+		} else {
+			toggleBtn.innerHTML = '<i class="bi bi-vector-pen"></i> Draw Fence';
+			toggleBtn.className = 'btn btn-sm btn-outline-primary';
+			clearBtn.style.display = 'none';
+		}
+	}
+
+	function updateAddFenceLine() {
+		if (addFencePolyline) {
+			map.removeLayer(addFencePolyline);
+		}
+		if (addFencePoints.length > 1) {
+			addFencePolyline = L.polyline(addFencePoints, {
+				color: '#f97316',
+				weight: 3,
+				opacity: 0.8
+			}).addTo(map);
+		}
+	}
+
+	function updateAddFenceJSON() {
+		const coords = addFencePoints.map(point => [point[0], point[1]]);
+		const jsonValue = JSON.stringify(coords);
+		document.getElementById('add_boundary_json').value = jsonValue;
+		console.log('Add modal boundary coordinates:', jsonValue);
+	}
+
+	function clearAddFence() {
+		addFencePoints = [];
+		if (addFencePolyline) {
+			map.removeLayer(addFencePolyline);
+			addFencePolyline = null;
+		}
+		document.getElementById('add_boundary_json').value = '';
+		console.log('Cleared add fence data');
 	}
 
 	document.addEventListener('DOMContentLoaded', function () {
@@ -182,9 +327,31 @@ let editMap, editMarker;
 				const modal = new bootstrap.Modal(modalElement);
 				modal.show();
 
-				modalElement.addEventListener('shown.bs.modal', function () {
-					initEditMap(latitude, longitude);
-				}, { once: true });
+		modalElement.addEventListener('shown.bs.modal', function () {
+			initEditMap(latitude, longitude);
+			clearEditFence(); // Clear any previous fence
+			loadExistingFence(name);
+			
+			// Setup fence mode buttons
+			const toggleBtn = document.getElementById('toggleFenceMode');
+			const clearBtn = document.getElementById('clearFence');
+			
+			if (toggleBtn) {
+				toggleBtn.addEventListener('click', toggleEditFenceMode);
+			}
+			if (clearBtn) {
+				clearBtn.addEventListener('click', clearEditFence);
+			}
+			
+			// Setup form submission handler
+			const form = document.getElementById('editLocationForm');
+			if (form) {
+				form.addEventListener('submit', function(e) {
+					const boundaryData = document.getElementById('edit_boundary_json').value;
+					console.log('Form submitting with boundary data:', boundaryData);
+				});
+			}
+		}, { once: true });
 			});
 		});
 
@@ -250,6 +417,51 @@ let editMap, editMarker;
         } else {
           map1.setView([lat, lng], 15);
           marker1.setLatLng([lat, lng]);
+          // Clear existing boundary layers
+          map1.eachLayer(function(layer) {
+            if (layer instanceof L.Polygon || layer instanceof L.Polyline) {
+              map1.removeLayer(layer);
+            }
+          });
+        }
+        
+        // Display boundary fence if it exists
+        console.log('Looking for boundary data for:', name);
+        console.log('Available boundaries:', window.barangayBoundaries);
+        
+        if (window.barangayBoundaries && window.barangayBoundaries[name]) {
+          const boundary = window.barangayBoundaries[name];
+          console.log('Found boundary for', name, ':', boundary);
+          
+          if (boundary.coordinates && Array.isArray(boundary.coordinates)) {
+            const coords = boundary.coordinates.map(c => [c.lat, c.lng]);
+            console.log('Boundary coordinates:', coords);
+            
+            let boundaryLayer;
+            if (boundary.type === 'polygon' && coords.length >= 3) {
+              boundaryLayer = L.polygon(coords, {
+                color: '#f97316',
+                fillColor: '#fb923c',
+                fillOpacity: 0.25,
+                weight: 2
+              });
+            } else {
+              boundaryLayer = L.polyline(coords, {
+                color: '#22c55e',
+                weight: 3,
+                opacity: 0.8
+              });
+            }
+            
+            boundaryLayer.addTo(map1);
+            boundaryLayer.bindPopup(`<strong>${name}</strong><br>Boundary: ${boundary.type}<br>Points: ${coords.length}`);
+            
+            // Fit map to show both marker and boundary
+            const group = L.featureGroup([marker1, boundaryLayer]);
+            map1.fitBounds(group.getBounds(), { padding: [20, 20] });
+          }
+        } else {
+          console.log('No boundary data found for:', name);
         }
       }, 200); // slight delay ensures modal is shown before loading map
     });

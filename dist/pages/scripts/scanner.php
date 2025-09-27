@@ -22,6 +22,7 @@
 		let selectedIDPs = new Set();
 		let scannedMembers = [];
 		let currentLocationId = document.querySelector("input[name='location_id']")?.value;
+		let currentDisasterId = document.querySelector("input[name='disasterId']")?.value;
 		let availableCameras = [];
 
 		// Event Listeners
@@ -775,16 +776,18 @@
 			const roomId = familyRoomAssignment.value;
 			const memberIds = Array.from(selectedMembers); // Convert selectedMembers (Set) to array
 			const locationId = currentLocationId; // Assumes currentLocationId is set
+			const disasterId = currentDisasterId; // Assumes currentDisasterId is set
 
 			// Validate required fields
-			if (!roomId && memberIds.length === 0 && !locationId) {
-				showAlert("Please select a room, at least one member, and a location", "warning");
+			if (!roomId && memberIds.length === 0 && !locationId && !disasterId) {
+				showAlert("Please select a room, at least one member, a location, and a disaster", "warning");
 				return;
 			}
 			const data = {
 				room_id: roomId,
 				member_ids: memberIds,
-				location_id: locationId
+				location_id: locationId,
+				disaster_id: disasterId
 			};
 
 			try {

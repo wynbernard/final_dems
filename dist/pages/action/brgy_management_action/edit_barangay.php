@@ -9,6 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$latitude = $_POST['latitude'];
 	$longitude = $_POST['longitude'];
 	$current_signature = $_POST['current_signature'];
+	$boundary_json = $_POST['boundary_json'] ?? '';
 
 	$new_signature_path = $current_signature;
 
@@ -42,6 +43,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$stmt->bind_param("ssddsis", $barangay_name, $captain_name, $latitude, $longitude, $new_signature_path, $total_population, $barangay_id);
 
 	if ($stmt->execute()) {
+		// Handle boundary coordinates
+		$boundaryFile = dirname(__DIR__, 4) . '/address_json/barangay_boundaries.json';
+		$boundaries = [];
+		
+		// Create directory if it doesn't exist
+		$boundaryDir = dirname($boundaryFile);
+		if (!is_dir($boundaryDir)) {
+			mkdir($boundaryDir, 0755, true);
+		}
+		
+		// Load existing boundaries
+		if (file_exists($boundaryFile)) {
+			$existingData = @file_get_contents($boundaryFile);
+			if ($existingData !== false) {
+				$decoded = json_decode($existingData, true);
+				if (is_array($decoded)) {
+					$boundaries = $decoded;
+				}
+			}
+		}
+		
+		if (!empty($boundary_json)) {
+			// Parse and validate boundary coordinates
+			$coords = json_decode($boundary_json, true);
+			if (is_array($coords) && count($coords) >= 2) {
+				$validCoords = [];
+				foreach ($coords as $coord) {
+					if (is_array($coord) && count($coord) >= 2) {
+						$lat = filter_var($coord[0], FILTER_VALIDATE_FLOAT);
+						$lng = filter_var($coord[1], FILTER_VALIDATE_FLOAT);
+						if ($lat !== false && $lng !== false) {
+							$validCoords[] = ['lat' => round($lat, 6), 'lng' => round($lng, 6)];
+						}
+					}
+				}
+				
+				if (count($validCoords) >= 2) {
+					$boundaries[$barangay_name] = [
+						'type' => count($validCoords) >= 3 ? 'polygon' : 'polyline',
+						'coordinates' => $validCoords
+					];
+				}
+			}
+		} else {
+			// If boundary_json is empty, remove the boundary from JSON file
+			if (isset($boundaries[$barangay_name])) {
+				unset($boundaries[$barangay_name]);
+			}
+		}
+		
+		// Save updated boundaries to file
+		$encoded = json_encode($boundaries, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+		if ($encoded !== false) {
+			$writeResult = file_put_contents($boundaryFile, $encoded);
+			if ($writeResult === false) {
+				error_log("Failed to write boundary file: " . $boundaryFile);
+			}
+		}
+		
 		$_SESSION['success'] = "<span style='color:mint;'><i class='bi bi-check-circle-fill'></i> Edit Barangay Successfully!</span>";
 	} else {
 		$_SESSION['error'] = "<span style='color:mint;'><i class='bi bi-exclamation-circle-fill'></i> Failed to Edit Barangay.</span>";

@@ -261,3 +261,229 @@ Stack trace:
 [07-Sep-2025 14:34:10 Europe/Berlin] Processing Member ID: 109, Age Class ID: 1, Classification: 'Infant', Mapped to: 'infant'
 [07-Sep-2025 14:36:52 Europe/Berlin] Processing Member ID: 108, Age Class ID: 1, Classification: 'Infant', Mapped to: 'infant'
 [07-Sep-2025 14:36:52 Europe/Berlin] Processing Member ID: 109, Age Class ID: 1, Classification: 'Infant', Mapped to: 'infant'
+[25-Sep-2025 09:29:27 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of variables must match the number of parameters in the prepared statement in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:32:29 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of variables must match the number of parameters in the prepared statement in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:36:33 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:38:28 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:40:42 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:40:45 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:40:48 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:40:51 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:40:52 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:40:54 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:40:55 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:40:56 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:40:58 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:40:59 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:00 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:01 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:02 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:03 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:04 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:05 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:07 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:09 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:10 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:11 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:12 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:35 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:37 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:44 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:45 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:47 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:48 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:49 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:41:50 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:43:00 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:113
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(113): mysqli_stmt->bind_param('iii', '16', '97', '17', NULL)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 113
+[25-Sep-2025 09:43:02 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:113
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(113): mysqli_stmt->bind_param('iii', '16', '97', '17', NULL)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 113
+[25-Sep-2025 09:43:03 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:113
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(113): mysqli_stmt->bind_param('iii', '16', '97', '17', NULL)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 113
+[25-Sep-2025 09:43:04 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:113
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(113): mysqli_stmt->bind_param('iii', '16', '97', '17', NULL)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 113
+[25-Sep-2025 09:43:05 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:113
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(113): mysqli_stmt->bind_param('iii', '16', '97', '17', NULL)
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 113
+[25-Sep-2025 09:44:00 Europe/Berlin] Processing Member ID: 97, Age Class ID: 1, Classification: 'Infant', Mapped to: 'infant'
+[25-Sep-2025 09:44:01 Europe/Berlin] Processing Member ID: 98, Age Class ID: 1, Classification: 'Infant', Mapped to: 'infant'
+[25-Sep-2025 09:52:16 Europe/Berlin] Processing Member ID: 97, Age Class ID: 1, Classification: 'Infant', Mapped to: 'infant'
+[25-Sep-2025 09:52:16 Europe/Berlin] Processing Member ID: 98, Age Class ID: 1, Classification: 'Infant', Mapped to: 'infant'
+[25-Sep-2025 09:55:01 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iiiii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:55:04 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iiiii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:55:06 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iiiii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:57:22 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iiiii', '16', '97', '17')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 09:59:36 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:114
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(114): mysqli_stmt->bind_param('iiiii', '16', '97', '17', '2')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 114
+[25-Sep-2025 10:00:30 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php:121
+Stack trace:
+#0 C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php(121): mysqli_stmt->bind_param('isi', 93, 'IN')
+#1 {main}
+  thrown in C:\xamppfinal\htdocs\final_dems\dist\pages\qr_code_scanner\register_family.php on line 121
+[25-Sep-2025 10:01:10 Europe/Berlin] Processing Member ID: 97, Age Class ID: 1, Classification: 'Infant', Mapped to: 'infant'
+[25-Sep-2025 10:01:11 Europe/Berlin] Processing Member ID: 98, Age Class ID: 1, Classification: 'Infant', Mapped to: 'infant'

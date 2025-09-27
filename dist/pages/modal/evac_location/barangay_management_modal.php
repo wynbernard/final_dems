@@ -14,8 +14,17 @@
 							<label class="form-label">Select Location on Map</label>
 							<div id="locationMap" style="height: 400px; border: 1px solid #ced4da; border-radius: 0.25rem;"></div>
 							<small class="form-text text-muted">Click on the map to set the barangay center location.</small>
+							<div class="mt-2">
+								<button type="button" class="btn btn-sm btn-outline-primary" id="toggleAddFenceMode">
+									<i class="bi bi-vector-pen"></i> Draw Fence For Prone on disaster
+								</button>
+								<button type="button" class="btn btn-sm btn-outline-danger" id="clearAddFence" style="display:none;">
+									<i class="bi bi-trash"></i> Clear Fence For Prone on disaster
+								</button>
+							</div>
 							<input type="hidden" id="latitude" name="latitude">
 							<input type="hidden" id="longitude" name="longitude">
+							<input type="hidden" id="add_boundary_json" name="boundary_json">
 							<div id="coordinatesDisplay" class="mt-2 text-secondary"></div>
 						</div>
 						<!-- Form Column -->
@@ -166,8 +175,17 @@
 							<label class="form-label fw-bold">Barangay Location</label>
 							<div id="editLocationMap" style="height: 400px; border: 1px solid #ced4da; border-radius: 0.25rem;"></div>
 							<small class="form-text text-muted">Click or drag marker to update the location.</small>
+							<div class="mt-2">
+								<button type="button" class="btn btn-sm btn-outline-primary" id="toggleFenceMode">
+									<i class="bi bi-vector-pen"></i> Draw Fence
+								</button>
+								<button type="button" class="btn btn-sm btn-outline-danger" id="clearFence" style="display:none;">
+									<i class="bi bi-trash"></i> Clear Fence
+								</button>
+							</div>
 							<input type="hidden" name="latitude" id="edit_latitude">
 							<input type="hidden" name="longitude" id="edit_longitude">
+							<input type="hidden" name="boundary_json" id="edit_boundary_json">
 							<div id="editCoordinatesDisplay" class="mt-2 text-secondary"></div>
 						</div>
 
@@ -274,6 +292,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.6/dist/signature_pad.umd.min.js"></script>
 
+<script>
+// Boundary data is loaded from the main page
+</script>
 <script src="../scripts/evac_location_script/barangay_management.js?v=<?php echo time(); ?>"></script>
 <!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />

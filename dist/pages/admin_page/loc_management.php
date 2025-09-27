@@ -41,7 +41,6 @@ if (!$result) {
 					</div>
 				</div>
 			</div>
-
 			<!-- Search Box -->
 			<div class="container mt-0"></div>
 
@@ -150,22 +149,30 @@ if (!$result) {
 		?>
 	</div>
 
+	<!-- SweetAlert2 -->
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+	
 	<!-- Search Script -->
 	<script>
-		$(document).ready(function() {
-			$("#searchBox").on("keyup", function() {
-				var searchTerm = $(this).val().toLowerCase().trim();
-
-				$("#locationTable tbody tr").each(function() {
-					var rowText = $(this).text().toLowerCase();
-
-					if (rowText.includes(searchTerm)) {
-						$(this).fadeIn();
-					} else {
-						$(this).fadeOut();
-					}
+		document.addEventListener('DOMContentLoaded', function() {
+			const searchBox = document.getElementById('searchBox');
+			const locationTable = document.getElementById('locationTable');
+			
+			if (searchBox && locationTable) {
+				searchBox.addEventListener('input', function() {
+					const searchTerm = this.value.toLowerCase().trim();
+					const rows = locationTable.querySelectorAll('tbody tr');
+					
+					rows.forEach(function(row) {
+						const rowText = row.textContent.toLowerCase();
+						if (rowText.includes(searchTerm)) {
+							row.style.display = '';
+						} else {
+							row.style.display = 'none';
+						}
+					});
 				});
-			});
+			}
 		});
 	</script>
 	<style>
@@ -243,14 +250,27 @@ if (!$result) {
 
 			function getSelectedIds() {
 				const ids = [];
-				document.querySelectorAll('.row-select:checked').forEach(cb => ids.push(cb.getAttribute('data-id')));
+				const checkboxes = document.querySelectorAll('.row-select:checked');
+				console.log('Found checked checkboxes:', checkboxes.length);
+				checkboxes.forEach(cb => {
+					const id = cb.getAttribute('data-id');
+					console.log('Checkbox ID:', id);
+					ids.push(id);
+				});
+				console.log('Selected IDs:', ids);
 				return ids;
 			}
 
 			if (selectAll) {
 				selectAll.addEventListener('change', function() {
 					const checked = !!this.checked;
-					document.querySelectorAll('.row-select').forEach(cb => cb.checked = checked);
+					// Only select checkboxes in visible rows
+					document.querySelectorAll('.row-select').forEach(cb => {
+						const row = cb.closest('tr');
+						if (row && row.style.display !== 'none') {
+							cb.checked = checked;
+						}
+					});
 				});
 			}
 
@@ -341,8 +361,25 @@ if (!$result) {
 					btn.disabled = false;
 				}
 			}
-			if (activateBtn) activateBtn.addEventListener('click', () => bulkUpdate('Active'));
-			if (deactivateBtn) deactivateBtn.addEventListener('click', () => bulkUpdate('Inactive'));
+			if (activateBtn) {
+				console.log('Activate button found, adding event listener');
+				activateBtn.addEventListener('click', function() {
+					console.log('Activate button clicked');
+					bulkUpdate('Active');
+				});
+			} else {
+				console.log('Activate button NOT found');
+			}
+			
+			if (deactivateBtn) {
+				console.log('Deactivate button found, adding event listener');
+				deactivateBtn.addEventListener('click', function() {
+					console.log('Deactivate button clicked');
+					bulkUpdate('Inactive');
+				});
+			} else {
+				console.log('Deactivate button NOT found');
+			}
 		});
 	</script>
 	<script src="../scripts/scripts.js"></script>

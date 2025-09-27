@@ -6,11 +6,11 @@ document.getElementById('ic_image').addEventListener('change', function() {
 								const ext = document.getElementById('name_extension').value.trim().toLowerCase();
 								const idSelect = document.getElementById('icp');
 
-								if (!file || !fname || !mname || !lname) {
+							if (!file || !fname || !lname) {
 									Swal.fire({
 										icon: 'warning',
 										title: 'Missing Input',
-										text: 'Please fill out first, middle, and last name before uploading the ID.'
+									text: 'Please fill out first and last name before uploading the ID.'
 									});
 									this.value = "";
 									return;
@@ -54,23 +54,35 @@ document.getElementById('ic_image').addEventListener('change', function() {
 
 											if (isFnameMatch && isMnameMatch && isLnameMatch && isExtMatch) {
 												idSelect.value = 'Philippine National ID';
-												Swal.fire({
-													icon: 'success',
-													title: 'QR Name Match',
-													text: 'QR code successfully verified.',
-													confirmButtonColor: '#198754'
-												});5
+											Swal.fire({
+												icon: 'success',
+												title: 'QR Name Match',
+												text: 'QR code successfully verified.',
+												confirmButtonColor: '#198754'
+											});
 											} else {
+											const mismatches = [];
+											if (!isFnameMatch) mismatches.push('First Name');
+											if (!isMnameMatch) mismatches.push('Middle Name');
+											if (!isLnameMatch) mismatches.push('Last Name');
+											if (!isExtMatch) mismatches.push('Extension');
+
+											const shouldClear = !isFnameMatch || !isLnameMatch; // only clear if core names mismatch
+											if (shouldClear) {
 												document.getElementById('ic_image').value = "";
-												Swal.fire({
-													icon: 'error',
-													title: 'QR Name Mismatch',
-													text: 'Name in the QR code does not match your input.',
-													confirmButtonColor: '#dc3545'
-												});
+											}
+
+											const message = `❌ ${mismatches.join(", ")} not found on the ID.${shouldClear ? '<br>The uploaded image has been cleared.' : ''}`;
+											Swal.fire({
+												icon: 'error',
+												title: 'QR Name Mismatch',
+												html: message,
+												confirmButtonColor: '#dc3545'
+											});
 											}
 										} else {
-											runTesseractOCR(file, fname, mname, lname, ext, idSelect);
+										// Fallback to OCR with preprocessing and rotations
+										runTesseractOCR(file, fname, mname, lname, ext, idSelect);
 										}
 									};
 									img.src = reader.result;
@@ -150,7 +162,7 @@ document.getElementById('ic_image').addEventListener('change', function() {
 									}
 
 									const fnameMatch = cleanText.includes(fname);
-									const mnameMatch = cleanText.includes(mname);
+									const mnameMatch = mname ? cleanText.includes(mname) : true; // optional
 									const lnameMatch = cleanText.includes(lname);
 									const extMatch = ext ? cleanText.includes(ext) : true;
 
@@ -162,17 +174,22 @@ document.getElementById('ic_image').addEventListener('change', function() {
 											confirmButtonColor: '#198754'
 										});
 									} else {
-										document.getElementById('ic_image').value = "";
 										const unmatched = [];
 										if (!fnameMatch) unmatched.push("First Name");
 										if (!mnameMatch) unmatched.push("Middle Name");
 										if (!lnameMatch) unmatched.push("Last Name");
 										if (!extMatch) unmatched.push("Extension");
 
+										const shouldClear = !fnameMatch || !lnameMatch; // only clear if core names mismatch
+										if (shouldClear) {
+											document.getElementById('ic_image').value = "";
+										}
+
+										const message = `❌ ${unmatched.join(", ")} not found on the ID.${shouldClear ? '<br>The uploaded image has been cleared.' : ''}`;
 										Swal.fire({
 											icon: 'error',
 											title: 'Name Mismatch',
-											text: `❌ ${unmatched.join(", ")} not found on the ID.<br>The uploaded image has been cleared.`,
+											html: message,
 											confirmButtonColor: '#dc3545'
 										});
 									}

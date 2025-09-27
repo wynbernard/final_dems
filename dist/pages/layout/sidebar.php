@@ -145,6 +145,18 @@
             <p>Reports</p>
           </a>
         </li>
+         <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'predictive.php' ? 'menu-open' : ''; ?>">
+          <a href="./predictive.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'predictive.php' ? 'active' : ''; ?>">
+            <i class="nav-icon bi bi-boxes"></i>
+            <p>Predictive Analysis</p>
+          </a>
+        </li>
+        <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'area_affected.php' ? 'menu-open' : ''; ?>">
+          <a href="./area_affected.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'area_affected.php' ? 'active' : ''; ?>">
+            <i class="nav-icon bi bi-boxes"></i>
+            <p>Area Affected</p>
+          </a>
+        </li>
       </ul>
       <!--end::Sidebar Menu-->
     </nav>

@@ -13,12 +13,13 @@ try {
     $roomId = $data['room_id'] ?? null;
     $memberIds = $data['member_ids'] ?? [];
     $locationId = $data['location_id'] ?? null;
+    $disasterId = $data['disaster_id'] ?? null; // New disaster_id input
 
-    if (!$roomId || !is_array($memberIds) || count($memberIds) === 0 || !$locationId) {
+    if (!$roomId || !is_array($memberIds) || count($memberIds) === 0 || !$locationId || !$disasterId) {
         http_response_code(400);
         echo json_encode([
             'success' => false,
-            'error' => "Missing required input: room, members, or location."
+            'error' => "Missing required input: room, members, location, or disaster."
         ]);
         exit;
     }
@@ -52,7 +53,7 @@ try {
     // Prepare statements
     // Check latest evac_reg entry for the given pre_reg_id (allow re-register if status = 'Dispatched')
     $checkStmt = $conn->prepare("SELECT evac_reg_id, status FROM evac_reg_table WHERE pre_reg_id = ? ORDER BY evac_reg_id DESC LIMIT 1");
-    $insertStmt = $conn->prepare("INSERT INTO evac_reg_table (room_id, pre_reg_id, evac_loc_id, date_reg, status) VALUES (?, ?, ?, CURDATE(), 'Evacuated')");
+    $insertStmt = $conn->prepare("INSERT INTO evac_reg_table (room_id, pre_reg_id, evac_loc_id, disaster_id, date_reg, status) VALUES (?, ?, ?, ?, CURDATE(), 'Evacuated')");
     $logStmt = $conn->prepare("INSERT INTO logs_table (evac_reg_id, status, date_time) VALUES (?, ?, NOW())");
     $typeStmt = $conn->prepare("SELECT registered_as,age_class_id FROM pre_reg_table WHERE pre_reg_id = ?");
     $recordCheck = $conn->prepare("SELECT evacuation_id FROM evacuation_record_table WHERE evacuation_location = ? AND end_date IS NULL");
@@ -106,11 +107,11 @@ try {
             if ($existingStatus === 'dispatched') {
                 $allowInsert = true;
             }
-        }
+        }   
 
         if ($allowInsert) {
             // Insert new registration
-            $insertStmt->bind_param("iii", $roomId, $memberId, $locationId);
+            $insertStmt->bind_param("iiii", $roomId, $memberId, $locationId , $disasterId);
             if (!$insertStmt->execute()) {
                 throw new Exception("Insert failed for member ID $memberId: " . $insertStmt->error);
             }

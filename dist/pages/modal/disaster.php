@@ -16,7 +16,24 @@
 						<label for="date" class="form-label">Date</label>
 						<input type="date" class="form-control" id="date" name="date" required>
 					</div>
+					<div class="mb-3">
+						<label for="level" class="form-label">Scale (1-10)</label>
+						<select class="form-control" id="level" name="level" required>
+							<option value="" disabled selected>Select scale</option>
+							<option value="1">1</option>
+							<option value="2">2</option>
+							<option value="3">3</option>
+							<option value="4">4</option>
+							<option value="5">5</option>
+							<option value="6">6</option>
+							<option value="7">7</option>
+							<option value="8">8</option>
+							<option value="9">9</option>
+							<option value="10">10</option>
+						</select>
+					</div>
 				</div>
+				
 				<div class="modal-footer">
 					<button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save</button>
 					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -45,7 +62,22 @@
 						<label for="edit-disaster-date" class="form-label">Date</label>
 						<input type="date" class="form-control" id="edit-disaster-date" name="date">
 					</div>
-				</div>
+					<div class="mb-3">
+						<label for="edit-disaster-level" class="form-label">Scale (1-10)</label>
+						<select class="form-control" id="edit-disaster-level" name="level" required>
+							<option value="" disabled selected>Select scale</option>
+							<option value="1">1</option>
+							<option value="2">2</option>
+							<option value="3">3</option>
+							<option value="4">4</option>
+							<option value="5">5</option>
+							<option value="6">6</option>
+							<option value="7">7</option>
+							<option value="8">8</option>
+							<option value="9">9</option>
+							<option value="10">10</option>
+						</select>
+					</div>
 				<div class="modal-footer">
 					<button type="submit" class="btn btn-primary">Save Changes</button>
 				</div>
@@ -87,11 +119,13 @@
 				const disasterId = this.getAttribute('data-id');
 				const disasterType = this.getAttribute('data-type');
 				const disasterDate = this.getAttribute('data-date');
+				const disasterLevel = this.getAttribute('data-level');
 
 				// Field Modal 
 				document.getElementById('edit-disaster-id').value = disasterId;
 				document.getElementById('edit-disaster-type').value = disasterType;
 				document.getElementById('edit-disaster-date').value = disasterDate;
+				document.getElementById('edit-disaster-level').value = disasterLevel;
 			});
 		});
 	});
