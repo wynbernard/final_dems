@@ -7,12 +7,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$disaster_name = trim($_POST['disaster_name'] ?? '');
 	$date = trim($_POST['date'] ?? '');
 	$level = intval($_POST['level'] ?? 0);
+	$status = trim($_POST['status'] ?? '');
 
-	if ($disaster_name !== '' && $date !== '' && $level > 0) {
-		$stmt = $conn->prepare("INSERT INTO disaster_table (disaster_name,date,level) VALUES (?,?,?)");
+	if ($disaster_name !== '' && $date !== '' && $level > 0 && $level <= 10 && ($status === 'Ongoing' || $status === 'Resolved')) {
+		$stmt = $conn->prepare("INSERT INTO disaster_table (disaster_name,date,level,status) VALUES (?,?,?,?)");
 
 		if ($stmt) {
-			$stmt->bind_param("ssi", $disaster_name, $date, $level);
+			$stmt->bind_param("ssis", $disaster_name, $date, $level, $status);
 
 			if ($stmt->execute()) {
 				$_SESSION['success'] = "<span style='color: green;'><i class='bi bi-check-circle-fill'></i></span> Disaster added successfully!";

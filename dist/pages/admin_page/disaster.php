@@ -69,6 +69,7 @@ if (!$result) {
 												<th><i class="bi bi-exclamation-triangle-fill"></i> Disaster Type</th>
 												<th><i class="bi bi-calendar-event-fill"></i> Date</th>
 												<th><i class="bi bi-scale"></i> Scale(1-10)</th>
+												<th><i class="bi bi-check-circle-fill"></i> Status</th>
 												<th><i class="bi bi-gear-fill"></i> Actions</th>
 
 											</tr>
@@ -84,13 +85,21 @@ if (!$result) {
 														<td class="cell-disaster-name"><?php echo htmlspecialchars($disaster['disaster_name']); ?></td>
 														<td class="cell-date"><?php echo htmlspecialchars($disaster['date']); ?></td>
 														<td class="cell-scale"><?php echo htmlspecialchars($disaster['level']); ?></td>
+														<td class="cell-status">
+															<?php if ($disaster['status'] === 'Ongoing'): ?>
+																<span class="badge bg-danger">Ongoing</span>
+															<?php else: ?>
+																<span class="badge bg-success">Resolved</span>
+															<?php endif; ?>
 
+														</td>
 														<td>
 															<a href="#" class="btn btn-outline-success btn-sm edit-btn"
 																data-id="<?php echo $disaster['disaster_id']; ?>"
 																data-type="<?php echo htmlspecialchars($disaster['disaster_name']); ?>"
 																data-level="<?php echo htmlspecialchars($disaster['level']); ?>"
 																data-date="<?php echo htmlspecialchars($disaster['date']); ?>"
+																data-status="<?php echo htmlspecialchars($disaster['status']); ?>"
 																data-bs-toggle="modal" data-bs-target="#editDisasterModal">
 																<i class="fas fa-edit"></i> Edit
 															</a>

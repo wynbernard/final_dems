@@ -114,24 +114,28 @@
             </li>
           </ul>
         </li>
-        <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'disaster.php' ? 'menu-open' : ''; ?>">
-          <a href="./disaster.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'disaster.php' ? 'active' : ''; ?>">
-            <i class="nav-icon bi bi-cloud-lightning-rain"></i> <!-- Warning/Danger Icon -->
-            <p>Kind of Disaster</p>
-          </a>
-        </li>
-        <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'loc_management.php' ? 'menu-open' : ''; ?>">
-          <a href="./loc_management.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'loc_management.php' ? 'active' : ''; ?>">
-            <i class="nav-icon bi bi-map"></i><!-- Location Pin Icon -->
-            <p>Location Management</p>
-          </a>
-        </li>
-        <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'barangay_management.php' ? 'menu-open' : ''; ?>">
-          <a href="./barangay_management.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'barangay_management.php' ? 'active' : ''; ?>">
-            <i class="nav-icon fas fa-city"></i><!-- Location Pin Icon -->
-            <p>Barangay Management</p>
-          </a>
-        </li>
+        <?php if ($_SESSION['role'] === 'Admin'): ?>
+          <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'disaster.php' ? 'menu-open' : ''; ?>">
+            <a href="./disaster.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'disaster.php' ? 'active' : ''; ?>">
+              <i class="nav-icon bi bi-cloud-lightning-rain"></i>
+              <p>Kind of Disaster</p>
+            </a>
+          </li>
+
+          <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'loc_management.php' ? 'menu-open' : ''; ?>">
+            <a href="./loc_management.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'loc_management.php' ? 'active' : ''; ?>">
+              <i class="nav-icon bi bi-map"></i>
+              <p>Location Management</p>
+            </a>
+          </li>
+
+          <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'barangay_management.php' ? 'menu-open' : ''; ?>">
+            <a href="./barangay_management.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'barangay_management.php' ? 'active' : ''; ?>">
+              <i class="nav-icon fas fa-city"></i>
+              <p>Barangay Management</p>
+            </a>
+          </li>
+        <?php endif; ?>
 
         <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'resource_inventory.php' ? 'menu-open' : ''; ?>">
           <a href="./resource_inventory.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'resource_inventory.php' ? 'active' : ''; ?>">
@@ -145,16 +149,16 @@
             <p>Reports</p>
           </a>
         </li>
-         <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'predictive.php' ? 'menu-open' : ''; ?>">
+        <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'predictive.php' ? 'menu-open' : ''; ?>">
           <a href="./predictive.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'predictive.php' ? 'active' : ''; ?>">
             <i class="nav-icon bi bi-boxes"></i>
             <p>Predictive Analysis</p>
           </a>
         </li>
-        <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'area_affected.php' ? 'menu-open' : ''; ?>">
-          <a href="./area_affected.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'area_affected.php' ? 'active' : ''; ?>">
-            <i class="nav-icon bi bi-boxes"></i>
-            <p>Area Affected</p>
+        <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'brgy_record.php' ? 'menu-open' : ''; ?>">
+          <a href="./brgy_record.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'brgy_record.php' ? 'active' : ''; ?>">
+            <i class="nav-icon bi bi-journal-text"></i>
+            <p>Barangay Record</p>
           </a>
         </li>
       </ul>

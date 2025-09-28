@@ -106,7 +106,7 @@ WHERE evac_reg_table.status = 'Evacuated'
                                     <select name="disasterId" id="disasterSelect" class="form-select me-2 mb-2" style="max-width: 250px;" required>
                                         <option value="" disabled selected>Select Disaster Event</option>
                                         <?php
-                                        $disasterQuery = mysqli_query($conn, "SELECT disaster_id, disaster_name FROM disaster_table ORDER BY disaster_id DESC");
+                                        $disasterQuery = mysqli_query($conn, "SELECT disaster_id, disaster_name FROM disaster_table WHERE status = 'Ongoing' ORDER BY disaster_id DESC");
                                         if ($disasterQuery && mysqli_num_rows($disasterQuery) > 0) {
                                             while ($disaster = mysqli_fetch_assoc($disasterQuery)) {
                                                 $selected = (isset($_GET['disasterId']) && $_GET['disasterId'] == $disaster['disaster_id']) ? 'selected' : '';
@@ -123,7 +123,7 @@ WHERE evac_reg_table.status = 'Evacuated'
                                         <i class="fas fa-user-plus me-1"></i> Redgister IDP
                                     </button>
 
-                                   <button type="button" class="btn btn-danger mb-2 ms-2" id="dispatchAllBtn"><i class="fas fa-truck-moving me-1"></i> Dispatch All</button>
+                                    <button type="button" class="btn btn-danger mb-2 ms-2" id="dispatchAllBtn"><i class="fas fa-truck-moving me-1"></i> Dispatch All</button>
 
                                     <?php
                                     $locationId = $_GET['location_id'] ?? '';
@@ -136,7 +136,8 @@ WHERE evac_reg_table.status = 'Evacuated'
 													SUM(CASE WHEN a.classification = 'Teen' THEN 1 ELSE 0 END) AS Teen,
 													SUM(CASE WHEN a.classification = 'Adult' THEN 1 ELSE 0 END) AS Adult,
 													SUM(CASE WHEN a.classification = 'Senior' THEN 1 ELSE 0 END) AS Senior,
-													COUNT(*) AS total
+													COUNT(*) AS total,
+                                                    er.status
 												FROM evac_reg_table er
 												INNER JOIN pre_reg_table pr ON er.pre_reg_id = pr.pre_reg_id
 												LEFT JOIN age_class_table a ON pr.age_class_id = a.age_class_id
@@ -144,7 +145,9 @@ WHERE evac_reg_table.status = 'Evacuated'
 											";
 
                                     if (!empty($locationId)) {
-                                        $ageQuery .= " WHERE r.evac_loc_id = '$locationId'";
+                                        $ageQuery .= " WHERE r.evac_loc_id = '$locationId' AND er.status = 'Evacuated'";
+                                    }else{
+                                        $ageQuery .= " WHERE er.status = 'Evacuated'";
                                     }
 
                                     $ageResult = mysqli_query($conn, $ageQuery);
@@ -198,6 +201,7 @@ WHERE evac_reg_table.status = 'Evacuated'
 									INNER JOIN room_table r ON l.evac_loc_id = r.evac_loc_id
 									INNER JOIN evac_reg_table er ON r.room_id = er.room_id
 									INNER JOIN pre_reg_table pr ON er.pre_reg_id = pr.pre_reg_id
+                                    WHERE er.status = 'Evacuated'
 								";
 
 
@@ -212,6 +216,8 @@ WHERE evac_reg_table.status = 'Evacuated'
                             if ($_SESSION['role'] == 'Staff') {
                                 $staff_location_id = $_SESSION['evac_loc_id'];
                                 $query .= " WHERE r.evac_loc_id = '$staff_location_id' AND r.status = 'Evacuated' ";
+                            }elseif($_SESSION['role'] == 'Admin'){
+                                $query .= " WHERE r.status = 'Evacuated' ";
                             }
                             // For admin users - filter by selected location if specified
                             elseif (!empty($locationId)) {
@@ -296,7 +302,11 @@ WHERE evac_reg_table.status = 'Evacuated'
                     const loc = document.getElementById('locationSelect').value;
                     if (!loc) {
                         if (window.Swal) {
-                            Swal.fire({ icon: 'warning', title: 'No location selected', text: 'Please select a location before dispatching.' });
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'No location selected',
+                                text: 'Please select a location before dispatching.'
+                            });
                         } else {
                             alert('Please select a location');
                         }
@@ -313,7 +323,11 @@ WHERE evac_reg_table.status = 'Evacuated'
                             const hasEvacuees = rows.some(r => !!r.querySelector('.view-idp-btn'));
                             if (!hasEvacuees) {
                                 if (window.Swal) {
-                                    Swal.fire({ icon: 'info', title: 'No evacuees', text: 'There are no evacuees at the selected location to dispatch.' });
+                                    Swal.fire({
+                                        icon: 'info',
+                                        title: 'No evacuees',
+                                        text: 'There are no evacuees at the selected location to dispatch.'
+                                    });
                                 } else {
                                     alert('There are no evacuees at the selected location to dispatch.');
                                 }
@@ -345,14 +359,22 @@ WHERE evac_reg_table.status = 'Evacuated'
                             if (window.Swal) Swal.close();
                             if (data.success) {
                                 if (window.Swal) {
-                                    Swal.fire({ icon: 'success', title: 'Dispatched', text: data.count ? data.count + ' evacuees dispatched.' : data.message }).then(() => window.location.reload());
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Dispatched',
+                                        text: data.count ? data.count + ' evacuees dispatched.' : data.message
+                                    }).then(() => window.location.reload());
                                 } else {
                                     alert((data.count ? data.count + ' evacuees dispatched.' : data.message));
                                     window.location.reload();
                                 }
                             } else {
                                 if (window.Swal) {
-                                    Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to dispatch evacuees.' });
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Error',
+                                        text: data.message || 'Failed to dispatch evacuees.'
+                                    });
                                 } else {
                                     alert('Error: ' + data.message);
                                 }
@@ -361,7 +383,11 @@ WHERE evac_reg_table.status = 'Evacuated'
                             console.error(err);
                             if (window.Swal) Swal.close();
                             if (window.Swal) {
-                                Swal.fire({ icon: 'error', title: 'Server error', text: 'Could not complete the dispatch. Try again.' });
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Server error',
+                                    text: 'Could not complete the dispatch. Try again.'
+                                });
                             } else {
                                 alert('Server error');
                             }

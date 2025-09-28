@@ -32,6 +32,14 @@
 							<option value="10">10</option>
 						</select>
 					</div>
+					<div class="mb-3">
+						<label for="status" class="form-label">Status</label>
+						<select class="form-control" id="status" name="status" required>
+							<option value="" disabled selected>Select status</option>
+							<option value="Ongoing">Ongoing</option>
+							<option value="Resolved">Resolved</option>
+						</select>
+					</div>
 				</div>
 				
 				<div class="modal-footer">
@@ -78,6 +86,14 @@
 							<option value="10">10</option>
 						</select>
 					</div>
+					<div>
+						<label for="edit-disaster-status" class="form-label">Status</label>
+						<select class="form-control" id="edit-disaster-status" name="status" required>
+							<option value="" disabled selected>Select status</option>
+							<option value="Ongoing">Ongoing</option>
+							<option value="Resolved">Resolved</option>
+						</select>
+					</div>
 				<div class="modal-footer">
 					<button type="submit" class="btn btn-primary">Save Changes</button>
 				</div>
@@ -120,12 +136,14 @@
 				const disasterType = this.getAttribute('data-type');
 				const disasterDate = this.getAttribute('data-date');
 				const disasterLevel = this.getAttribute('data-level');
+				const disasterStatus = this.getAttribute('data-status');
 
 				// Field Modal 
 				document.getElementById('edit-disaster-id').value = disasterId;
 				document.getElementById('edit-disaster-type').value = disasterType;
 				document.getElementById('edit-disaster-date').value = disasterDate;
 				document.getElementById('edit-disaster-level').value = disasterLevel;
+				document.getElementById('edit-disaster-status').value = disasterStatus;
 			});
 		});
 	});

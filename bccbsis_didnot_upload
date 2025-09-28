@@ -13,9 +13,12 @@ disaster/edit_disaster.php
 
 //admin_page
 barangay_manegment.php
+brgy_record.php
 disaster.php
+idps_user.php
 loc_management.php
 predictive.php
+
 
 //layout
 sidebar.php
@@ -31,3 +34,6 @@ register_family.php
 auth_script/ocr.js
 evac_location_script/barangay_management.js
 scanner.php
+
+
+once the mark the needed to evacuate will predictive show the possible evacuess and how manay evacuess will go to the evacuation centerwe base on the barangay possible evacuess
