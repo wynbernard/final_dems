@@ -2,7 +2,7 @@
 include '../../../database/session.php';
 include '../layout/head_links.php';
 
-$query = "SELECT * FROM disaster_table"; // Adjust table name if needed
+$query = "SELECT * FROM disaster_table ORDER BY `date` DESC"; // Adjust table name if needed
 $result = mysqli_query($conn, $query);
 
 if (!$result) {

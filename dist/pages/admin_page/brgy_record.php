@@ -4,8 +4,9 @@ include '../layout/head_links.php';
 
 // Fetch barangay disaster records
 $query = "
- SELECT brgy_record_id, barangay_name, total_evacuess, disaster_name, scale, date
+ SELECT brgy_record_id, barangay_name, total_evacuess, disaster_table.disaster_name as disaster_name, scale, brgy_record_table.date as date
  FROM brgy_record_table
+ LEFT JOIN disaster_table ON brgy_record_table.disaster_id = disaster_table.disaster_id
  ORDER BY date ASC
 ";
 $result = mysqli_query($conn, $query);
@@ -80,6 +81,19 @@ foreach ($dataByBarangay as $barangay => $records) {
           <div class="col-md-12">
             <div class="card">
               <div class="card-body">
+                <div class="mb-3 d-flex align-items-center gap-2">
+                  <label for="barangaySelect" class="mb-0 fw-semibold">Barangay:</label>
+                  <select id="barangaySelect" class="form-select w-auto">
+                    <option value="__all__">All Barangays</option>
+                    <?php
+                    // build a list of barangays for the dropdown
+                    $barangayList = array_keys($dataByBarangay);
+                    foreach ($barangayList as $bname) {
+                      echo '<option value="' . htmlspecialchars($bname) . '">' . htmlspecialchars($bname) . '</option>';
+                    }
+                    ?>
+                  </select>
+                </div>
                 <canvas id="evacuationChart" style="height: 400px;"></canvas>
               </div>
             </div>
@@ -97,23 +111,30 @@ foreach ($dataByBarangay as $barangay => $records) {
     const labels = <?php echo json_encode($allDates); ?>;
 
     // Barangay datasets
-    const datasets = <?php echo json_encode($barangayDatasets); ?>.map(ds => {
-      return {
+    const rawDatasets = <?php echo json_encode($barangayDatasets); ?>;
+
+    function makeChartDatasets(list) {
+      return list.map(ds => ({
         label: ds.label,
         data: ds.data,
         borderColor: `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`,
         backgroundColor: `hsl(${Math.floor(Math.random() * 360)}, 70%, 70%)`,
         borderWidth: 2,
         fill: false,
-        tension: 0.3
-      };
-    });
+        tension: 0.3,
+        spanGaps: true,
+        pointRadius: 3
+      }));
+    }
 
-    new Chart(ctx, {
+    // keep a copy of the original labels (full union of dates)
+    const originalLabels = labels.slice();
+
+    let chart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: labels,
-        datasets: datasets
+        datasets: makeChartDatasets(rawDatasets)
       },
       options: {
         responsive: true,
@@ -137,6 +158,45 @@ foreach ($dataByBarangay as $barangay => $records) {
         }
       }
     });
+
+    // Dropdown filter logic
+    const select = document.getElementById('barangaySelect');
+    select.addEventListener('change', function() {
+      const val = this.value;
+      if (val === '__all__') {
+        chart.data.labels = originalLabels.slice();
+        chart.data.datasets = makeChartDatasets(rawDatasets);
+      } else {
+        const filtered = rawDatasets.filter(d => d.label === val);
+        // compute labels where this dataset has non-null values so the latest point appears at the end
+        const ds = filtered.length ? filtered[0] : null;
+        if (ds) {
+          const newLabels = [];
+          const newData = [];
+          for (let i = 0; i < ds.data.length; i++) {
+            if (ds.data[i] !== null && ds.data[i] !== undefined) {
+              newLabels.push(originalLabels[i]);
+              newData.push(ds.data[i]);
+            }
+          }
+          chart.data.labels = newLabels;
+          // create a single dataset with same styling but only the trimmed data
+          chart.data.datasets = [{
+            label: ds.label,
+            data: newData,
+            borderColor: `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`,
+            backgroundColor: `hsl(${Math.floor(Math.random() * 360)}, 70%, 70%)`,
+            borderWidth: 2,
+            fill: false,
+            tension: 0.3,
+            spanGaps: true,
+            pointRadius: 3
+          }];
+        }
+      }
+      chart.update();
+    });
   </script>
 </body>
+
 </html>

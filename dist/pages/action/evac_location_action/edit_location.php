@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	) {
 		die("Missing required fields.");
 	}
-	
+
 	// Get barangay_id from barangay_manegement_table
 	$getBrgy = $conn->prepare("SELECT barangay_id FROM barangay_manegement_table WHERE barangay_name = ?");
 	$getBrgy->bind_param("s", $barangay_name);
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	}
 
 	$stmt->bind_param(
-		"sssidddi",
+		"ssisiddi",
 		$location_name,
 		$location_city,
 		$barangay_id,      // Use the ID, not name

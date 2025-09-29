@@ -22,7 +22,8 @@ $query = "
 			TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) AS age,
 			COUNT(CASE 
               WHEN p.date_of_birth IS NOT NULL 
-                   AND TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) > 0 
+                   AND TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) > 0
+				   AND e.status = 'Evacuated'
               THEN e.evac_reg_id 
          END) AS idp_count
 		FROM evac_loc_table l
@@ -164,7 +165,7 @@ mysqli_data_seek($result, 0);
 															?>
 															<div>
 																<div class="d-flex justify-content-between">
-																	<span><?php echo htmlspecialchars( $max_capacity - $idpCount); ?></span>
+																	<span><?php echo htmlspecialchars($max_capacity - $idpCount); ?></span>
 																	<span class="text-muted">/<?php echo $max_capacity; ?></span>
 																</div>
 																<div class="progress" style="height: 10px;">

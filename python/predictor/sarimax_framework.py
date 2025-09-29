@@ -26,33 +26,44 @@ class SarimaxPredictor:
         )
         return create_engine(connection_str)
 
-    def load_data(self, location=None):
+    def load_data(self, barangay=None):
+        """Load historical evacuees per barangay from brgy_record_table"""
         query = """
             SELECT 
-                evacuation_location,
-                DATE(start_date) AS date,
-                SUM(total_evacuation) AS total_evacuation
-            FROM evacuation_record_table
-            WHERE evacuation_location IS NOT NULL
+                barangay_name,
+                DATE(date) AS date,
+                SUM(total_evacuess) AS total_evacuess
+            FROM brgy_record_table
+            WHERE barangay_name IS NOT NULL
         """
-        if location:
-            query += f" AND evacuation_location = '{location}'"
-        query += " GROUP BY evacuation_location, DATE(start_date) ORDER BY DATE(start_date)"
+        if barangay:
+            query += " AND barangay_name = :barangay"
+        query += " GROUP BY barangay_name, DATE(date) ORDER BY DATE(date)"
 
-        self.data = pd.read_sql(query, self.engine)
+        if barangay:
+            self.data = pd.read_sql(text(query), self.engine, params={"barangay": barangay})
+        else:
+            self.data = pd.read_sql(query, self.engine)
+
         if self.data.empty:
-            raise ValueError(f"No data found for location: {location}")
+            raise ValueError(f"No data found for barangay: {barangay}")
 
         self.data['date'] = pd.to_datetime(self.data['date'])
-        self.data['predictive_score'] = self.scaler.fit_transform(
-            self.data[['total_evacuation']]
-        ).round(2)
+
+        # scale for reporting
+        if 'total_evacuess' in self.data.columns and not self.data['total_evacuess'].isnull().all():
+            self.data['predictive_score'] = self.scaler.fit_transform(
+                self.data[['total_evacuess']]
+            ).round(2)
+        else:
+            self.data['predictive_score'] = 0
         return self.data
 
     def fit_model(self, order=(1, 1, 1), seasonal_order=(1, 1, 1, 12)):
+        """Fit SARIMAX on total evacuees"""
         if self.data is None or self.data.empty:
             raise RuntimeError("No data loaded.")
-        y = self.data['total_evacuation']
+        y = self.data['total_evacuess'].astype(float).fillna(0)
         model = SARIMAX(
             y, order=order, seasonal_order=seasonal_order,
             enforce_stationarity=False, enforce_invertibility=False
@@ -60,33 +71,37 @@ class SarimaxPredictor:
         self.model_fit = model.fit(disp=False)
 
     def forecast(self, steps=1):
-        """Forecast only the next N steps (default: 1)."""
+        """Forecast next N steps"""
         if self.model_fit is None:
             raise RuntimeError("Model not fitted.")
         forecast = self.model_fit.get_forecast(steps=steps)
         last_date = self.data['date'].max()
         dates = [last_date + timedelta(days=i + 1) for i in range(steps)]
-        location = self.data['evacuation_location'].iloc[0]
+        barangay = self.data['barangay_name'].iloc[0]
+
+        ci = forecast.conf_int()
+        lower = ci.iloc[:, 0].values
+        upper = ci.iloc[:, 1].values
 
         forecast_df = pd.DataFrame({
             'date': dates,
-            'evacuation_location': location,
-            'forecast': forecast.predicted_mean,
-            'lower_bound': forecast.conf_int()['lower total_evacuation'],
-            'upper_bound': forecast.conf_int()['upper total_evacuation']
+            'barangay_name': barangay,
+            'forecast': np.asarray(forecast.predicted_mean),
+            'lower_bound': lower,
+            'upper_bound': upper
         })
         forecast_df[['forecast', 'lower_bound', 'upper_bound']] = forecast_df[['forecast', 'lower_bound', 'upper_bound']].clip(lower=0)
         return forecast_df
 
-    def save_multi_scale_forecast(self, forecast_df, location):
-        """Save week, month, year forecasts with 3 scaling ranges based on CI."""
+    def save_multi_scale_forecast(self, forecast_df, barangay):
+        """Save forecasts into DB with multiple scales"""
         periods = ["WEEK", "MONTH", "YEAR"]
 
         create_table_query = """
-        CREATE TABLE IF NOT EXISTS evacuation_forecasts (
+        CREATE TABLE IF NOT EXISTS brgy_forecasts (
             id INT AUTO_INCREMENT PRIMARY KEY,
             date DATE,
-            evacuation_location VARCHAR(255) NOT NULL,
+            barangay_name VARCHAR(255) NOT NULL,
             period VARCHAR(20),
             scale_range VARCHAR(20),
             forecast FLOAT,
@@ -97,35 +112,34 @@ class SarimaxPredictor:
         """
 
         delete_query = text("""
-            DELETE FROM evacuation_forecasts 
-            WHERE evacuation_location = :location
+            DELETE FROM brgy_forecasts 
+            WHERE barangay_name = :barangay
         """)
 
         insert_query = text("""
-            INSERT INTO evacuation_forecasts
-            (date, evacuation_location, period, scale_range, forecast, lower_bound, upper_bound)
-            VALUES (:date, :evacuation_location, :period, :scale_range, :forecast, :lower_bound, :upper_bound)
+            INSERT INTO brgy_forecasts
+            (date, barangay_name, period, scale_range, forecast, lower_bound, upper_bound)
+            VALUES (:date, :barangay_name, :period, :scale_range, :forecast, :lower_bound, :upper_bound)
         """)
 
-        row = forecast_df.iloc[0]  # use only next event forecast
+        row = forecast_df.iloc[0]
         mean_val = row['forecast']
         lb = row['lower_bound']
         ub = row['upper_bound']
 
         with self.engine.begin() as conn:
             conn.execute(text(create_table_query))
-            conn.execute(delete_query, {"location": location})
+            conn.execute(delete_query, {"barangay": barangay})
 
             for period in periods:
-                # Different scaling values
-                low_forecast = (mean_val + lb) / 2        # pessimistic
-                mid_forecast = mean_val                   # expected
-                high_forecast = (mean_val + ub) / 2       # optimistic
+                low_forecast = (mean_val + lb) / 2
+                mid_forecast = mean_val
+                high_forecast = (mean_val + ub) / 2
 
                 for scale, f in [("1-3", low_forecast), ("4-7", mid_forecast), ("8-10", high_forecast)]:
                     conn.execute(insert_query, {
                         "date": row['date'],
-                        "evacuation_location": location,
+                        "barangay_name": barangay,
                         "period": period,
                         "scale_range": scale,
                         "forecast": float(f),
@@ -133,30 +147,29 @@ class SarimaxPredictor:
                         "upper_bound": float(ub)
                     })
 
-                # Console output
-                print(f"✅ {location} → {period} scale 1-3: {low_forecast:.2f} (CI {lb:.2f}–{ub:.2f})")
-                print(f"✅ {location} → {period} scale 4-7: {mid_forecast:.2f} (CI {lb:.2f}–{ub:.2f})")
-                print(f"✅ {location} → {period} scale 8-10: {high_forecast:.2f} (CI {lb:.2f}–{ub:.2f})")
+                print(f"✅ {barangay} → {period} scale 1-3: {low_forecast:.2f} (CI {lb:.2f}–{ub:.2f})")
+                print(f"✅ {barangay} → {period} scale 4-7: {mid_forecast:.2f} (CI {lb:.2f}–{ub:.2f})")
+                print(f"✅ {barangay} → {period} scale 8-10: {high_forecast:.2f} (CI {lb:.2f}–{ub:.2f})")
 
-    def run_forecast_for_location(self, location, steps=1):
+    def run_forecast_for_barangay(self, barangay, steps=1):
         try:
-            print(f"\n📍 Running forecast for location: {location}")
-            self.load_data(location=location)
+            print(f"\n📍 Running forecast for barangay: {barangay}")
+            self.load_data(barangay=barangay)
             self.fit_model()
             forecast_df = self.forecast(steps=steps)
-            self.save_multi_scale_forecast(forecast_df, location)
+            self.save_multi_scale_forecast(forecast_df, barangay)
         except Exception as e:
-            print(f"⚠️ Skipped {location}: {e}")
+            print(f"⚠️ Skipped {barangay}: {e}")
 
     def run_all_forecasts(self, steps=1):
-        query = "SELECT DISTINCT evacuation_location FROM evacuation_record_table WHERE evacuation_location IS NOT NULL"
-        locations = pd.read_sql(query, self.engine)['evacuation_location'].tolist()
+        query = "SELECT DISTINCT barangay_name FROM brgy_record_table WHERE barangay_name IS NOT NULL"
+        barangays = pd.read_sql(query, self.engine)['barangay_name'].tolist()
 
-        print(f"🌐 Running forecasts for all locations...")
-        print(f"🔎 Found {len(locations)} locations to forecast.")
+        print(f"🌐 Running forecasts for all barangays...")
+        print(f"🔎 Found {len(barangays)} barangays to forecast.")
 
-        for loc in locations:
-            self.run_forecast_for_location(loc, steps=steps)
+        for brgy in barangays:
+            self.run_forecast_for_barangay(brgy, steps=steps)
 
         print("\n✅ All forecasts completed.")
 

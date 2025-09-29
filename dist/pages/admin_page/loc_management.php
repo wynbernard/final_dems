@@ -68,7 +68,7 @@ if (!$result) {
 												<th> No.</th>
 												<th><i class="bi bi-geo-alt-fill"></i> Location</th>
 												<th><i class="bi bi-house-door-fill"></i> Address</th>
-												<th><i class="bi bi-people-fill"></i> Total Capacity</th>
+												<th><i class="bi bi-people-fill"></i> Available/Total Capacity</th>
 												<th><i class="bi bi-person-fill"></i>Status</th>
 												<th><i class="bi bi-gear-fill"></i> Actions</th>
 
@@ -91,7 +91,23 @@ if (!$result) {
 															<?php echo htmlspecialchars($location['city']); ?> ,Brgy. <?php echo htmlspecialchars($location['barangay_name']); ?> Prk. <?php echo htmlspecialchars($location['purok']); ?>
 														</td>
 														<td class="location-capacity">
-															<?php echo htmlspecialchars($location['total_capacity']); ?>
+															<?php
+															// compute current evacuees at this location excluding infants (age <= 2)
+															$locId = intval($location['evac_loc_id']);
+															$nonInfantCount = 0;
+															$countQuery = "SELECT COUNT(*) AS cnt FROM evac_reg_table ert LEFT JOIN pre_reg_table prt ON ert.pre_reg_id = prt.pre_reg_id WHERE ert.evac_loc_id = ? AND ert.status IN ('Evacuated','IN') AND (TIMESTAMPDIFF(YEAR, prt.date_of_birth, CURDATE()) > 2 OR prt.date_of_birth IS NULL)";
+															if ($cntStmt = $conn->prepare($countQuery)) {
+																$cntStmt->bind_param('i', $locId);
+																$cntStmt->execute();
+																$cntRes = $cntStmt->get_result();
+																if ($cntRes && $cntRow = $cntRes->fetch_assoc()) {
+																	$nonInfantCount = intval($cntRow['cnt']);
+																}
+																$cntStmt->close();
+															}
+															$available = max(0, intval($location['total_capacity']) - $nonInfantCount);
+															echo htmlspecialchars($available);
+															?>/<?php echo htmlspecialchars($location['total_capacity']); ?>
 														</td>
 														<td class="location-status">
 															<span class="badge bg-<?php echo $location['status'] === 'Active' ? 'success' : 'secondary'; ?>" id="status-badge-<?php echo $location['evac_loc_id']; ?>">
@@ -151,18 +167,18 @@ if (!$result) {
 
 	<!-- SweetAlert2 -->
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-	
+
 	<!-- Search Script -->
 	<script>
 		document.addEventListener('DOMContentLoaded', function() {
 			const searchBox = document.getElementById('searchBox');
 			const locationTable = document.getElementById('locationTable');
-			
+
 			if (searchBox && locationTable) {
 				searchBox.addEventListener('input', function() {
 					const searchTerm = this.value.toLowerCase().trim();
 					const rows = locationTable.querySelectorAll('tbody tr');
-					
+
 					rows.forEach(function(row) {
 						const rowText = row.textContent.toLowerCase();
 						if (rowText.includes(searchTerm)) {
@@ -370,7 +386,7 @@ if (!$result) {
 			} else {
 				console.log('Activate button NOT found');
 			}
-			
+
 			if (deactivateBtn) {
 				console.log('Deactivate button found, adding event listener');
 				deactivateBtn.addEventListener('click', function() {

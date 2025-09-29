@@ -2,8 +2,8 @@
 include '../../../database/session.php';
 include '../layout/head_links.php';
 
-// Fetch predictive forecast results
-$query = "SELECT * FROM evacuation_forecasts ORDER BY evacuation_location, date DESC";
+// Fetch predictive forecast results from barangay forecasts
+$query = "SELECT `id`, `date`, `barangay_name`, `period`, `scale_range`, `forecast`, `lower_bound`, `upper_bound`, `created_at` FROM `brgy_forecasts` ORDER BY `date` DESC, `barangay_name`";
 $result = mysqli_query($conn, $query);
 ?>
 
@@ -60,11 +60,13 @@ $result = mysqli_query($conn, $query);
 										<thead class="table-info sticky-header">
 											<tr>
 												<th>No.</th>
-												<th><i class="bi bi-geo-alt-fill"></i> Location</th>
-												<th><i class="bi bi-calendar-event"></i> Forecast Date</th>
-												<th><i class="bi bi-people-fill"></i> Forecasted Evacuees</th>
-												<th><i class="bi bi-arrows-fullscreen"></i> Confidence Interval</th>
-												<th><i class="bi bi-graph-up"></i> Predictive Scale (1-10)</th>
+												<th><i class="bi bi-geo-alt-fill"></i> Barangay</th>
+												<th><i class="bi bi-calendar-event"></i> Date</th>
+												<th><i class="bi bi-clock"></i> Period</th>
+												<th><i class="bi bi-activity"></i> Scale Range</th>
+												<th><i class="bi bi-people-fill"></i> Forecast</th>
+												<th><i class="bi bi-arrows-fullscreen"></i> CI</th>
+												<th><i class="bi bi-calendar-plus"></i> Generated</th>
 											</tr>
 										</thead>
 										<tbody>
@@ -77,10 +79,16 @@ $result = mysqli_query($conn, $query);
 														<?php echo $counter++; ?>.
 													</td>
 													<td class="align-middle px-2 py-1" style="font-size: 0.85rem;">
-														<?php echo htmlspecialchars($row['evacuation_location']); ?>
+														<?php echo htmlspecialchars($row['barangay_name']); ?>
 													</td>
 													<td class="align-middle px-2 py-1" style="font-size: 0.85rem;">
 														<?php echo htmlspecialchars($row['date']); ?>
+													</td>
+													<td class="align-middle px-2 py-1" style="font-size: 0.85rem;">
+														<?php echo htmlspecialchars($row['period']); ?>
+													</td>
+													<td class="align-middle px-2 py-1 text-danger fw-bold" style="font-size: 0.9rem;">
+														<?php echo htmlspecialchars($row['scale_range']); ?>
 													</td>
 													<td class="align-middle px-2 py-1 fw-bold text-primary" style="font-size: 0.9rem;">
 														<?php echo number_format($row['forecast'], 2); ?>
@@ -88,8 +96,8 @@ $result = mysqli_query($conn, $query);
 													<td class="align-middle px-2 py-1 text-success" style="font-size: 0.85rem;">
 														<?php echo number_format($row['lower_bound'], 2); ?> – <?php echo number_format($row['upper_bound'], 2); ?>
 													</td>
-													<td class="align-middle px-2 py-1 text-danger fw-bold" style="font-size: 0.9rem;">
-														<?php echo $row['scale_range']; ?> / 10
+													<td class="align-middle px-2 py-1" style="font-size: 0.8rem;">
+														<?php echo htmlspecialchars($row['created_at']); ?>
 													</td>
 												</tr>
 											<?php endwhile; ?>
@@ -124,6 +132,7 @@ $result = mysqli_query($conn, $query);
 			max-height: 400px;
 			overflow-y: auto;
 		}
+
 		#forecastTable thead th {
 			position: sticky;
 			top: 0;
@@ -133,4 +142,5 @@ $result = mysqli_query($conn, $query);
 	</style>
 
 </body>
+
 </html>
