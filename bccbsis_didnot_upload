@@ -41,3 +41,14 @@ auth_script/ocr.js
 evac_location_script/barangay_management.js
 scanner.php
 
+
+//new purok management
+
+action/brgy_management_action/add_purok.php
+action/brgy_management_action/edit_purok.php
+action/brgy_management_action/delete_purok.php
+action/brgy_management_action/list_purok.php
+
+modal/evac_location/barangay_management_modal.php
+
+script/evac_location_script/barangay_management.js

@@ -467,3 +467,180 @@ let currentBoundaryBarangay = '';
     });
   });
 
+	// Purok management JS
+	document.addEventListener('DOMContentLoaded', function() {
+		const viewModal = document.getElementById('viewBarangayModal');
+		const purokTableBody = document.querySelector('#purokTable tbody');
+		const btnAddPurok = document.getElementById('btnAddPurok');
+
+		function loadPuroks(barangayId) {
+			purokTableBody.innerHTML = '<tr><td colspan="4">Loading...</td></tr>';
+			fetch(`../action/brgy_management_action/list_purok.php?barangay_id=${barangayId}`)
+				.then(r => r.json())
+				.then(data => {
+					if (!data.success) {
+						purokTableBody.innerHTML = `<tr><td colspan="4">${data.message || 'Failed to load'}</td></tr>`;
+						return;
+					}
+					const rows = data.data.map((p, idx) => {
+						return `
+							<tr data-id="${p.purok_id}">
+								<td>${idx+1}</td>
+								<td class="purok-name">${escapeHtml(p.purok_name)}</td>
+								<td class="purok-leader">${escapeHtml(p.purok_leader || '')}</td>
+								<td>
+									<button class="btn btn-sm btn-primary edit-purok-btn">Edit</button>
+									<button class="btn btn-sm btn-danger delete-purok-btn">Delete</button>
+								</td>
+							</tr>`;
+					}).join('');
+					purokTableBody.innerHTML = rows || '<tr><td colspan="4">No puroks found</td></tr>';
+					attachPurokHandlers(barangayId);
+				}).catch(err => {
+					purokTableBody.innerHTML = `<tr><td colspan="4">Error loading puroks</td></tr>`;
+					console.error(err);
+				});
+		}
+
+		function attachPurokHandlers(barangayId) {
+			document.querySelectorAll('.edit-purok-btn').forEach(btn => {
+				btn.addEventListener('click', (e) => {
+					const tr = e.target.closest('tr');
+					const id = tr.getAttribute('data-id');
+					const name = tr.querySelector('.purok-name').textContent.trim();
+					const leader = tr.querySelector('.purok-leader').textContent.trim();
+					// populate edit modal and show
+					document.getElementById('editPurokId').value = id;
+					document.getElementById('editPurokName').value = name;
+					document.getElementById('editPurokLeader').value = leader;
+					const editModalEl = document.getElementById('editPurokModal');
+					const editModal = new bootstrap.Modal(editModalEl);
+					editModal.show();
+				});
+			});
+
+			document.querySelectorAll('.delete-purok-btn').forEach(btn => {
+				btn.addEventListener('click', (e) => {
+					const tr = e.target.closest('tr');
+					const id = tr.getAttribute('data-id');
+					// populate delete modal and show
+					document.getElementById('deletePurokId').value = id;
+					const name = tr.querySelector('.purok-name').textContent.trim();
+					document.getElementById('deletePurokName').textContent = name;
+					const delModalEl = document.getElementById('deletePurokModal');
+					const delModal = new bootstrap.Modal(delModalEl);
+					delModal.show();
+				});
+			});
+		}
+
+		// show Add Purok modal instead
+		function openAddPurokModal(barangayId) {
+			document.getElementById('addPurokBarangayId').value = barangayId;
+			document.getElementById('addPurokName').value = '';
+			document.getElementById('addPurokLeader').value = '';
+			const addModalEl = document.getElementById('addPurokModal');
+			const addModal = new bootstrap.Modal(addModalEl);
+			addModal.show();
+		}
+
+		// handled via edit modal submit handler
+
+		// When the view modal is shown, load puroks for the barangay
+		viewModal.addEventListener('show.bs.modal', function(event) {
+			const button = event.relatedTarget;
+			const barangayId = button.getAttribute('data-id');
+			// expose for other functions
+			viewModal.dataset.barangayId = barangayId;
+			loadPuroks(barangayId);
+		});
+
+		// Add purok button
+		if (btnAddPurok) btnAddPurok.addEventListener('click', function() {
+			const barangayId = viewModal.dataset.barangayId;
+			if (!barangayId) return alert('Barangay ID not found');
+			openAddPurokModal(barangayId);
+		});
+
+		// Add form submit
+		const addPurokForm = document.getElementById('addPurokForm');
+		if (addPurokForm) {
+			addPurokForm.addEventListener('submit', function(e) {
+				e.preventDefault();
+				const barangayId = document.getElementById('addPurokBarangayId').value;
+				const name = document.getElementById('addPurokName').value.trim();
+				const leader = document.getElementById('addPurokLeader').value.trim();
+				if (!name) return alert('Purok name is required');
+				const body = new URLSearchParams();
+				body.append('purok_name', name);
+				body.append('purok_leader', leader);
+				body.append('barangay_id', barangayId);
+
+				fetch('../action/brgy_management_action/add_purok.php', {method:'POST', body: body})
+					.then(r=>r.json()).then(res=>{
+						if (res.success) {
+							const addModalEl = document.getElementById('addPurokModal');
+							bootstrap.Modal.getInstance(addModalEl).hide();
+							loadPuroks(barangayId);
+						} else alert(res.message || 'Add failed');
+					}).catch(()=>alert('Add failed'));
+			});
+		}
+
+		// Edit form submit
+		const editPurokForm = document.getElementById('editPurokForm');
+		if (editPurokForm) {
+			editPurokForm.addEventListener('submit', function(e) {
+				e.preventDefault();
+				const id = document.getElementById('editPurokId').value;
+				const name = document.getElementById('editPurokName').value.trim();
+				const leader = document.getElementById('editPurokLeader').value.trim();
+				const barangayId = viewModal.dataset.barangayId;
+				if (!name) return alert('Purok name is required');
+				const body = new URLSearchParams();
+				body.append('purok_id', id);
+				body.append('purok_name', name);
+				body.append('purok_leader', leader);
+
+				fetch('../action/brgy_management_action/edit_purok.php', {method:'POST', body: body})
+					.then(r=>r.json()).then(res=>{
+						if (res.success) {
+							const editModalEl = document.getElementById('editPurokModal');
+							bootstrap.Modal.getInstance(editModalEl).hide();
+							loadPuroks(barangayId);
+						} else alert(res.message || 'Update failed');
+					}).catch(()=>alert('Update failed'));
+			});
+		}
+
+		// Delete form submit
+		const deletePurokForm = document.getElementById('deletePurokForm');
+		if (deletePurokForm) {
+			deletePurokForm.addEventListener('submit', function(e) {
+				e.preventDefault();
+				const id = document.getElementById('deletePurokId').value;
+				const barangayId = viewModal.dataset.barangayId;
+				const body = new URLSearchParams();
+				body.append('purok_id', id);
+
+				fetch('../action/brgy_management_action/delete_purok.php', {method:'POST', body: body})
+					.then(r=>r.json()).then(res=>{
+						if (res.success) {
+							const delModalEl = document.getElementById('deletePurokModal');
+							bootstrap.Modal.getInstance(delModalEl).hide();
+							loadPuroks(barangayId);
+						} else alert(res.message || 'Delete failed');
+					}).catch(()=>alert('Delete failed'));
+			});
+		}
+
+		function escapeHtml(str) {
+			return String(str)
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/"/g, '&quot;')
+				.replace(/'/g, '&#39;');
+		}
+	});
+

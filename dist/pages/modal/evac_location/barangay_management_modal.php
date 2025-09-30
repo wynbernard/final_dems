@@ -282,6 +282,30 @@
 					</div>
 				</div>
 			</div>
+
+			<!-- Purok Management Section -->
+			<hr>
+			<div class="row px-3">
+				<div class="col-12">
+					<div class="d-flex justify-content-between align-items-center mb-2">
+						<h6 class="mb-0">Puroks in this Barangay</h6>
+						<button id="btnAddPurok" class="btn btn-sm btn-success">Add Purok</button>
+					</div>
+					<table class="table table-sm table-bordered" id="purokTable">
+						<thead>
+							<tr>
+								<th>#</th>
+								<th>Purok Name</th>
+								<th>Leader</th>
+								<th>Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							<!-- Populated by JS -->
+						</tbody>
+					</table>
+				</div>
+			</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
 			</div>
@@ -289,11 +313,92 @@
 	</div>
 </div>
 
+<!-- Purok Add Modal -->
+<div class="modal fade" id="addPurokModal" tabindex="-1" aria-labelledby="addPurokModalLabel" aria-hidden="true">
+	<div class="modal-dialog">
+		<form id="addPurokForm">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="addPurokModalLabel">Add Purok</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body">
+					<input type="hidden" id="addPurokBarangayId" name="barangay_id">
+					<div class="mb-3">
+						<label for="addPurokName" class="form-label">Purok Name</label>
+						<input type="text" id="addPurokName" name="purok_name" class="form-control" required>
+					</div>
+					<div class="mb-3">
+						<label for="addPurokLeader" class="form-label">Purok Leader</label>
+						<input type="text" id="addPurokLeader" name="purok_leader" class="form-control">
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="submit" class="btn btn-success">Add</button>
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+				</div>
+			</div>
+		</form>
+	</div>
+</div>
+
+<!-- Purok Edit Modal -->
+<div class="modal fade" id="editPurokModal" tabindex="-1" aria-labelledby="editPurokModalLabel" aria-hidden="true">
+	<div class="modal-dialog">
+		<form id="editPurokForm">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="editPurokModalLabel">Edit Purok</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body">
+					<input type="hidden" id="editPurokId" name="purok_id">
+					<div class="mb-3">
+						<label for="editPurokName" class="form-label">Purok Name</label>
+						<input type="text" id="editPurokName" name="purok_name" class="form-control" required>
+					</div>
+					<div class="mb-3">
+						<label for="editPurokLeader" class="form-label">Purok Leader</label>
+						<input type="text" id="editPurokLeader" name="purok_leader" class="form-control">
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="submit" class="btn btn-primary">Save</button>
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+				</div>
+			</div>
+		</form>
+	</div>
+</div>
+
+<!-- Purok Delete Confirmation Modal -->
+<div class="modal fade" id="deletePurokModal" tabindex="-1" aria-labelledby="deletePurokModalLabel" aria-hidden="true">
+	<div class="modal-dialog">
+		<form id="deletePurokForm">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="deletePurokModalLabel">Delete Purok</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body">
+					<input type="hidden" id="deletePurokId" name="purok_id">
+					<p>Are you sure you want to delete this purok?</p>
+					<p class="fw-bold" id="deletePurokName"></p>
+				</div>
+				<div class="modal-footer">
+					<button type="submit" class="btn btn-danger">Delete</button>
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+				</div>
+			</div>
+		</form>
+	</div>
+</div>
+
 
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.6/dist/signature_pad.umd.min.js"></script>
 
 <script>
-// Boundary data is loaded from the main page
+	// Boundary data is loaded from the main page
 </script>
 <script src="../scripts/evac_location_script/barangay_management.js?v=<?php echo time(); ?>"></script>
 <!-- Leaflet CSS -->
