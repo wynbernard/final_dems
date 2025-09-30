@@ -461,6 +461,7 @@ WHERE evac_reg_table.status = 'Evacuated'
                 $sql = "SELECT 
     prt.registered_as AS type,
     prt.family_id,
+   ert.status,
 	qr.code AS qr_code,
     prt.solo_address_id,
     prt.relation_to_family,
@@ -474,7 +475,7 @@ WHERE evac_reg_table.status = 'Evacuated'
         FROM pre_reg_table prt2
         WHERE prt2.family_id = prt.family_id
     ) AS member_count,
-   CONCAT(prt.f_name, ' ', prt.l_name) AS full_name,
+   CONCAT(prt.f_name,' ',prt.m_name,' ', prt.l_name) AS full_name,
     prt.contact_no AS contact_number,
     evc.name AS evacuation_center,
     DATE(MAX(ert.date_reg)) AS reg_date
@@ -487,7 +488,7 @@ LEFT JOIN solo_address_table sat ON prt.solo_address_id = sat.solo_address_id
 LEFT JOIN family_table ft ON prt2.family_id = ft.family_id
 LEFT JOIN barangay_manegement_table bmt ON sat.barangay_id = bmt.barangay_id
 LEFT JOIN barangay_manegement_table bmt2 ON ft.barangay_id = bmt2.barangay_id
-WHERE prt.relation_to_family = 'Head of Family'
+WHERE prt.relation_to_family = 'Head of Family' AND ert.status = 'Evacuated'
 GROUP BY prt.family_id
 ORDER BY MAX(ert.date_reg) DESC";
 
