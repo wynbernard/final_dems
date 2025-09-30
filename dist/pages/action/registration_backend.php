@@ -411,7 +411,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $conn->close();
             exit();
         }
-        $evac_sql = "INSERT INTO evac_reg_table (pre_reg_id, evac_loc_id, room_id, date_reg, disaster_id) VALUES (?, ?, ?, ?, ?)";
+        $evac_sql = "INSERT INTO evac_reg_table (pre_reg_id, evac_loc_id, room_id, date_reg, disaster_id , status) VALUES (?, ?, ?, ?, ? , 'Evacuated')";
         $evac_stmt = $conn->prepare($evac_sql);
         $evac_stmt->bind_param("iiisi", $pre_reg_id, $evac_loc_id, $room_id, $date_reg, $disaster_id);
         $evac_stmt->execute();
