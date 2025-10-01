@@ -132,6 +132,7 @@ if (!$result) {
 																class="btn btn-outline-primary btn-sm shadow view-barangay-btn"
 																data-bs-toggle="modal"
 																data-bs-target="#viewBarangayModal"
+																data-id="<?php echo (int)$barangay['barangay_id']; ?>"
 																data-name1="<?php echo htmlspecialchars($barangay['barangay_name']); ?>"
 																data-captain="<?php echo htmlspecialchars($barangay['barangay_captain_name']); ?>"
 																data-signature="<?php echo htmlspecialchars($barangay['signature_brgy_captain']); ?>"
@@ -158,14 +159,14 @@ if (!$result) {
 		</main>
 
 		<?php include '../layout/footer.php'; ?>
-		
+
 		<script>
-		// Pass boundary data to JavaScript
-		window.barangayBoundaries = <?php echo json_encode($barangayBoundaries, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-		console.log('Loaded boundary data:', window.barangayBoundaries);
+			// Pass boundary data to JavaScript
+			window.barangayBoundaries = <?php echo json_encode($barangayBoundaries, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+			console.log('Loaded boundary data:', window.barangayBoundaries);
 		</script>
 	</div>
-	
+
 	<?php include '../modal/evac_location/barangay_management_modal.php'; ?>
 
 	<script>
@@ -174,116 +175,162 @@ if (!$result) {
 				var searchTerm = $(this).val().toLowerCase().trim();
 				$("#locationTable tbody tr").each(function() {
 					var rowText = $(this).text().toLowerCase();
-					if (rowText.includes(searchTerm)) { $(this).fadeIn(); } else { $(this).fadeOut(); }
+					if (rowText.includes(searchTerm)) {
+						$(this).fadeIn();
+					} else {
+						$(this).fadeOut();
+					}
 				});
 			});
 		});
 	</script>
 	<script>
-	// Single toggle
-	document.addEventListener('DOMContentLoaded', function(){
-		document.querySelectorAll('.evac-toggle').forEach(function(cb){
-			cb.addEventListener('change', async function(){
-				const id = this.getAttribute('data-id');
-				const prev = !this.checked; // remember previous state to revert if needed
-				const needed = this.checked ? 1 : 0;
-				this.disabled = true;
-				try{
-					const resp = await fetch('../action/brgy_management_action/toggle_evacuation_db.php', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-						body: 'barangay_id=' + encodeURIComponent(id) + '&needed=' + needed
-					});
-					const data = await resp.json().catch(()=>({ ok:false, error:'invalid_json' }));
-					if (!resp.ok || !data.ok) {
-						console.warn('Save failed', data);
+		// Single toggle
+		document.addEventListener('DOMContentLoaded', function() {
+			document.querySelectorAll('.evac-toggle').forEach(function(cb) {
+				cb.addEventListener('change', async function() {
+					const id = this.getAttribute('data-id');
+					const prev = !this.checked; // remember previous state to revert if needed
+					const needed = this.checked ? 1 : 0;
+					this.disabled = true;
+					try {
+						const resp = await fetch('../action/brgy_management_action/toggle_evacuation_db.php', {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+							},
+							body: 'barangay_id=' + encodeURIComponent(id) + '&needed=' + needed
+						});
+						const data = await resp.json().catch(() => ({
+							ok: false,
+							error: 'invalid_json'
+						}));
+						if (!resp.ok || !data.ok) {
+							console.warn('Save failed', data);
+							this.checked = prev; // revert
+							alert('Failed to save evacuation flag.');
+						}
+					} catch (e) {
+						console.warn('Request error', e);
 						this.checked = prev; // revert
-						alert('Failed to save evacuation flag.');
+						alert('Network error while saving.');
+					} finally {
+						this.disabled = false;
 					}
-				} catch(e){
-					console.warn('Request error', e);
-					this.checked = prev; // revert
-					alert('Network error while saving.');
-				} finally {
-					this.disabled = false;
+				});
+			});
+			// Bulk buttons
+			document.getElementById('markAllEvac').addEventListener('click', async function() {
+				try {
+					const resp = await fetch('../action/brgy_management_action/set_evac_all.php', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+						},
+						body: 'needed=1'
+					});
+					const data = await resp.json().catch(() => ({
+						ok: false
+					}));
+					if (resp.ok && data.ok) {
+						document.querySelectorAll('.evac-toggle').forEach(cb => {
+							cb.checked = true;
+						});
+					} else {
+						alert('Failed to mark all.');
+					}
+				} catch (e) {
+					console.warn(e);
+					alert('Network error while marking all.');
+				}
+			});
+			document.getElementById('clearAllEvac').addEventListener('click', async function() {
+				try {
+					const resp = await fetch('../action/brgy_management_action/set_evac_all.php', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+						},
+						body: 'needed=0'
+					});
+					const data = await resp.json().catch(() => ({
+						ok: false
+					}));
+					if (resp.ok && data.ok) {
+						document.querySelectorAll('.evac-toggle').forEach(cb => {
+							cb.checked = false;
+						});
+					} else {
+						alert('Failed to clear all.');
+					}
+				} catch (e) {
+					console.warn(e);
+					alert('Network error while clearing all.');
+				}
+			});
+
+			// Prone Areas Filter
+			document.getElementById('showProneBelow').addEventListener('click', async function() {
+				const btn = this;
+				const originalText = btn.textContent;
+
+				if (btn.classList.contains('active')) {
+					// Reset filter - show all barangays
+					btn.classList.remove('active');
+					btn.textContent = 'Show Prone Areas Below';
+					$("#locationTable tbody tr").show();
+					return;
+				}
+
+				btn.textContent = 'Loading...';
+
+				try {
+					// Fetch flood prone boundaries
+					const response = await fetch('../../../address_json/barangay_boundaries.json', {
+						cache: 'no-cache'
+					});
+					const proneData = await response.json();
+					const proneBarangays = Object.keys(proneData || {});
+
+					if (proneBarangays.length === 0) {
+						alert('No barangays with flood-prone boundaries found.');
+						btn.textContent = originalText;
+						return;
+					}
+
+					// Filter table rows
+					$("#locationTable tbody tr").each(function() {
+						const barangayName = $(this).find('.cell-location').text().trim();
+						if (proneBarangays.includes(barangayName)) {
+							$(this).show();
+						} else {
+							$(this).hide();
+						}
+					});
+
+					btn.classList.add('active');
+					btn.textContent = 'Show All Barangays';
+
+				} catch (error) {
+					console.error('Error loading prone areas:', error);
+					alert('Error loading flood-prone areas data.');
+					btn.textContent = originalText;
 				}
 			});
 		});
-		// Bulk buttons
-		document.getElementById('markAllEvac').addEventListener('click', async function(){
-			try{
-				const resp = await fetch('../action/brgy_management_action/set_evac_all.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: 'needed=1' });
-				const data = await resp.json().catch(()=>({ ok:false }));
-				if (resp.ok && data.ok) {
-					document.querySelectorAll('.evac-toggle').forEach(cb=>{ cb.checked = true; });
-				} else {
-					alert('Failed to mark all.');
-				}
-			}catch(e){ console.warn(e); alert('Network error while marking all.'); }
-		});
-		document.getElementById('clearAllEvac').addEventListener('click', async function(){
-			try{
-				const resp = await fetch('../action/brgy_management_action/set_evac_all.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: 'needed=0' });
-				const data = await resp.json().catch(()=>({ ok:false }));
-				if (resp.ok && data.ok) {
-					document.querySelectorAll('.evac-toggle').forEach(cb=>{ cb.checked = false; });
-				} else {
-					alert('Failed to clear all.');
-				}
-			}catch(e){ console.warn(e); alert('Network error while clearing all.'); }
-		});
-
-		// Prone Areas Filter
-		document.getElementById('showProneBelow').addEventListener('click', async function(){
-			const btn = this;
-			const originalText = btn.textContent;
-			
-			if (btn.classList.contains('active')) {
-				// Reset filter - show all barangays
-				btn.classList.remove('active');
-				btn.textContent = 'Show Prone Areas Below';
-				$("#locationTable tbody tr").show();
-				return;
-			}
-			
-			btn.textContent = 'Loading...';
-			
-			try {
-				// Fetch flood prone boundaries
-				const response = await fetch('../../../address_json/barangay_boundaries.json', { cache: 'no-cache' });
-				const proneData = await response.json();
-				const proneBarangays = Object.keys(proneData || {});
-				
-				if (proneBarangays.length === 0) {
-					alert('No barangays with flood-prone boundaries found.');
-					btn.textContent = originalText;
-					return;
-				}
-				
-				// Filter table rows
-				$("#locationTable tbody tr").each(function() {
-					const barangayName = $(this).find('.cell-location').text().trim();
-					if (proneBarangays.includes(barangayName)) {
-						$(this).show();
-					} else {
-						$(this).hide();
-					}
-				});
-				
-				btn.classList.add('active');
-				btn.textContent = 'Show All Barangays';
-				
-			} catch (error) {
-				console.error('Error loading prone areas:', error);
-				alert('Error loading flood-prone areas data.');
-				btn.textContent = originalText;
-			}
-		});
-	});
 	</script>
 	<style>
-		.table-responsive { max-height: 400px; overflow-y: auto; }
-		#locationTable thead th { position: sticky; top: 0; z-index: 10; background: #d1e7dd; }
+		.table-responsive {
+			max-height: 400px;
+			overflow-y: auto;
+		}
+
+		#locationTable thead th {
+			position: sticky;
+			top: 0;
+			z-index: 10;
+			background: #d1e7dd;
+		}
 	</style>
 
 </body>

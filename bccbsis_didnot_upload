@@ -1,7 +1,3 @@
-action_user/edit_member.php
-modal_user/family_details.php
-predictive_ts/all
-user_page/family.php
 
 // action
 brgy_management_action/add_brgy.php
@@ -15,7 +11,7 @@ delete_room.php
 registration_backend.php
 
 //admin_page
-barangay_manegment.php
+barangay_manegment.php-
 brgy_record.php
 disaster.php
 idps_user.php
