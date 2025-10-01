@@ -161,6 +161,12 @@
             <p>Barangay Record</p>
           </a>
         </li>
+        <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'activity_log.php' ? 'menu-open' : ''; ?>">
+          <a href="./activity_log.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'activity_log.php' ? 'active' : ''; ?>">
+            <i class="nav-icon bi bi-clipboard-data"></i>
+            <p>Activity Log</p>
+          </a>
+        </li>
       </ul>
       <!--end::Sidebar Menu-->
     </nav>

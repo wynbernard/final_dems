@@ -20,6 +20,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 		if ($execute) {
 			$_SESSION['success'] = "<span style='color:green;'><i class='bi bi-check-circle-fill'></i></span> Update User Successfull!!!";
+
+			require_once __DIR__ . '/../../../../database/log_activity.php';
+			$action = 'Edit Admin User';
+			$description = "Edited admin user: {$username} ({$f_name} {$l_name})";
+			log_activity($conn, $action, $description);
 		} else {
 			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Update User Failed!!!" . mysqli_error($conn);
 		}

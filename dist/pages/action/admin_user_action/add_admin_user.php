@@ -19,6 +19,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		// Execute the statement
 		if (mysqli_stmt_execute($stmt)) {
 			$_SESSION['success'] = "<span style='color: green;'><i class='bi bi-check-circle-fill'></i></span> Add User Successfull!!!";
+
+			// Log this action into activity_log_table
+			require_once __DIR__ . '/../../../../database/log_activity.php';
+			$action = 'Add Admin User';
+			$description = "Added admin user: {$username} ({$f_name} {$l_name})";
+			log_activity($conn, $action, $description);
 		} else {
 			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Add User Failed!!!" . mysqli_error($conn);
 		}
