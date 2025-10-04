@@ -99,6 +99,9 @@ WHERE evac_reg_table.status = 'Evacuated'
                                                     echo '<option value="' . htmlspecialchars($loc['evac_loc_id']) . '" ' . $selected . '>' . htmlspecialchars($loc['name']) . '</option>';
                                                 }
                                             }
+                                            // Add "Other" option to show evacuees from other locations
+                                            $otherSelected = (isset($_GET['location_id']) && $_GET['location_id'] == 'other') ? 'selected' : '';
+                                            echo '<option value="other" ' . $otherSelected . '>Other Locations</option>';
                                         }
                                         ?>
                                     </select>
@@ -145,8 +148,24 @@ WHERE evac_reg_table.status = 'Evacuated'
 											";
 
                                     if (!empty($locationId)) {
-                                        $ageQuery .= " WHERE r.evac_loc_id = '$locationId' AND er.status = 'Evacuated'";
-                                    }else{
+                                        if ($locationId == 'other') {
+                                            // For "other" locations, exclude the first 3 main locations
+                                            $ageQuery .= " WHERE er.status = 'Evacuated'";
+                                            $mainLocQuery = mysqli_query($conn, "SELECT evac_loc_id FROM evac_loc_table ORDER BY evac_loc_id ASC LIMIT 3");
+                                            $mainLocationIds = [];
+                                            if ($mainLocQuery && mysqli_num_rows($mainLocQuery) > 0) {
+                                                while ($mainLoc = mysqli_fetch_assoc($mainLocQuery)) {
+                                                    $mainLocationIds[] = $mainLoc['evac_loc_id'];
+                                                }
+                                                if (!empty($mainLocationIds)) {
+                                                    $mainLocationIdsStr = implode(',', $mainLocationIds);
+                                                    $ageQuery .= " AND r.evac_loc_id NOT IN ($mainLocationIdsStr)";
+                                                }
+                                            }
+                                        } else {
+                                            $ageQuery .= " WHERE r.evac_loc_id = '$locationId' AND er.status = 'Evacuated'";
+                                        }
+                                    } else {
                                         $ageQuery .= " WHERE er.status = 'Evacuated'";
                                     }
 
@@ -186,25 +205,6 @@ WHERE evac_reg_table.status = 'Evacuated'
                             // Get the selected location ID
                             $locationId = $_GET['location_id'] ?? '';
 
-                            // Query to fetch IDPs (with location filter if specified)
-                            $query = "
-									SELECT 
-										l.evac_loc_id AS location_id,
-										l.name AS location_name,
-										r.room_name,
-										er.evac_reg_id,
-                                        er.status,
-										er.date_reg,
-										pr.f_name,
-										pr.l_name
-									FROM evac_loc_table l
-									INNER JOIN room_table r ON l.evac_loc_id = r.evac_loc_id
-									INNER JOIN evac_reg_table er ON r.room_id = er.room_id
-									INNER JOIN pre_reg_table pr ON er.pre_reg_id = pr.pre_reg_id
-                                    WHERE er.status = 'Evacuated'
-								";
-
-
                             // Initialize base query
                             $query = "SELECT r.evac_reg_id, p.f_name, p.l_name, p.m_name, l.name AS location_name, rm.room_name , r.date_reg, r.status
 									FROM evac_reg_table r
@@ -216,12 +216,33 @@ WHERE evac_reg_table.status = 'Evacuated'
                             if ($_SESSION['role'] == 'Staff') {
                                 $staff_location_id = $_SESSION['evac_loc_id'];
                                 $query .= " WHERE r.evac_loc_id = '$staff_location_id' AND r.status = 'Evacuated' ";
-                            }elseif($_SESSION['role'] == 'Admin'){
-                                $query .= " WHERE r.status = 'Evacuated' ";
                             }
-                            // For admin users - filter by selected location if specified
-                            elseif (!empty($locationId)) {
-                                $query .= " WHERE r.evac_loc_id = '$locationId' AND r.status = 'Evacuated'";
+                            // For admin users - handle different location selections
+                            elseif ($_SESSION['role'] == 'Admin') {
+                                if ($locationId == 'other') {
+                                    // Show evacuees from all locations except the first few main locations
+                                    // This gives a practical meaning to "other" locations
+                                    $query .= " WHERE r.status = 'Evacuated' ";
+                                    
+                                    // Get the first 3 locations as "main" locations and exclude them
+                                    $mainLocQuery = mysqli_query($conn, "SELECT evac_loc_id FROM evac_loc_table ORDER BY evac_loc_id ASC LIMIT 3");
+                                    $mainLocationIds = [];
+                                    if ($mainLocQuery && mysqli_num_rows($mainLocQuery) > 0) {
+                                        while ($mainLoc = mysqli_fetch_assoc($mainLocQuery)) {
+                                            $mainLocationIds[] = $mainLoc['evac_loc_id'];
+                                        }
+                                        if (!empty($mainLocationIds)) {
+                                            $mainLocationIdsStr = implode(',', $mainLocationIds);
+                                            $query .= " AND r.evac_loc_id NOT IN ($mainLocationIdsStr)";
+                                        }
+                                    }
+                                } elseif (!empty($locationId)) {
+                                    // Show evacuees from specific selected location
+                                    $query .= " WHERE r.evac_loc_id = '$locationId' AND r.status = 'Evacuated'";
+                                } else {
+                                    // Show all evacuees (All Locations option)
+                                    $query .= " WHERE r.status = 'Evacuated' ";
+                                }
                             }
 
                             $query .= " ORDER BY l.name, rm.room_name, p.l_name";
@@ -272,7 +293,15 @@ WHERE evac_reg_table.status = 'Evacuated'
                                                 else: ?>
                                                     <tr>
                                                         <td colspan="5" class="text-center">
-                                                            <?= empty($locationId) ? 'No IDPs found in the system.' : 'No IDPs found for this location.' ?>
+                                                            <?php 
+                                                            if (empty($locationId)) {
+                                                                echo 'No IDPs found in the system.';
+                                                            } elseif ($locationId == 'other') {
+                                                                echo 'No IDPs found in other locations.';
+                                                            } else {
+                                                                echo 'No IDPs found for this location.';
+                                                            }
+                                                            ?>
                                                         </td>
                                                     </tr>
                                                 <?php endif; ?>
@@ -296,6 +325,21 @@ WHERE evac_reg_table.status = 'Evacuated'
     <script src="../scripts/admin_script/idps_user.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Handle location dropdown change to auto-submit form when "Other" is selected
+            const locationSelect = document.getElementById('locationSelect');
+            if (locationSelect) {
+                locationSelect.addEventListener('change', function() {
+                    const selectedValue = this.value;
+                    if (selectedValue === 'other' || selectedValue !== '') {
+                        // Auto-submit the form when a location is selected
+                        const form = document.getElementById('locationForm');
+                        if (form) {
+                            form.submit();
+                        }
+                    }
+                });
+            }
+
             const btn = document.getElementById('dispatchAllBtn');
             if (btn) {
                 btn.addEventListener('click', function() {

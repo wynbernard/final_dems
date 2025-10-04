@@ -712,7 +712,9 @@ LEFT JOIN barangay_manegement_table AS bm1 ON ft.barangay_id = bm1.barangay_id
 						<div class="col-md-6">
 							<div class="mb-3">
 								<label class="form-label">Purok <span class="text-danger">*</span></label>
-								<input type="text" name="purok" id="purok" class="form-control" placeholder="Enter Purok" required>
+								<select name="purok" id="purok" class="form-control" required>
+									<option value="">Select Purok</option>
+								</select>
 							</div>
 						</div>
 					</div>
@@ -727,7 +729,7 @@ LEFT JOIN barangay_manegement_table AS bm1 ON ft.barangay_id = bm1.barangay_id
 						<div class="col-md-6">
 							<div class="mb-3">
 								<label class="form-label">Pick-up Point Name</label>
-								<input type="text" name="pickup_name" id="pickup_name" class="form-control" placeholder="Enter Pick-up Point Name">
+								<input type="text" name="pickup_name" id="pickup_name" class="form-control" placeholder="Enter Pick-up Point Name" readonly>
 							</div>
 						</div>
 						<div class="col-md-6">
@@ -1090,34 +1092,76 @@ function updateIDCardFormat() {
 
 // Load barangays
 function loadBarangays() {
-	const targetCityCode = "064502"; // City code for Bago City
-	const barangaySelect = document.getElementById('barangay');
+    const barangaySelect = document.getElementById('barangay');
+    // Global-like map for other handlers
+    window.barangayNameToId = {};
 
-	// Load barangays JSON
-	fetch('../../../address_json/barangays.json')
-		.then(response => response.json())
-		.then(barangayList => {
-			// Filter barangays with matching city_code
-			const filteredBarangays = barangayList.filter(b => b.city_code === targetCityCode);
+    if (!barangaySelect) return;
 
-			// Clear existing options except the first one
-			barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
+    // Clear existing options
+    barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
 
-			// Populate the select dropdown
-			filteredBarangays.forEach(barangay => {
-				const option = document.createElement('option');
-				option.value = barangay.brgy_name;
-				option.textContent = barangay.brgy_name;
-				barangaySelect.appendChild(option);
-			});
-		})
-		.catch(error => {
-			console.error('Failed to load barangays:', error);
-		});
+    // Load barangays from database
+    fetch('../action/brgy_management_action/list_barangay_map.php')
+        .then(r => r.json())
+        .then(res => {
+            if (!res || !res.success || !Array.isArray(res.data)) return;
+
+            res.data.forEach(row => {
+                if (!row || !row.barangay_name) return;
+                const option = document.createElement('option');
+                option.value = row.barangay_name;
+                option.textContent = row.barangay_name;
+                barangaySelect.appendChild(option);
+                // fill map
+                window.barangayNameToId[row.barangay_name] = row.barangay_id;
+            });
+        })
+        .catch(() => {});
 }
 
 // Family members functionality
 document.addEventListener('DOMContentLoaded', function() {
+    const barangaySelect = document.getElementById('barangay');
+    const purokSelect = document.getElementById('purok');
+
+    if (barangaySelect && purokSelect) {
+        barangaySelect.addEventListener('change', function() {
+            const selectedName = this.value || '';
+            // Reset purok options
+            purokSelect.innerHTML = '<option value="">Select Purok</option>';
+            if (!selectedName) return;
+
+            // Resolve barangay_id
+            const barangayId = (typeof barangayNameToId !== 'undefined') ? barangayNameToId[selectedName] : undefined;
+            if (!barangayId) return;
+
+            fetch(`../action/brgy_management_action/list_purok.php?barangay_id=${encodeURIComponent(barangayId)}`)
+                .then(r=>r.json())
+                .then(res=>{
+                    if (res && res.success && Array.isArray(res.data)) {
+                        res.data.forEach(p => {
+                            const opt = document.createElement('option');
+                            opt.value = p.purok_name;
+                            opt.textContent = p.purok_name;
+                            opt.dataset.pickupPoint = p.pickup_point_name || '';
+                            purokSelect.appendChild(opt);
+                        });
+                    }
+                })
+                .catch(()=>{});
+        });
+
+        // Add purok change event listener to auto-fill pickup point
+        purokSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const pickupPointField = document.getElementById('pickup_name');
+            
+            if (selectedOption && selectedOption.dataset.pickupPoint && pickupPointField) {
+                pickupPointField.value = selectedOption.dataset.pickupPoint;
+            }
+        });
+    }
 	const registrationTypeSelect = document.getElementById('registration_type');
 	const familyMembersSection = document.getElementById('familyMembersSection');
 	const numFamilyMembersInput = document.getElementById('numFamilyMembers');

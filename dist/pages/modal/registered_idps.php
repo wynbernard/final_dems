@@ -101,7 +101,7 @@
 							</select>
 						</div>
 					</div>
-					<div class="row">
+					<div class="row" mt-1>
 						<div class="col-md-3">
 							<div class="mb-3">
 								<label for="f_name" class="form-label">
@@ -599,9 +599,128 @@
 						<div class="col-md-6">
 							<div class="mb-3">
 								<label class="form-label">Purok <span class="text-danger">*</span></label>
-								<input type="text" name="purok" id="purok" class="form-control" placeholder="Enter Purok" required>
+								<select name="purok" id="purok" class="form-control" required>
+									<option value="">Select Purok</option>
+								</select>
 							</div>
 						</div>
+					</div>
+					<div class="col-12 my-4 position-relative">
+						<div class="border-top"></div>
+						<span class="position-absolute start-50 translate-middle bg-white px-3 text-muted"
+							style="top: -12px; font-size: 0.9rem">
+							Pick Up Point Information
+						</span>
+					</div>
+					<div class="row">
+						<div class="col-md-6">
+							<div class="mb-3">
+								<label class="form-label">Pick-up Point Name</label>
+								<input type="text" name="pickup_name" id="pickup_name" class="form-control" placeholder="Enter Pick-up Point Name" readonly>
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="mb-3">
+								<label class="form-label">Have Vehicle</label>
+								<select name="have_vehicle" id="have_vehicle" class="form-control" onchange="toggleVehicleField()">
+									<option value="" selected disabled>-- Select --</option>
+									<option value="Yes">Yes</option>
+									<option value="No">No</option>
+								</select>
+							</div>
+						</div>
+						<div class="col-md-6" id="vehicle_type_field" style="display:none;">
+							<div class="mb-3">
+								<label class="form-label">What Kind of Vehicle</label>
+								<select name="vehicle_type" id="vehicle_type" class="form-control">
+									<option value="" selected disabled>-- Select Vehicle Type --</option>
+									<option value="Car">Car</option>
+									<option value="Motorcycle">Motorcycle</option>
+									<option value="Van">Van</option>
+									<option value="Truck">Truck</option>
+									<option value="Jeepney">Jeepney</option>
+									<option value="Tricycle">Tricycle</option>
+									<option value="Other">Other</option>
+								</select>
+							</div>
+						</div>
+						<script>
+							function toggleVehicleField() {
+								const haveVehicle = document.getElementById("have_vehicle").value;
+								const vehicleField = document.getElementById("vehicle_type_field");
+								
+								if (haveVehicle === "Yes") {
+									vehicleField.style.display = "block";
+								} else {
+									vehicleField.style.display = "none";
+								}
+							}
+						</script>
+						<div class="col-md-6">
+							<div class="mb-3">
+								<label class="form-label">Intend to Go to Evacuation Center</label>
+								<select name="intend_evac" id="intend_evac" class="form-control" onchange="toggleWhereToGo()">
+									<option value="" selected disabled>-- Select --</option>
+									<option value="Yes">Yes</option>
+									<option value="No">No</option>
+									<option value="Undecided">Undecided</option>
+								</select>
+							</div>
+						</div>
+						<div class="col-md-6" id="where_to_go_field" style="display:none;">
+							<div class="mb-3">
+								<label class="form-label">If No, Where Will You Go?</label>
+								<select name="where_to_go" id="where_to_go" class="form-control">
+									<option value="" selected disabled>-- Select Option --</option>
+									<option value="Parinti">Parinti</option>
+									<option value="Abyan">Abyan</option>
+									<option value="Iban pa">Iban pa</option>
+								</select>
+							</div>
+						</div>
+						<script>
+						function toggleWhereToGo() {
+							const intendEvac = document.getElementById("intend_evac").value;
+							const whereField = document.getElementById("where_to_go_field");
+
+							if (intendEvac === "No") {
+								whereField.style.display = "block";
+							} else {
+								whereField.style.display = "none";
+								document.getElementById("where_to_go").value = ""; // clear value if hidden
+							}
+						}
+						</script>
+						<div class="col-md-6">
+							<div class="mb-3">
+								<label class="form-label">Have Special Needs</label>
+								<select name="have_special_needs" id="have_special_needs" class="form-control" onchange="toggleSpecialNeeds()">
+									<option value="" selected disabled>-- Select --</option>
+									<option value="Yes">Yes</option>
+									<option value="No">No</option>
+								</select>
+							</div>
+						</div>
+
+						<div class="col-md-6" id="special_needs_field" style="display:none;">
+							<div class="mb-3">
+								<label class="form-label">Please Specify</label>
+								<input type="text" name="special_needs" id="special_needs" class="form-control" placeholder="Enter Special Needs (e.g., Wheelchair, Medication, Assistance)">
+							</div>
+						</div>
+						<script>
+							function toggleSpecialNeeds() {
+								const haveNeeds = document.getElementById("have_special_needs").value;
+								const needsField = document.getElementById("special_needs_field");
+
+								if (haveNeeds === "Yes") {
+									needsField.style.display = "block";
+								} else {
+									needsField.style.display = "none";
+									document.getElementById("special_needs").value = ""; // clear when hidden
+								}
+							}
+						</script>
 					</div>
 					<div class="col-12 my-4 position-relative">
 						<div class="border-top"></div>
@@ -652,6 +771,267 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="../scripts/auth_script/user_registration.js"></script>
 <script src="../scripts/auth_script/address_api.js"></script>
+
+<!-- Enhanced Form Validation and Functionality -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+	const barangaySelect = document.getElementById('barangay');
+	const purokSelect = document.getElementById('purok');
+
+	if (barangaySelect && purokSelect) {
+		barangaySelect.addEventListener('change', function() {
+			const selectedName = this.value || '';
+			// Reset purok options
+			purokSelect.innerHTML = '<option value="">Select Purok</option>';
+			if (!selectedName) return;
+
+			// Resolve barangay_id
+			const barangayId = (typeof barangayNameToId !== 'undefined') ? barangayNameToId[selectedName] : undefined;
+			if (!barangayId) return;
+
+			fetch(`../action/brgy_management_action/list_purok.php?barangay_id=${encodeURIComponent(barangayId)}`)
+				.then(r=>r.json())
+				.then(res=>{
+					if (res && res.success && Array.isArray(res.data)) {
+						res.data.forEach(p => {
+							const opt = document.createElement('option');
+							opt.value = p.purok_name;
+							opt.textContent = p.purok_name;
+							opt.dataset.pickupPoint = p.pickup_point_name || '';
+							purokSelect.appendChild(opt);
+						});
+					}
+				})
+				.catch(()=>{});
+		});
+
+		// Add purok change event listener to auto-fill pickup point
+		purokSelect.addEventListener('change', function() {
+			const selectedOption = this.options[this.selectedIndex];
+			const pickupPointField = document.getElementById('pickup_name');
+			
+			if (selectedOption && selectedOption.dataset.pickupPoint && pickupPointField) {
+				pickupPointField.value = selectedOption.dataset.pickupPoint;
+			}
+		});
+	}
+	// Set max date to today for DOB
+	const today = new Date().toISOString().split("T")[0];
+	document.getElementById("dob").setAttribute("max", today);
+
+	// Load barangays
+	loadBarangays();
+
+	// Email validation
+	const emailInput = document.getElementById("email");
+	const emailFeedback = document.getElementById("emailFeedback");
+
+	if (emailInput) {
+		emailInput.addEventListener("input", validateEmail);
+		emailInput.addEventListener("blur", validateEmail);
+	}
+
+	function validateEmail() {
+		const email = emailInput.value.trim();
+		
+		if (!email) {
+			emailFeedback.innerHTML = "";
+			emailFeedback.className = "";
+			emailInput.classList.remove("is-valid", "is-invalid");
+			return;
+		}
+
+		// Basic email format validation
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		if (!emailRegex.test(email)) {
+			emailFeedback.innerHTML = "Please enter a valid email address.";
+			emailFeedback.className = "text-danger";
+			emailInput.classList.add("is-invalid");
+			emailInput.classList.remove("is-valid");
+			return;
+		}
+
+		// Check email availability
+		checkEmailAvailability(email);
+	}
+
+	function checkEmailAvailability(email) {
+		fetch("../check_validation/user_email.php", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				body: "email_address=" + encodeURIComponent(email),
+			})
+			.then((response) => response.text())
+			.then((data) => {
+				const result = data.trim();
+
+				if (result === "taken") {
+					emailFeedback.innerHTML = "This email is already registered.";
+					emailFeedback.className = "text-danger";
+					emailInput.classList.add("is-invalid");
+					emailInput.classList.remove("is-valid");
+				} else if (result === "available") {
+					emailFeedback.innerHTML = "Email is available.";
+					emailFeedback.className = "text-success";
+					emailInput.classList.add("is-valid");
+					emailInput.classList.remove("is-invalid");
+				} else {
+					emailFeedback.innerHTML = "Error checking email availability.";
+					emailFeedback.className = "text-warning";
+				}
+			})
+			.catch((error) => {
+				console.error("Error:", error);
+				emailFeedback.innerHTML = "Server error checking email.";
+				emailFeedback.className = "text-warning";
+			});
+	}
+});
+
+// Password validation
+function validatePassword() {
+	const password = document.getElementById('password').value;
+	const confirmPassword = document.getElementById('confirm_password').value;
+	const passwordHelp = document.getElementById('passwordHelp');
+	const passwordMatchMessage = document.getElementById('passwordMatchMessage');
+
+	// Password strength validation
+	const minLength = 8;
+	const hasUpperCase = /[A-Z]/.test(password);
+	const hasLowerCase = /[a-z]/.test(password);
+	const hasNumbers = /\d/.test(password);
+	const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+	let messages = [];
+	
+	if (password.length < minLength) {
+		messages.push("At least 8 characters");
+	}
+	if (!hasUpperCase) {
+		messages.push("One uppercase letter");
+	}
+	if (!hasLowerCase) {
+		messages.push("One lowercase letter");
+	}
+	if (!hasNumbers) {
+		messages.push("One number");
+	}
+	if (!hasSpecialChar) {
+		messages.push("One special character");
+	}
+
+	if (messages.length > 0) {
+		passwordHelp.innerHTML = "Password must contain: " + messages.join(", ");
+		passwordHelp.className = "form-text text-danger mt-1 d-block";
+	} else {
+		passwordHelp.innerHTML = "Password is strong!";
+		passwordHelp.className = "form-text text-success mt-1 d-block";
+	}
+
+	// Password match validation
+	if (confirmPassword && password !== confirmPassword) {
+		passwordMatchMessage.innerHTML = "Passwords do not match.";
+		passwordMatchMessage.className = "text-danger mt-1 d-block";
+	} else if (confirmPassword && password === confirmPassword) {
+		passwordMatchMessage.innerHTML = "Passwords match!";
+		passwordMatchMessage.className = "text-success mt-1 d-block";
+	} else {
+		passwordMatchMessage.innerHTML = "";
+	}
+}
+
+// Toggle ethnicity field
+function toggleEthnicity() {
+	const ipCheckbox = document.getElementById('ip');
+	const ethnicityField = document.getElementById('ethnicityField');
+	
+	if (ipCheckbox.checked) {
+		ethnicityField.style.display = 'block';
+	} else {
+		ethnicityField.style.display = 'none';
+		document.getElementById('ethnicity').value = '';
+	}
+}
+
+// Format monthly income with commas
+function formatWithCommas() {
+	const displayInput = document.getElementById('monthly_income_display');
+	const hiddenInput = document.getElementById('monthly_income');
+	
+	let value = displayInput.value.replace(/[^\d.]/g, ''); // Remove non-numeric characters except decimal
+	
+	if (value) {
+		const numericValue = parseFloat(value);
+		if (!isNaN(numericValue)) {
+			displayInput.value = '₱' + numericValue.toLocaleString('en-US', {
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 2
+			});
+			hiddenInput.value = numericValue;
+		}
+	} else {
+		displayInput.value = '';
+		hiddenInput.value = '';
+	}
+}
+
+// Update ID card format placeholder
+function updateIDCardFormat() {
+	const idSelect = document.getElementById('icp');
+	const idInput = document.getElementById('icn');
+	
+	const placeholders = {
+		'Philippine National ID': 'XXXX-XXXXXXX-X',
+		'Passport': 'XXXXXXXXX',
+		"Driver's License": 'XXX-XX-XXXXXX',
+		'UMID': 'XXXX-XXXXXXX-X',
+		'SSS ID': 'XX-XXXXXXX-X',
+		'PRC ID': 'XXXXXXX',
+		"Voter's ID": 'XXXX-XXXX-XXXX',
+		'TIN ID': 'XXX-XXX-XXX-XXX',
+		'PhilHealth ID': 'XX-XXXXXXXXX-X'
+	};
+	
+	const selectedValue = idSelect.value;
+	if (placeholders[selectedValue]) {
+		idInput.placeholder = placeholders[selectedValue];
+	} else {
+		idInput.placeholder = 'Enter ID Card Number';
+	}
+}
+
+// Load barangays
+function loadBarangays() {
+    const barangaySelect = document.getElementById('barangay');
+    // Global-like map for other handlers
+    window.barangayNameToId = {};
+
+    if (!barangaySelect) return;
+
+    // Clear existing options
+    barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
+
+    // Load barangays from database
+    fetch('../action/brgy_management_action/list_barangay_map.php')
+        .then(r => r.json())
+        .then(res => {
+            if (!res || !res.success || !Array.isArray(res.data)) return;
+
+            res.data.forEach(row => {
+                if (!row || !row.barangay_name) return;
+                const option = document.createElement('option');
+                option.value = row.barangay_name;
+                option.textContent = row.barangay_name;
+                barangaySelect.appendChild(option);
+                // fill map
+                window.barangayNameToId[row.barangay_name] = row.barangay_id;
+            });
+        })
+        .catch(() => {});
+}
+</script>
 <script>
 	document.addEventListener('DOMContentLoaded', function() {
 		const regType = document.getElementById('registration_type');
@@ -733,14 +1113,25 @@
 					<div class="card mb-2 p-2">
 						<h6>Member #${i}</h6>
 						<div class="row">
-							<div class="col-md-4 mb-2">
+							<div class="col-md-3 mb-2">
 								<input type="text" class="form-control" name="member_fname_${i}" placeholder="First Name" required>
 							</div>
-							<div class="col-md-4 mb-2">
+							<div class="col-md-3 mb-2">
 								<input type="text" class="form-control" name="member_mname_${i}" placeholder="Middle Name" required>
 							</div>
-							<div class="col-md-4 mb-2">
+							<div class="col-md-3 mb-2">
 								<input type="text" class="form-control" name="member_lname_${i}" placeholder="Last Name" required>
+							</div>
+							<div class="col-md-3 mb-2">
+								<select class="form-control" name="member_name_extension_${i}">
+									<option value="">Name Extension</option>
+									<option value="">None</option>
+									<option value="jr">Jr.</option>
+									<option value="sr">Sr.</option>
+									<option value="i">I</option>
+									<option value="ii">II</option>
+									<option value="iii">III</option>
+								</select>
 							</div>
 						</div>
 						<div class="row">
@@ -818,14 +1209,25 @@
 					<div class="card mb-2 p-2">
 						<h6>Member #${i}</h6>
 						<div class="row">
-							<div class="col-md-4 mb-2">
+							<div class="col-md-3 mb-2">
 								<input type="text" class="form-control" name="member_fname_${i}" placeholder="First Name" required>
 							</div>
-							<div class="col-md-4 mb-2">
+							<div class="col-md-3 mb-2">
 								<input type="text" class="form-control" name="member_mname_${i}" placeholder="Middle Name" required>
 							</div>
-							<div class="col-md-4 mb-2">
+							<div class="col-md-3 mb-2">
 								<input type="text" class="form-control" name="member_lname_${i}" placeholder="Last Name" required>
+							</div>
+							<div class="col-md-3 mb-2">
+								<select class="form-control" name="member_name_extension_${i}">
+									<option value="">Name Extension</option>
+									<option value="">None</option>
+									<option value="jr">Jr.</option>
+									<option value="sr">Sr.</option>
+									<option value="i">I</option>
+									<option value="ii">II</option>
+									<option value="iii">III</option>
+								</select>
 							</div>
 						</div>
 						<div class="row">
@@ -862,9 +1264,11 @@
 					const fname = document.querySelector(`[name='member_fname_${i}']`);
 					const mname = document.querySelector(`[name='member_mname_${i}']`);
 					const lname = document.querySelector(`[name='member_lname_${i}']`);
+					const nameExt = document.querySelector(`[name='member_name_extension_${i}']`);
 					if (fname) fname.addEventListener('input', validateDuplicates);
 					if (mname) mname.addEventListener('input', validateDuplicates);
 					if (lname) lname.addEventListener('input', validateDuplicates);
+					if (nameExt) nameExt.addEventListener('change', validateDuplicates);
 				}
 
 				// Attach listeners to head name fields so changes trigger re-validation in real-time
@@ -884,7 +1288,7 @@
 					feedbackEls.forEach(el => el.remove());
 
 					// Remove invalid classes
-					const allMemberInputs = familyFieldsDiv.querySelectorAll("input[name^='member_fname_'], input[name^='member_mname_'], input[name^='member_lname_']");
+					const allMemberInputs = familyFieldsDiv.querySelectorAll("input[name^='member_fname_'], input[name^='member_mname_'], input[name^='member_lname_'], select[name^='member_name_extension_']");
 					allMemberInputs.forEach(inp => inp.classList.remove('is-invalid'));
 
 					const seen = {}; // key -> array of indexes
@@ -894,23 +1298,26 @@
 						const fnEl = document.querySelector(`[name='member_fname_${i}']`);
 						const mnEl = document.querySelector(`[name='member_mname_${i}']`);
 						const lnEl = document.querySelector(`[name='member_lname_${i}']`);
+						const neEl = document.querySelector(`[name='member_name_extension_${i}']`);
 						const fn = normalize(fnEl ? fnEl.value : '');
 						const mn = normalize(mnEl ? mnEl.value : '');
 						const ln = normalize(lnEl ? lnEl.value : '');
+						const ne = normalize(neEl ? neEl.value : '');
 
 						// Skip empty rows
 						if (!fn && !mn && !ln) continue;
 
-						const key = `${fn}|${mn}|${ln}`;
+						const key = `${fn}|${mn}|${ln}|${ne}`;
 
 						// Check against head (re-read head fields each time for real-time validation)
 						const headFirst = normalize(document.getElementById('f_name') ? document.getElementById('f_name').value : '');
 						const headMiddle = normalize(document.getElementById('m_name') ? document.getElementById('m_name').value : '');
 						const headLast = normalize(document.getElementById('l_name') ? document.getElementById('l_name').value : '');
+						const headNameExt = normalize(document.getElementById('name_extension') ? document.getElementById('name_extension').value : '');
 						if (headFirst || headMiddle || headLast) {
-							if (fn === headFirst && mn === headMiddle && ln === headLast) {
+							if (fn === headFirst && mn === headMiddle && ln === headLast && ne === headNameExt) {
 								hasDup = true;
-								[fnEl, mnEl, lnEl].forEach(el => el && el.classList.add('is-invalid'));
+								[fnEl, mnEl, lnEl, neEl].forEach(el => el && el.classList.add('is-invalid'));
 								attachFeedback(fnEl || mnEl || lnEl, 'Duplicate of head name');
 							}
 						}
@@ -918,13 +1325,14 @@
 						if (seen[key]) {
 							// mark both current and previous entries as duplicates
 							hasDup = true;
-							[fnEl, mnEl, lnEl].forEach(el => el && el.classList.add('is-invalid'));
+							[fnEl, mnEl, lnEl, neEl].forEach(el => el && el.classList.add('is-invalid'));
 							// mark previous ones
 							seen[key].forEach(prevIdx => {
 								const pfn = document.querySelector(`[name='member_fname_${prevIdx}']`);
 								const pmn = document.querySelector(`[name='member_mname_${prevIdx}']`);
 								const pln = document.querySelector(`[name='member_lname_${prevIdx}']`);
-								[pfn, pmn, pln].forEach(el => el && el.classList.add('is-invalid'));
+								const pne = document.querySelector(`[name='member_name_extension_${prevIdx}']`);
+								[pfn, pmn, pln, pne].forEach(el => el && el.classList.add('is-invalid'));
 								attachFeedback(pfn || pmn || pln, 'Duplicate name among members');
 							});
 							attachFeedback(fnEl || mnEl || lnEl, 'Duplicate name among members');
@@ -1760,6 +2168,124 @@
 	.print-info li {
 		margin: 3px 0;
 		font-size: 0.8rem;
+	}
+
+	/* Enhanced Form Styling from pre_reg.php */
+	.input-group {
+		position: relative;
+	}
+
+	.input-group input {
+		padding-right: 2.5rem;
+	}
+
+	.input-group .input-group-text {
+		position: absolute;
+		top: 50%;
+		right: 10px;
+		transform: translateY(-50%);
+		cursor: pointer;
+		color: #6c757d;
+		background: none;
+		border: none;
+		z-index: 10;
+	}
+
+	label {
+		font: bold 14px Arial, sans-serif;
+	}
+
+	/* Form section dividers */
+	.position-relative .border-top {
+		border-color: #dee2e6 !important;
+	}
+
+	.position-relative span {
+		background: white;
+		color: #6c757d;
+		font-weight: 500;
+	}
+
+	/* Enhanced form controls */
+	.form-control, .form-select {
+		border: 1px solid #ced4da;
+		border-radius: 0.375rem;
+		transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+	}
+
+	.form-control:focus, .form-select:focus {
+		border-color: #86b7fe;
+		outline: 0;
+		box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+	}
+
+	/* Validation styling */
+	.is-valid {
+		border-color: #198754;
+	}
+
+	.is-invalid {
+		border-color: #dc3545;
+	}
+
+	.text-success {
+		color: #198754 !important;
+	}
+
+	.text-danger {
+		color: #dc3545 !important;
+	}
+
+	.text-warning {
+		color: #ffc107 !important;
+	}
+
+	/* Button styling */
+	.btn {
+		border-radius: 0.375rem;
+		font-weight: 500;
+	}
+
+	.btn-success {
+		background-color: #198754;
+		border-color: #198754;
+	}
+
+	.btn-success:hover {
+		background-color: #157347;
+		border-color: #146c43;
+	}
+
+	/* Modal styling */
+	.modal-content {
+		border-radius: 0.5rem;
+		box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+	}
+
+	.modal-header {
+		border-bottom: 1px solid #dee2e6;
+		padding: 1rem 1.5rem;
+	}
+
+	.modal-body {
+		padding: 1.5rem;
+	}
+
+	/* Card styling for family members */
+	.card {
+		border: 1px solid #dee2e6;
+		border-radius: 0.375rem;
+		box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+	}
+
+	.card-header {
+		background-color: #f8f9fa;
+		border-bottom: 1px solid #dee2e6;
+		padding: 0.75rem 1rem;
+	}
+
+	.card-body {
+		padding: 1rem;
 	}
 </style>
 

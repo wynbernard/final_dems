@@ -43,6 +43,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $location_id = trim($_POST['location_id'] ?? '');
     $relation_to_family = "Head of Family";
     $profile_pic = isset($_FILES['profile_pic']) ? $_FILES['profile_pic'] : null;
+    
+    // Pick-up Point Information
+    $pickup_name = trim($_POST['pickup_name'] ?? '');
+    $have_vehicle = trim($_POST['have_vehicle'] ?? '');
+    $vehicle_type = trim($_POST['vehicle_type'] ?? '');
+    $intend_evac = trim($_POST['intend_evac'] ?? '');
+    $where_to_go = trim($_POST['where_to_go'] ?? '');
+    $have_special_needs = trim($_POST['have_special_needs'] ?? '');
+    $special_needs = trim($_POST['special_needs'] ?? '');
 
     $birthDate = new DateTime($dob);
     $today = new DateTime();
@@ -234,10 +243,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         }
     }
-    // Insert pre_reg_table
-    $sql = "INSERT INTO pre_reg_table (f_name, m_name, l_name, name_ext, contact_no, email_address, password, gender, registered_as, solo_address_id, family_id,highest_education_attainment, age_class_id, registered_date, date_of_birth, place_of_birth, mother_maiden_name, religion, occupation, monthly_income, civil_status, id_card_presented, id_card_number,account_information_id,id_card_image,indigenous_people,4ps_beneficiary,ethnicity,signature,relation_to_family,profile_pic) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+    // Insert pre_reg_table with pickup point fields
+    $sql = "INSERT INTO pre_reg_table (f_name, m_name, l_name, name_ext, contact_no, email_address, password, gender, registered_as, solo_address_id, family_id,highest_education_attainment, age_class_id, registered_date, date_of_birth, place_of_birth, mother_maiden_name, religion, occupation, monthly_income, civil_status, id_card_presented, id_card_number,account_information_id,id_card_image,indigenous_people,4ps_beneficiary,ethnicity,signature,relation_to_family,profile_pic,pickup_point_name,have_vehicle,vehicle_type,intend_evacuation,where_to_go,have_special_needs,special_needs) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sssssssssiisisssssssssisssssss", $f_name, $m_name, $l_name, $name_extension, $contact_no, $email, $hashed_password, $gender, $registration_type, $solo_id, $family_id, $education_attainment, $age_class_id, $dobFormatted, $pob, $mmn, $religion, $occupation, $monthly_income, $civil_status, $icp, $icn, $account_id, $icard_image, $ip, $beneficiary, $ethnicity, $signaturePath, $relation_to_family, $profilePicPath);
+    $stmt->bind_param("sssssssssiisisssssssssissssssssssssss", $f_name, $m_name, $l_name, $name_extension, $contact_no, $email, $hashed_password, $gender, $registration_type, $solo_id, $family_id, $education_attainment, $age_class_id, $dobFormatted, $pob, $mmn, $religion, $occupation, $monthly_income, $civil_status, $icp, $icn, $account_id, $icard_image, $ip, $beneficiary, $ethnicity, $signaturePath, $relation_to_family, $profilePicPath, $pickup_name, $have_vehicle, $vehicle_type, $intend_evac, $where_to_go, $have_special_needs, $special_needs);
     if ($stmt->execute()) {
         $pre_reg_id = $stmt->insert_id;
         $stmt->close();
@@ -268,6 +277,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $mfname = trim($_POST["member_fname_$i"] ?? '');
                 $mmname = trim($_POST["member_mname_$i"] ?? '');
                 $mlname = trim($_POST["member_lname_$i"] ?? '');
+                $mname_extension = trim($_POST["member_name_extension_$i"] ?? '');
                 $mdob = trim($_POST["member_dob_$i"] ?? '');
                 $mgender = trim($_POST["member_gender_$i"] ?? '');
                 $mrelation = trim($_POST["member_relation_$i"] ?? '');
@@ -313,10 +323,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                     $mstmt->close();
                 }
-                $msql = "INSERT INTO pre_reg_table (f_name, m_name, l_name, gender, registered_as, family_id, age_class_id, date_of_birth, relation_to_family) VALUES (?,?,?,?,?,?,?,?,?)";
+                $msql = "INSERT INTO pre_reg_table (f_name, m_name, l_name, name_ext, gender, registered_as, family_id, age_class_id, date_of_birth, relation_to_family) VALUES (?,?,?,?,?,?,?,?,?,?)";
                 $mstmt = $conn->prepare($msql);
                 $mregas = 'Family';
-                $mstmt->bind_param("sssssiiss", $mfname, $mmname, $mlname, $mgender, $mregas, $family_id, $mage_class_id, $mdob, $mrelation_to_family);
+                $mstmt->bind_param("ssssssiiss", $mfname, $mmname, $mlname, $mname_extension, $mgender, $mregas, $family_id, $mage_class_id, $mdob, $mrelation_to_family);
                 if ($mstmt->execute()) {
                     $member_pre_reg_id = $mstmt->insert_id;
                     // Generate QR code for member
@@ -435,13 +445,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $mfname = trim($_POST["member_fname_$i"] ?? '');
                 $mmname = trim($_POST["member_mname_$i"] ?? '');
                 $mlname = trim($_POST["member_lname_$i"] ?? '');
+                $mname_extension = trim($_POST["member_name_extension_$i"] ?? '');
                 $mdob = trim($_POST["member_dob_$i"] ?? '');
                 $mgender = trim($_POST["member_gender_$i"] ?? '');
                 $mrelation = trim($_POST["member_relation_$i"] ?? '');
                 // Find the member's pre_reg_id
-                $find_member_sql = "SELECT pre_reg_id FROM pre_reg_table WHERE f_name = ? AND m_name = ? AND l_name = ? AND date_of_birth = ? AND gender = ? AND relation_to_family = ? AND family_id = ? ORDER BY pre_reg_id DESC LIMIT 1";
+                $find_member_sql = "SELECT pre_reg_id FROM pre_reg_table WHERE f_name = ? AND m_name = ? AND l_name = ? AND name_ext = ? AND date_of_birth = ? AND gender = ? AND relation_to_family = ? AND family_id = ? ORDER BY pre_reg_id DESC LIMIT 1";
                 $find_member_stmt = $conn->prepare($find_member_sql);
-                $find_member_stmt->bind_param("ssssssi", $mfname, $mmname, $mlname, $mdob, $mgender, $mrelation, $family_id);
+                $find_member_stmt->bind_param("sssssssi", $mfname, $mmname, $mlname, $mname_extension, $mdob, $mgender, $mrelation, $family_id);
                 $find_member_stmt->execute();
                 $find_member_result = $find_member_stmt->get_result();
                 if ($find_member_result && $find_member_result->num_rows > 0) {

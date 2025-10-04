@@ -1,4 +1,7 @@
 <!-- Add Location Modal -->
+ <?php
+ include '../../../alert/warning.php';
+ ?>
 <div class="modal fade" id="addLocationModal" tabindex="-1" aria-labelledby="addLocationModalLabel" aria-hidden="true">
 	<div class="modal-dialog modal-xl">
 		<form id="addLocationForm" method="POST" action="../action/brgy_management_action/add_brgy.php" enctype="multipart/form-data">
@@ -297,6 +300,7 @@
 								<th>#</th>
 								<th>Purok Name</th>
 								<th>Leader</th>
+								<th>Pick Up Point</th>
 								<th>Actions</th>
 							</tr>
 						</thead>
@@ -316,7 +320,7 @@
 <!-- Purok Add Modal -->
 <div class="modal fade" id="addPurokModal" tabindex="-1" aria-labelledby="addPurokModalLabel" aria-hidden="true">
 	<div class="modal-dialog">
-		<form id="addPurokForm">
+		<form id="addPurokForm" method="POST" action="../action/brgy_management_action/add_purok.php">
 			<div class="modal-content">
 				<div class="modal-header">
 					<h5 class="modal-title" id="addPurokModalLabel">Add Purok</h5>
@@ -332,6 +336,10 @@
 						<label for="addPurokLeader" class="form-label">Purok Leader</label>
 						<input type="text" id="addPurokLeader" name="purok_leader" class="form-control">
 					</div>
+					<div>
+						<label for="addPurokPickUpPoint" class="form-label">Pick Up Point</label>
+						<input type="text" id="addPurokPickUpPoint" name="pickup_point_name" class="form-control">
+					</div>
 				</div>
 				<div class="modal-footer">
 					<button type="submit" class="btn btn-success">Add</button>
@@ -345,7 +353,7 @@
 <!-- Purok Edit Modal -->
 <div class="modal fade" id="editPurokModal" tabindex="-1" aria-labelledby="editPurokModalLabel" aria-hidden="true">
 	<div class="modal-dialog">
-		<form id="editPurokForm">
+		<form id="editPurokForm" method="POST" action="../action/brgy_management_action/edit_purok.php">
 			<div class="modal-content">
 				<div class="modal-header">
 					<h5 class="modal-title" id="editPurokModalLabel">Edit Purok</h5>
@@ -361,6 +369,10 @@
 						<label for="editPurokLeader" class="form-label">Purok Leader</label>
 						<input type="text" id="editPurokLeader" name="purok_leader" class="form-control">
 					</div>
+					<div>
+						<label for="editPurokPickUpPoint" class="form-label">Pick Up Point</label>
+						<input type="text" id="editPurokPickUpPoint" name="pickup_point_name" class="form-control">
+					</div>
 				</div>
 				<div class="modal-footer">
 					<button type="submit" class="btn btn-primary">Save</button>
@@ -374,7 +386,7 @@
 <!-- Purok Delete Confirmation Modal -->
 <div class="modal fade" id="deletePurokModal" tabindex="-1" aria-labelledby="deletePurokModalLabel" aria-hidden="true">
 	<div class="modal-dialog">
-		<form id="deletePurokForm">
+		<form id="deletePurokForm" method="POST" action="../action/brgy_management_action/delete_purok.php">
 			<div class="modal-content">
 				<div class="modal-header">
 					<h5 class="modal-title" id="deletePurokModalLabel">Delete Purok</h5>

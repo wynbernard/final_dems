@@ -23,13 +23,13 @@
 		<div class="row login-container bg-white">
 			<!-- Left Side - Background Image -->
 			<div class="col-md-6 d-none d-md-flex bg-image align-items-center justify-content-center">
-				<img src="../../../src/images/logo/side_logo.png" alt="Logo" class="rounded-circle" width="250" height="250">
+				<img src="../../../src/images/bagonhon.png" alt="Logo" 	 width="250" height="250">
 			</div>
 
 			<!-- Right Side - Login Form -->
 			<div class="col-md-6 p-5">
 				<div class="text-center mb-4">
-					<img src="../../../src/images/logo/side_logo.png" alt="Logo" class="rounded-circle" width="80">
+					<img src="../../../src/images/bagonhon.png" alt="Logo" width="80">
 				</div>
 				<h4 class="text-center mb-4">Sign In</h4>
 				<?php

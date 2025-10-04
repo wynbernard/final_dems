@@ -488,6 +488,7 @@ let currentBoundaryBarangay = '';
 								<td>${idx+1}</td>
 								<td class="purok-name">${escapeHtml(p.purok_name)}</td>
 								<td class="purok-leader">${escapeHtml(p.purok_leader || '')}</td>
+								<td class="purok-pick-up-point">${escapeHtml(p.pickup_point_name || '')}</td>
 								<td>
 									<button class="btn btn-sm btn-primary edit-purok-btn">Edit</button>
 									<button class="btn btn-sm btn-danger delete-purok-btn">Delete</button>
@@ -539,6 +540,7 @@ let currentBoundaryBarangay = '';
 			document.getElementById('addPurokBarangayId').value = barangayId;
 			document.getElementById('addPurokName').value = '';
 			document.getElementById('addPurokLeader').value = '';
+			document.getElementById('addPurokPickUpPoint').value = '';
 			const addModalEl = document.getElementById('addPurokModal');
 			const addModal = new bootstrap.Modal(addModalEl);
 			addModal.show();
@@ -562,75 +564,104 @@ let currentBoundaryBarangay = '';
 			openAddPurokModal(barangayId);
 		});
 
-		// Add form submit
+		// AJAX submit to keep modal open and show SweetAlert toast
 		const addPurokForm = document.getElementById('addPurokForm');
 		if (addPurokForm) {
 			addPurokForm.addEventListener('submit', function(e) {
 				e.preventDefault();
-				const barangayId = document.getElementById('addPurokBarangayId').value;
-				const name = document.getElementById('addPurokName').value.trim();
-				const leader = document.getElementById('addPurokLeader').value.trim();
-				if (!name) return alert('Purok name is required');
-				const body = new URLSearchParams();
-				body.append('purok_name', name);
-				body.append('purok_leader', leader);
-				body.append('barangay_id', barangayId);
-
-				fetch('../action/brgy_management_action/add_purok.php', {method:'POST', body: body})
-					.then(r=>r.json()).then(res=>{
-						if (res.success) {
-							const addModalEl = document.getElementById('addPurokModal');
-							bootstrap.Modal.getInstance(addModalEl).hide();
-							loadPuroks(barangayId);
-						} else alert(res.message || 'Add failed');
-					}).catch(()=>alert('Add failed'));
+				const formData = new URLSearchParams(new FormData(addPurokForm));
+				fetch('../action/brgy_management_action/add_purok.php', {
+					method: 'POST',
+					headers: { 'X-Requested-With': 'XMLHttpRequest' },
+					body: formData
+				}).then(r=>r.json()).then(res=>{
+					if (res && res.success) {
+						if (window.Swal) {
+							Swal.fire({
+								toast: true,
+								position: 'top',
+								showConfirmButton: false,
+								timer: 3000,
+								icon: 'success',
+								title: 'Purok added successfully'
+							});
+						}
+						// keep modal open, but clear name field
+						document.getElementById('addPurokName').value = '';
+					} else {
+						if (window.Swal) {
+							Swal.fire({icon:'error', title:'Error', text: (res && res.message) || 'Add failed'});
+						} else alert('Add failed');
+					}
+				}).catch(()=>{
+					if (window.Swal) Swal.fire({icon:'error', title:'Error', text:'Add failed'}); else alert('Add failed');
+				});
 			});
 		}
 
-		// Edit form submit
 		const editPurokForm = document.getElementById('editPurokForm');
 		if (editPurokForm) {
 			editPurokForm.addEventListener('submit', function(e) {
 				e.preventDefault();
-				const id = document.getElementById('editPurokId').value;
-				const name = document.getElementById('editPurokName').value.trim();
-				const leader = document.getElementById('editPurokLeader').value.trim();
-				const barangayId = viewModal.dataset.barangayId;
-				if (!name) return alert('Purok name is required');
-				const body = new URLSearchParams();
-				body.append('purok_id', id);
-				body.append('purok_name', name);
-				body.append('purok_leader', leader);
-
-				fetch('../action/brgy_management_action/edit_purok.php', {method:'POST', body: body})
-					.then(r=>r.json()).then(res=>{
-						if (res.success) {
-							const editModalEl = document.getElementById('editPurokModal');
-							bootstrap.Modal.getInstance(editModalEl).hide();
-							loadPuroks(barangayId);
-						} else alert(res.message || 'Update failed');
-					}).catch(()=>alert('Update failed'));
+				const formData = new URLSearchParams(new FormData(editPurokForm));
+				fetch('../action/brgy_management_action/edit_purok.php', {
+					method: 'POST',
+					headers: { 'X-Requested-With': 'XMLHttpRequest' },
+					body: formData
+				}).then(r=>r.json()).then(res=>{
+					if (res && res.success) {
+						if (window.Swal) {
+							Swal.fire({
+								toast: true,
+								position: 'top',
+								showConfirmButton: false,
+								timer: 3000,
+								icon: 'success',
+								title: 'Purok updated successfully'
+							});
+						}
+					} else {
+						if (window.Swal) {
+							Swal.fire({icon:'error', title:'Error', text: (res && res.message) || 'Update failed'});
+						} else alert('Update failed');
+					}
+				}).catch(()=>{
+					if (window.Swal) Swal.fire({icon:'error', title:'Error', text:'Update failed'}); else alert('Update failed');
+				});
 			});
 		}
 
-		// Delete form submit
 		const deletePurokForm = document.getElementById('deletePurokForm');
 		if (deletePurokForm) {
 			deletePurokForm.addEventListener('submit', function(e) {
 				e.preventDefault();
-				const id = document.getElementById('deletePurokId').value;
-				const barangayId = viewModal.dataset.barangayId;
-				const body = new URLSearchParams();
-				body.append('purok_id', id);
-
-				fetch('../action/brgy_management_action/delete_purok.php', {method:'POST', body: body})
-					.then(r=>r.json()).then(res=>{
-						if (res.success) {
-							const delModalEl = document.getElementById('deletePurokModal');
-							bootstrap.Modal.getInstance(delModalEl).hide();
-							loadPuroks(barangayId);
-						} else alert(res.message || 'Delete failed');
-					}).catch(()=>alert('Delete failed'));
+				const formData = new URLSearchParams(new FormData(deletePurokForm));
+				fetch('../action/brgy_management_action/delete_purok.php', {
+					method: 'POST',
+					headers: { 'X-Requested-With': 'XMLHttpRequest' },
+					body: formData
+				}).then(r=>r.json()).then(res=>{
+					if (res && res.success) {
+						const delModalEl = document.getElementById('deletePurokModal');
+						bootstrap.Modal.getInstance(delModalEl).hide();
+						if (window.Swal) {
+							Swal.fire({
+								toast: true,
+								position: 'top',
+								showConfirmButton: false,
+								timer: 3000,
+								icon: 'success',
+								title: 'Purok deleted successfully'
+							});
+						}
+					} else {
+						if (window.Swal) {
+							Swal.fire({icon:'error', title:'Error', text: (res && res.message) || 'Delete failed'});
+						} else alert('Delete failed');
+					}
+				}).catch(()=>{
+					if (window.Swal) Swal.fire({icon:'error', title:'Error', text:'Delete failed'}); else alert('Delete failed');
+				});
 			});
 		}
 

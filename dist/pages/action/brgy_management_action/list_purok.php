@@ -9,7 +9,7 @@ if (!isset($_GET['barangay_id'])) {
 
 $barangay_id = intval($_GET['barangay_id']);
 
-$stmt = $conn->prepare("SELECT purok_id, purok_name, purok_leader FROM purok_table WHERE barangay_id = ? ORDER BY purok_name ASC");
+$stmt = $conn->prepare("SELECT purok_id, purok_name, purok_leader , pickup_point_name FROM purok_table WHERE barangay_id = ? ORDER BY purok_name ASC");
 $stmt->bind_param('i', $barangay_id);
 $stmt->execute();
 $res = $stmt->get_result();

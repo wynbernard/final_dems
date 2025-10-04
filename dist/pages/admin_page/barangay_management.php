@@ -128,19 +128,10 @@ if (!$result) {
 																<i class="fas fa-trash"></i> Delete
 															</a>
 
-															<a href="#"
-																class="btn btn-outline-primary btn-sm shadow view-barangay-btn"
-																data-bs-toggle="modal"
-																data-bs-target="#viewBarangayModal"
-																data-id="<?php echo (int)$barangay['barangay_id']; ?>"
-																data-name1="<?php echo htmlspecialchars($barangay['barangay_name']); ?>"
-																data-captain="<?php echo htmlspecialchars($barangay['barangay_captain_name']); ?>"
-																data-signature="<?php echo htmlspecialchars($barangay['signature_brgy_captain']); ?>"
-																data-population="<?php echo (int)$barangay['total_population']; ?>"
-																data-latitude="<?php echo htmlspecialchars($barangay['latitude']); ?>"
-																data-longitude="<?php echo htmlspecialchars($barangay['longitude']); ?>">
-																<i class="fas fa-eye"></i> View
-															</a>
+							<a href="barangay_view.php?id=<?php echo (int)$barangay['barangay_id']; ?>"
+								class="btn btn-outline-primary btn-sm shadow">
+								<i class="fas fa-eye"></i> View
+							</a>
 														</td>
 													</tr>
 											<?php endwhile;
