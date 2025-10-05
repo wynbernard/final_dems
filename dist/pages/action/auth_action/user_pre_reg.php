@@ -36,6 +36,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	$sub_div = trim($_POST['sub_div']);
 	$zip_code = trim($_POST['zip_code']);
 	$purok = trim($_POST['purok']);
+	$pickup_name = trim($_POST['pickup_name']);
+	$have_vehicle = trim($_POST['have_vehicle']);
+	$vehicle_type = trim($_POST['vehicle_type']);
+	$intend_evac = trim($_POST['intend_evac']);
+	$where_to_go = trim($_POST['where_to_go']);
+	$have_special_needs = trim($_POST['have_special_needs']);
+	$special_needs = trim($_POST['special_needs']);
 	$wallet = trim($_POST['wallet']);
 	$account_name = trim($_POST['account_name']);
 	$account_type = trim($_POST['account_type']);
@@ -301,9 +308,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 
 
-	$sql = "INSERT INTO pre_reg_table (f_name, m_name, l_name, name_ext, contact_no, email_address, password, gender, registered_as, solo_address_id, family_id,highest_education_attainment, age_class_id, registered_date, date_of_birth, place_of_birth, mother_maiden_name, religion, occupation, monthly_income, civil_status, id_card_presented, id_card_number,account_information_id,id_card_image,indigenous_people,4ps_beneficiary,ethnicity,signature,relation_to_family,profile_pic) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+	$sql = "INSERT INTO pre_reg_table (f_name, m_name, l_name, name_ext, contact_no, email_address, password, gender, registered_as, solo_address_id, family_id,highest_education_attainment, age_class_id, registered_date, date_of_birth, place_of_birth, mother_maiden_name, religion, occupation, monthly_income, civil_status, id_card_presented, id_card_number,account_information_id,id_card_image,indigenous_people,4ps_beneficiary,ethnicity,signature,relation_to_family,profile_pic,pickup_point_name,have_vehicle,vehicle_type,intend_evacuation,where_to_go,have_special_needs,special_needs) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 	$stmt = $conn->prepare($sql);
-	$stmt->bind_param("sssssssssiisisssssssssisssssss", $f_name, $m_name, $l_name, $name_extension, $contact_no, $email, $hashed_password, $gender, $registration_type, $solo_id, $family_id, $education_attainment, $age_class_id, $dobFormatted, $pob, $mmn, $religion, $occupation, $monthly_income, $civil_status, $icp, $icn, $account_id, $icard_image, $ip, $beneficiary, $ethnicity, $signaturePath, $relation_to_family, $profilePicPath);
+	$stmt->bind_param("sssssssssiisisssssssssissssssssssssss", $f_name, $m_name, $l_name, $name_extension, $contact_no, $email, $hashed_password, $gender, $registration_type, $solo_id, $family_id, $education_attainment, $age_class_id, $dobFormatted, $pob, $mmn, $religion, $occupation, $monthly_income, $civil_status, $icp, $icn, $account_id, $icard_image, $ip, $beneficiary, $ethnicity, $signaturePath, $relation_to_family, $profilePicPath, $pickup_name, $have_vehicle, $vehicle_type, $intend_evac, $where_to_go, $have_special_needs, $special_needs);
 
 	if ($stmt->execute()) {
 		$pre_reg_id = $stmt->insert_id;

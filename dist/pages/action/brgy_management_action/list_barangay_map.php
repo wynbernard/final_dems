@@ -1,5 +1,6 @@
 <?php
-include '../../../../database/session.php';
+// include '../../../../database/session.php';
+include '../../../../database/conn.php';
 header('Content-Type: application/json');
 
 try {

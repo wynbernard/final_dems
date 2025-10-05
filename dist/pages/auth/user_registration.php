@@ -31,7 +31,7 @@
 		<div class="row justify-content-center">
 			<div class="col-12 col-md-12 col-lg-10 p-4 bg-white shadow rounded">
 
-				<img src="../../../src/images/logo/images.png" alt="Logo"
+				<img src="../../../src/images/bago_city.png" alt="Logo"
 					class="img-fluid d-block mx-auto mb-3 logo-img"
 					style="max-width: 100px;">
 				<!-- Make sure "Register" is always visible -->
@@ -564,9 +564,128 @@
 						<div class="col-md-6">
 							<div class="mb-3">
 								<label class="form-label">Purok <span class="text-danger">*</span></label>
-								<input type="text" name="purok" id="purok" class="form-control" placeholder="Enter Purok" required>
+								<select name="purok" id="purok" class="form-control" required>
+									<option value="">Select Purok</option>
+								</select>
 							</div>
 						</div>
+					</div>
+					<div class="col-12 my-4 position-relative">
+						<div class="border-top"></div>
+						<span class="position-absolute start-50 translate-middle bg-white px-3 text-muted"
+							style="top: -12px; font-size: 0.9rem">
+							Pick Up Point Information
+						</span>
+					</div>
+					<div class="row">
+						<div class="col-md-6">
+							<div class="mb-3">
+								<label class="form-label">Pick-up Point Name</label>
+								<input type="text" name="pickup_name" id="pickup_name" class="form-control" placeholder="Enter Pick-up Point Name" readonly>
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="mb-3">
+								<label class="form-label">Have Vehicle</label>
+								<select name="have_vehicle" id="have_vehicle" class="form-control" onchange="toggleVehicleField()">
+									<option value="" selected disabled>-- Select --</option>
+									<option value="Yes">Yes</option>
+									<option value="No">No</option>
+								</select>
+							</div>
+						</div>
+						<div class="col-md-6" id="vehicle_type_field" style="display:none;">
+							<div class="mb-3">
+								<label class="form-label">What Kind of Vehicle</label>
+								<select name="vehicle_type" id="vehicle_type" class="form-control">
+									<option value="" selected disabled>-- Select Vehicle Type --</option>
+									<option value="Car">Car</option>
+									<option value="Motorcycle">Motorcycle</option>
+									<option value="Van">Van</option>
+									<option value="Truck">Truck</option>
+									<option value="Jeepney">Jeepney</option>
+									<option value="Tricycle">Tricycle</option>
+									<option value="Other">Other</option>
+								</select>
+							</div>
+						</div>
+						<script>
+							function toggleVehicleField() {
+								const haveVehicle = document.getElementById("have_vehicle").value;
+								const vehicleField = document.getElementById("vehicle_type_field");
+								
+								if (haveVehicle === "Yes") {
+									vehicleField.style.display = "block";
+								} else {
+									vehicleField.style.display = "none";
+								}
+							}
+						</script>
+						<div class="col-md-6">
+							<div class="mb-3">
+								<label class="form-label">Intend to Go to Evacuation Center</label>
+								<select name="intend_evac" id="intend_evac" class="form-control" onchange="toggleWhereToGo()">
+									<option value="" selected disabled>-- Select --</option>
+									<option value="Yes">Yes</option>
+									<option value="No">No</option>
+									<option value="Undecided">Undecided</option>
+								</select>
+						</div>
+						</div>
+						<div class="col-md-6" id="where_to_go_field" style="display:none;">
+							<div class="mb-3">
+								<label class="form-label">If No, Where Will You Go?</label>
+								<select name="where_to_go" id="where_to_go" class="form-control">
+									<option value="" selected disabled>-- Select Option --</option>
+									<option value="Parinti">Parinti</option>
+									<option value="Abyan">Abyan</option>
+									<option value="Iban pa">Iban pa</option>
+								</select>
+							</div>
+						</div>
+						<script>
+						function toggleWhereToGo() {
+							const intendEvac = document.getElementById("intend_evac").value;
+							const whereField = document.getElementById("where_to_go_field");
+
+							if (intendEvac === "No") {
+								whereField.style.display = "block";
+							} else {
+								whereField.style.display = "none";
+								document.getElementById("where_to_go").value = ""; // clear value if hidden
+							}
+						}
+						</script>
+						<div class="col-md-6">
+							<div class="mb-3">
+								<label class="form-label">Have Special Needs</label>
+								<select name="have_special_needs" id="have_special_needs" class="form-control" onchange="toggleSpecialNeeds()">
+									<option value="" selected disabled>-- Select --</option>
+									<option value="Yes">Yes</option>
+									<option value="No">No</option>
+								</select>
+							</div>
+						</div>
+
+						<div class="col-md-6" id="special_needs_field" style="display:none;">
+							<div class="mb-3">
+								<label class="form-label">Please Specify</label>
+								<input type="text" name="special_needs" id="special_needs" class="form-control" placeholder="Enter Special Needs (e.g., Wheelchair, Medication, Assistance)">
+							</div>
+						</div>
+						<script>
+							function toggleSpecialNeeds() {
+								const haveNeeds = document.getElementById("have_special_needs").value;
+								const needsField = document.getElementById("special_needs_field");
+
+								if (haveNeeds === "Yes") {
+									needsField.style.display = "block";
+								} else {
+									needsField.style.display = "none";
+									document.getElementById("special_needs").value = ""; // clear when hidden
+								}
+							}
+						</script>
 					</div>
 					<div class="col-12 my-4 position-relative">
 						<div class="border-top"></div>
@@ -620,6 +739,181 @@
 	<script src="../scripts/auth_script/user_registration.js"></script>
 	<script src="../scripts/auth_script/required.js"></script>
 	<script src="../scripts/auth_script/address_api.js"></script>
+	
+	<script>
+		// Global variable to store barangay name to ID mapping
+		window.barangayNameToId = {};
+		
+		// Load barangays and handle dependent dropdowns
+		document.addEventListener('DOMContentLoaded', function() {
+			// Load barangays from database
+			loadBarangays();
+			
+			// Handle barangay and purok dependent dropdowns
+			const barangaySelect = document.getElementById('barangay');
+			const purokSelect = document.getElementById('purok');
+			
+			if (barangaySelect && purokSelect) {
+				// Barangay change event - load puroks based on selected barangay name
+				barangaySelect.addEventListener('change', function() {
+					const selectedBarangayName = this.value || '';
+					console.log('Barangay selected:', selectedBarangayName);
+					
+					// Reset purok options
+					purokSelect.innerHTML = '<option value="">Select Purok</option>';
+					if (!selectedBarangayName) return;
+					
+					// Get barangay ID from the selected barangay name
+					const barangayId = window.barangayNameToId[selectedBarangayName];
+					console.log('Barangay ID for', selectedBarangayName, ':', barangayId);
+					
+					if (!barangayId) {
+						console.error('Barangay ID not found for:', selectedBarangayName);
+						purokSelect.innerHTML = '<option value="">Barangay ID not found</option>';
+						return;
+					}
+					
+					// Show loading state
+					purokSelect.innerHTML = '<option value="">Loading puroks...</option>';
+					
+					// Fetch puroks for the selected barangay ID
+					fetch(`../action/brgy_management_action/list_purok.php?barangay_id=${encodeURIComponent(barangayId)}`)
+						.then(response => {
+							console.log('Purok response status:', response.status);
+							return response.json();
+						})
+						.then(res => {
+							console.log('Purok response:', res);
+							if (res && res.success && Array.isArray(res.data)) {
+								purokSelect.innerHTML = '<option value="">Select Purok</option>';
+								res.data.forEach(p => {
+									const opt = document.createElement('option');
+									opt.value = p.purok_name;
+									opt.textContent = p.purok_name;
+									opt.dataset.pickupPoint = p.pickup_point_name || '';
+									purokSelect.appendChild(opt);
+								});
+								console.log('Puroks loaded for barangay ID', barangayId, ':', res.data.length);
+							} else {
+								purokSelect.innerHTML = '<option value="">No puroks found</option>';
+								console.error('Invalid purok response format:', res);
+							}
+						})
+						.catch(error => {
+							console.error('Error loading puroks:', error);
+							purokSelect.innerHTML = '<option value="">Error loading puroks</option>';
+						});
+				});
+				
+				// Purok change event - auto-fill pickup point
+				purokSelect.addEventListener('change', function() {
+					const selectedOption = this.options[this.selectedIndex];
+					const pickupPointField = document.getElementById('pickup_name');
+					
+					if (selectedOption && selectedOption.dataset.pickupPoint && pickupPointField) {
+						pickupPointField.value = selectedOption.dataset.pickupPoint;
+						console.log('Pickup point auto-filled:', selectedOption.dataset.pickupPoint);
+					}
+				});
+			}
+		});
+		
+		// Load barangays function - Database Driven
+		function loadBarangays() {
+			const barangaySelect = document.getElementById('barangay');
+			
+			if (!barangaySelect) {
+				console.error('Barangay select element not found');
+				return;
+			}
+			
+			// Clear existing options and show loading state
+			barangaySelect.innerHTML = '<option value="">Loading barangays from database...</option>';
+			barangaySelect.disabled = true;
+			
+			console.log('Fetching barangays from database...');
+			
+			// Load barangays from database via API
+			fetch('../action/brgy_management_action/list_barangay_map.php', {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					'Cache-Control': 'no-cache'
+				}
+			})
+			.then(response => {
+				console.log('Database response status:', response.status);
+				if (!response.ok) {
+					throw new Error(`Database connection failed! Status: ${response.status}`);
+				}
+				return response.json();
+			})
+			.then(res => {
+				console.log('Database response received:', res);
+				
+				// Clear loading state
+				barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
+				barangaySelect.disabled = false;
+				
+				// Validate database response
+				if (!res || !res.success) {
+					console.error('Database query failed:', res.message || 'Unknown error');
+					barangaySelect.innerHTML = '<option value="">Database error - Please refresh</option>';
+					return;
+				}
+				
+				if (!Array.isArray(res.data)) {
+					console.error('Invalid data format from database:', res);
+					barangaySelect.innerHTML = '<option value="">Invalid data format</option>';
+					return;
+				}
+				
+				if (res.data.length === 0) {
+					console.warn('No barangays found in database table');
+					barangaySelect.innerHTML = '<option value="">No barangays in database</option>';
+					return;
+				}
+				
+				// Populate dropdown with database data and create name-to-ID mapping
+				let loadedCount = 0;
+				res.data.forEach(row => {
+					if (!row || !row.barangay_name || !row.barangay_id) {
+						console.warn('Invalid barangay data:', row);
+						return;
+					}
+					
+					const option = document.createElement('option');
+					option.value = row.barangay_name; // Use barangay name as value
+					option.textContent = row.barangay_name;
+					option.dataset.barangayId = row.barangay_id; // Store ID as data attribute
+					barangaySelect.appendChild(option);
+					
+					// Store mapping: barangay name -> barangay ID
+					window.barangayNameToId[row.barangay_name] = row.barangay_id;
+					loadedCount++;
+				});
+				
+				console.log(`✅ Barangays loaded successfully from database: ${loadedCount} items`);
+				console.log('Barangay name-to-ID mapping created:', window.barangayNameToId);
+				
+				// Show success message in console
+				if (loadedCount > 0) {
+					console.log('🎉 Barangay dropdown is now database-driven!');
+				}
+			})
+			.catch(error => {
+				console.error('❌ Database connection error:', error);
+				barangaySelect.innerHTML = '<option value="">Database connection failed</option>';
+				barangaySelect.disabled = false;
+				
+				// Show error details
+				console.error('Error details:', {
+					message: error.message,
+					stack: error.stack
+				});
+			});
+		}
+	</script>
 </body>
 
 </html>

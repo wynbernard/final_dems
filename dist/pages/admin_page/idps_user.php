@@ -123,7 +123,7 @@ WHERE evac_reg_table.status = 'Evacuated'
 
                                     <!-- Register Button -->
                                     <button type="button" id="registerBtn" class="btn btn-primary mb-2">
-                                        <i class="fas fa-user-plus me-1"></i> Redgister IDP
+                                        <i class="fas fa-user-plus me-1"></i> Register IDP
                                     </button>
 
                                     <button type="button" class="btn btn-danger mb-2 ms-2" id="dispatchAllBtn"><i class="fas fa-truck-moving me-1"></i> Dispatch All</button>
@@ -688,8 +688,8 @@ ORDER BY MAX(ert.date_reg) DESC";
                                         </div>
                                         <!-- Authority Section -->
                                         <div class="authority-section">
-                                            <div class="logo-placeholder">
-                                                Place LGU logo here
+                                            <div class="logo-placeholder" style="display:flex;align-items:center;justify-content:center;width:80px;height:80px;border-radius:50%;overflow:hidden;background:#fff;">
+                                                <img src="../../../src/images/bago_city.png" alt="LGU Logo" style="width:100%;height:100%;object-fit:cover;" />
                                             </div>
 
                                             <div class="authority-list">
@@ -710,19 +710,11 @@ ORDER BY MAX(ert.date_reg) DESC";
                                                     <div class="authority-line"></div>
                                                 </div>
                                                 <div class="authority-item">
-                                                    <div class="authority-name">OFFICE OF CIVIL DEFENSE NIR</div>
+                                                    <div class="authority-name">CDRRMO</div>
                                                     <div class="authority-line">
                                                         <span class="authority-phone">09956112342 / 09177040134</span>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Footer -->
-                                        <div class="footer">
-                                            <div class="footer-content">
-                                                <div class="footer-text">REGIONAL TASK FORCE KANLAON</div>
-                                                <div class="volcano-logo"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -1215,19 +1207,30 @@ ORDER BY MAX(ert.date_reg) DESC";
                                 // .id-card-print img[alt="QR Code"] { width: 50mm !important; height: 50mm !important; object-fit: contain !important; display:block; }
                                 // .id-card-print img { max-width: 100% !important; height: auto !important; }
 
-                                /* Authority / footer design from provided CSS */
+                                /* Authority / footer design for PRINT ONLY */
                                 .id-card-print .authority-section {
                                     display: flex;
-                                    justify-content: space-between;
+                                    align-items: center;
+                                    gap: 8px;
                                     margin-top: 6px;
                                     padding: 6px;
                                     background: #f4a460;
                                     border: 1px solid #000;
+                                    border-radius: 4px;
                                 }
                                 .id-card-print .logo-placeholder {
-                                    width: 50px; height: 50px; border: 1px dashed #8b4513; border-radius: 50%; display:flex; align-items:center; justify-content:center; background:#deb887; color:#8b4513; font-size:10px;
+                                    width: 50px;
+                                    height: 50px;
+                                    border: 1px dashed #8b4513;
+                                    border-radius: 50%;
+                                    display:flex; align-items:center; justify-content:center;
+                                    background:#deb887; color:#8b4513; font-size:10px;
+                                    overflow: hidden;
                                 }
-                                .id-card-print .authority-name { font-weight: bold; text-transform: uppercase; font-size: 7px; }
+                                .id-card-print .authority-list { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+                                .id-card-print .authority-item { display: flex; align-items: center; gap: 8px; }
+                                .id-card-print .authority-name { font-weight: bold; text-transform: uppercase; font-size: 7px; min-width: 120px; }
+                                .id-card-print .authority-line { border-bottom: 1px solid #000; flex: 1; height: 0; }
 
                                 .id-card-print .footer { margin-top: 4px; background-color: lightblue; padding: 0; box-sizing: border-box; }
                                 .id-card-print .footer-text { font-weight: bold; text-transform: uppercase; font-size: 8px; text-align: center; }

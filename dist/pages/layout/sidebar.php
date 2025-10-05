@@ -6,7 +6,7 @@
     <a href="./Dashboard.php" class="brand-link">
       <!--begin::Brand Image-->
       <img
-        src="../../../src/images/logo/side_logo.png"
+        src="../../../src/images/bagonhon.png"
         alt="AdminLTE Logo"
         class="brand-image opacity-75 shadow" />
       <!--end::Brand Image-->

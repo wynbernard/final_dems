@@ -1,5 +1,5 @@
 <?php
-include '../../../../database/session.php';
+include '../../../../database/conn.php';
 header('Content-Type: application/json');
 
 if (!isset($_GET['barangay_id'])) {

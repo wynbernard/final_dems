@@ -105,8 +105,8 @@ foreach ($ids as $id) {
 	if ($stmt->execute()) {
 		// If we activated this center, perform capacity check and notify nearby residents
 		if ($status === 'Active') {
-			// fetch center details
-			$cstmt = $conn->prepare("SELECT evac_loc_id, latitude, longitude, total_capacity FROM evac_loc_table WHERE evac_loc_id = ? LIMIT 1");
+				// fetch center details
+					$cstmt = $conn->prepare("SELECT evac_loc_id, latitude, longitude, total_capacity, barangay_id FROM evac_loc_table WHERE evac_loc_id = ? LIMIT 1");
 			$cstmt->bind_param('i', $id);
 			$cstmt->execute();
 			$cres = $cstmt->get_result();
@@ -122,22 +122,59 @@ foreach ($ids as $id) {
 				$rc = ($rres && $rrow = $rres->fetch_assoc()) ? intval($rrow['cnt']) : 0;
 				$rstmt->close();
 
-				$capacity = max(1, intval($center['total_capacity']));
-				$available = max(0, $capacity - $rc);
+					$capacity = max(1, intval($center['total_capacity']));
+					$available = max(0, $capacity - $rc);
 				// thresholds similar to single update: nearby radius and near-full fraction
 				$NEARBY_RADIUS_KM = 5.0;
 				$NEARLY_FULL_THRESHOLD = 0.10;
 
-				if ($available > 0 && ($available / $capacity) > $NEARLY_FULL_THRESHOLD) {
+					if ($available > 0 && ($available / $capacity) > $NEARLY_FULL_THRESHOLD) {
+						$assigned = 0;
+						// 1) PRIORITY: Assign unassigned evacuees whose address barangay matches this center's barangay
+						$centerBarangayId = isset($center['barangay_id']) ? intval($center['barangay_id']) : 0;
+						if ($centerBarangayId > 0) {
+							$sameBarangaySql = "SELECT pr.pre_reg_id, pr.registered_as, pr.family_id FROM pre_reg_table pr 
+								LEFT JOIN solo_address_table sat ON pr.solo_address_id = sat.solo_address_id 
+								LEFT JOIN family_table ft ON pr.family_id = ft.family_id 
+								WHERE COALESCE(pr.recommended_location, 0) = 0 
+								AND COALESCE(sat.barangay_id, ft.barangay_id) = ?";
+							$sameStmt = $conn->prepare($sameBarangaySql);
+							$sameStmt->bind_param('i', $centerBarangayId);
+							$sameStmt->execute();
+							$sameRes = $sameStmt->get_result();
+							while ($available > 0 && $sameRes && ($uRow = $sameRes->fetch_assoc())) {
+								$userId = intval($uRow['pre_reg_id']);
+								$registeredAs = strtolower($uRow['registered_as'] ?? 'solo');
+								$familyId = intval($uRow['family_id']);
+
+								if ($registeredAs === 'family' && $familyId > 0) {
+									$up = $conn->prepare("UPDATE pre_reg_table SET recommended_location = ? WHERE family_id = ? AND COALESCE(recommended_location,0)=0");
+									$up->bind_param('ii', $id, $familyId);
+									$up->execute();
+									$up->close();
+									$assigned++;
+									$available = max(0, $available - 1);
+								} else {
+									$up = $conn->prepare("UPDATE pre_reg_table SET recommended_location = ? WHERE pre_reg_id = ? AND COALESCE(recommended_location,0)=0");
+									$up->bind_param('ii', $id, $userId);
+									$up->execute();
+									$up->close();
+									$assigned++;
+									$available = max(0, $available - 1);
+								}
+							}
+							$sameStmt->close();
+						}
+
 					// assign nearby unassigned users within radius up to $available
 					// use guarded helper _haversine_local declared at top
 
-					$uSql = "SELECT pre_reg_id, f_name, l_name, registered_as, family_id, solo_address_id FROM pre_reg_table WHERE COALESCE(recommended_location, 0) = 0";
+						$uSql = "SELECT pre_reg_id, f_name, l_name, registered_as, family_id, solo_address_id FROM pre_reg_table WHERE COALESCE(recommended_location, 0) = 0";
 					$uStmt = $conn->prepare($uSql);
 					$uStmt->execute();
 					$uRes = $uStmt->get_result();
 
-					$assigned = 0;
+						// continue filling remaining slots based on distance if capacity still available
 					while ($uRow = $uRes->fetch_assoc()) {
 						if ($assigned >= $available) break;
 						$userId = intval($uRow['pre_reg_id']);
