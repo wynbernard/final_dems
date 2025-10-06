@@ -438,6 +438,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         }
         $evac_stmt->close();
+
+		// Update barangay evac count in brgy_record_table (per barangay + disaster)
+		function _increment_brgy_record($conn, $barangay_name, $disaster_id, $inc = 1)
+		{
+			if (!$barangay_name || !$disaster_id || $inc <= 0) return;
+			$upd = $conn->prepare("UPDATE brgy_record_table SET total_evacuess = total_evacuess + ?, date = CURDATE(), status = 'Evacuated' WHERE barangay_name = ? AND disaster_id = ?");
+			if ($upd) {
+				$upd->bind_param('isi', $inc, $barangay_name, $disaster_id);
+				$upd->execute();
+				$affected = $upd->affected_rows;
+				$upd->close();
+				if ($affected === 0) {
+					$ins = $conn->prepare("INSERT INTO brgy_record_table (barangay_name, total_evacuess, disaster_id, scale, date, status) VALUES (?, ?, ?, '', CURDATE(), 'Evacuated')");
+					if ($ins) {
+						$ins->bind_param('sii', $barangay_name, $inc, $disaster_id);
+						$ins->execute();
+						$ins->close();
+					}
+				}
+			}
+		}
+
+		// Use barangay from submitted form for counting
+		_increment_brgy_record($conn, $barangay, $disaster_id, 1);
         // Register each family member in evac_reg_table
         if (strtolower($registration_type) == "family" && isset($_POST['numFamilyMembers']) && intval($_POST['numFamilyMembers']) > 0) {
             $numMembers = intval($_POST['numFamilyMembers']);
@@ -473,7 +497,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             $log_stmt->close();
                         }
                     }
-                    $evac_stmt->close();
+					$evac_stmt->close();
+
+					// Increment barangay evac count for each family member as well
+					_increment_brgy_record($conn, $barangay, $disaster_id, 1);
                 }
                 $find_member_stmt->close();
             }

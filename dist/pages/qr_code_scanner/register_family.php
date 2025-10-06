@@ -56,12 +56,18 @@ try {
     $insertStmt = $conn->prepare("INSERT INTO evac_reg_table (room_id, pre_reg_id, evac_loc_id, disaster_id, date_reg, status) VALUES (?, ?, ?, ?, CURDATE(), 'Evacuated')");
     $logStmt = $conn->prepare("INSERT INTO logs_table (evac_reg_id, status, date_time) VALUES (?, ?, NOW())");
     $typeStmt = $conn->prepare("SELECT registered_as,age_class_id FROM pre_reg_table WHERE pre_reg_id = ?");
+    // Barangay lookup for brgy_record_table increment (based on member's address)
+    $brgyStmt = $conn->prepare("SELECT b.barangay_name FROM pre_reg_table pr 
+        LEFT JOIN solo_address_table sat ON pr.solo_address_id = sat.solo_address_id 
+        LEFT JOIN family_table ft ON pr.family_id = ft.family_id 
+        LEFT JOIN barangay_manegement_table b ON COALESCE(sat.barangay_id, ft.barangay_id) = b.barangay_id 
+        WHERE pr.pre_reg_id = ? LIMIT 1");
     $recordCheck = $conn->prepare("SELECT evacuation_id FROM evacuation_record_table WHERE evacuation_location = ? AND end_date IS NULL");
     $recordInsert = $conn->prepare("INSERT INTO evacuation_record_table (evacuation_location, start_date, total_solo, total_family, total_evacuation, total_infant, total_toddler, total_pre_school, total_school_age, total_teenage, total_adult, total_senior) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $recordUpdate = $conn->prepare("UPDATE evacuation_record_table SET total_solo = total_solo + ?, total_family = total_family + ?, total_evacuation = total_evacuation + ?, total_infant = total_infant + ?, total_toddler = total_toddler + ?, total_pre_school = total_pre_school + ?, total_school_age = total_school_age + ?, total_teenage = total_teenage + ?, total_adult = total_adult + ?, total_senior = total_senior + ? WHERE evacuation_id = ?");
     $locationStmt = $conn->prepare("SELECT name FROM evac_loc_table WHERE evac_loc_id = ?");
 
-    if (!$checkStmt || !$insertStmt || !$logStmt || !$typeStmt || !$recordCheck || !$recordInsert || !$recordUpdate || !$locationStmt) {
+    if (!$checkStmt || !$insertStmt || !$logStmt || !$typeStmt || !$recordCheck || !$recordInsert || !$recordUpdate || !$locationStmt || !$brgyStmt) {
         throw new Exception("Statement preparation failed: " . $conn->error);
     }
 
@@ -120,6 +126,33 @@ try {
             $status = 'IN';
             $logStmt->bind_param("is", $evacRegId, $status);
             $logStmt->execute();
+
+            // Increment barangay record for this member (per disaster)
+            $barangayName = null;
+            $brgyStmt->bind_param("i", $memberId);
+            $brgyStmt->execute();
+            $br = $brgyStmt->get_result();
+            if ($br && $brRow = $br->fetch_assoc()) {
+                $barangayName = trim($brRow['barangay_name'] ?? '');
+            }
+            if ($barangayName !== null && $barangayName !== '') {
+                // UPDATE then INSERT-if-missing (UPSERT behavior)
+                $upd = $conn->prepare("UPDATE brgy_record_table SET total_evacuess = total_evacuess + 1, date = CURDATE(), status = 'Evacuated' WHERE barangay_name = ? AND disaster_id = ?");
+                if ($upd) {
+                    $upd->bind_param("si", $barangayName, $disasterId);
+                    $upd->execute();
+                    $affected = $upd->affected_rows;
+                    $upd->close();
+                    if ($affected === 0) {
+                        $ins = $conn->prepare("INSERT INTO brgy_record_table (barangay_name, total_evacuess, disaster_id, scale, date, status) VALUES (?, 1, ?, '', CURDATE(), 'Evacuated')");
+                        if ($ins) {
+                            $ins->bind_param("si", $barangayName, $disasterId);
+                            $ins->execute();
+                            $ins->close();
+                        }
+                    }
+                }
+            }
 
             // Check registration type and age classification
             $typeStmt->bind_param("i", $memberId);
