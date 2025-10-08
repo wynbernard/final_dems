@@ -3,11 +3,10 @@ include '../../../database/session.php';
 include '../layout/head_links.php';
 
 // Modified query for resource distribution
-$query = "SELECT * ,d.quantity AS quantite
+$query = "SELECT * ,d.quantity AS quantite, d.status
           FROM resource_distribution_table d
 		  LEFT JOIN resource_allocation_table r ON d.resource_id = r.resource_id
-          LEFT JOIN evac_reg_table i ON d.evac_reg_id = i.evac_reg_id
-		  LEFT JOIN pre_reg_table p ON i.pre_reg_id = p.pre_reg_id
+		  LEFT JOIN pre_reg_table p ON d.pre_reg_id = p.pre_reg_id
           ORDER BY d.date_time DESC";
 $result = mysqli_query($conn, $query);
 
@@ -78,6 +77,7 @@ if (!$result) {
 												<th><i class="bi bi-box-seam"></i> Resource</th>
 												<th><i class="bi bi-stack"></i> Quantity</th>
 												<th><i class="bi bi-tags"></i> Distribution Type</th>
+												<th><i class="bi bi-geo-alt-fill"></i> Status</th>
 												<th><i class="bi bi-calendar-check-fill"></i> Distribution Date</th>
 											</tr>
 										</thead>
@@ -94,6 +94,7 @@ if (!$result) {
 														<td><?= htmlspecialchars($row['resource_name']) ?></td>
 														<td><?= htmlspecialchars($row['quantite']) ?></td>
 														<td><?= htmlspecialchars($row['distribution_type']) ?></td>
+														<td><?= htmlspecialchars($row['status']) ?></td>
 														<td class="distribution-info"><?= $distribution_date ?></td>
 													</tr>
 											<?php }

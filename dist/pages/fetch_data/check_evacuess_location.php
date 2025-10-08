@@ -30,7 +30,13 @@ try {
     $registration = $result->fetch_assoc();
     
     if (!$registration) {
-        echo json_encode(['success' => false, 'message' => 'No active registration found for this evacuee']);
+        // No active evac location: allow distribution (treated as no active location)
+        echo json_encode([
+            'success' => true,
+            'no_active_location' => true,
+            'evacuee_evac_loc_id' => null,
+            'evacuee_location_name' => null
+        ]);
         exit;
     }
     

@@ -1,7 +1,7 @@
 <?php
 
 include '../../../../database/session.php';
-
+	
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	// Sanitize and validate input
 	$disaster_name = trim($_POST['disaster_name'] ?? '');
@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$level = intval($_POST['level'] ?? 0);
 	$status = trim($_POST['status'] ?? '');
 
-	if ($disaster_name !== '' && $date !== '' && $level > 0 && $level <= 10 && ($status === 'Ongoing' || $status === 'Resolved')) {
+	if ($disaster_name !== '' && $date !== '' &&  ($status === 'Ongoing' || $status === 'Resolved')) {
 		$stmt = $conn->prepare("INSERT INTO disaster_table (disaster_name,date,level,status) VALUES (?,?,?,?)");
 
 		if ($stmt) {

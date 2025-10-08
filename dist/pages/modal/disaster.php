@@ -18,8 +18,8 @@
 					</div>
 					<div class="mb-3">
 						<label for="level" class="form-label">Scale (1-10)</label>
-						<select class="form-control" id="level" name="level" required>
-							<option value="" disabled selected>Select scale</option>
+						<select class="form-control" id="level" name="level">
+							<option value="0" disabled selected>Select scale</option>
 							<option value="1">1</option>
 							<option value="2">2</option>
 							<option value="3">3</option>

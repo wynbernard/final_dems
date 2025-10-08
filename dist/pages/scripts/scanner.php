@@ -183,7 +183,9 @@
 						// Update table dynamically
 						// document.getElementById('preRegIdCell').textContent = data.pre_reg_id;
 						document.getElementById('householdHeadCell').textContent = data.name;
-						document.getElementById('memberCountCell').textContent = data.family_member_count || 0;
+						const isSolo = (data?.family_id === 0 || data?.family_id === '0' || !!data?.solo_address_id || !!data?.solo_address);
+						const memberCount = isSolo ? 1 : (Number(data?.family_member_count) || 0);
+						document.getElementById('memberCountCell').textContent = memberCount;
 
 						// Update table cell
 						document.getElementById('addressCell').textContent = data.solo_address || data.family_address || 'N/A';
@@ -356,21 +358,22 @@
 		// family member
 		async function getFamilyByPreRegId(preRegId) {
 			try {
-				const response = await fetch(`../qr_code_scanner/verify_family_by_pre_reg.php?pre_reg_id=${encodeURIComponent(preRegId)}`);
-
+				const response = await fetch(`../qr_code_scanner/get_family_members.php`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ pre_reg_id: preRegId })
+				});
 				if (!response.ok) {
 					throw new Error("Network response was not ok.");
 				}
-
 				const data = await response.json();
-
-				// Ensure data is valid and has family_members array
-				if (data && Array.isArray(data.family_members)) {
-					return data.family_members;
-				} else {
-					console.warn("No family members found", data);
+				if (!data?.success || !Array.isArray(data.data)) {
 					return [];
 				}
+				const group = data.data[0];
+				const members = Array.isArray(group?.members) ? group.members : [];
+				// Map API shape to expected shape: ensure pre_reg_id exists
+				return members.map(m => ({ ...m, pre_reg_id: m.pre_reg_id ?? m.id }));
 			} catch (error) {
 				console.error("Fetch family error:", error);
 				showAlert("Could not load family members", "danger");
@@ -559,8 +562,13 @@
 			Object.entries(families).forEach(([familyId, members]) => {
 				const familySection = document.createElement("div");
 				familySection.className = "family-group mb-3";
+				
+				// Check if this is a solo member (starts with 'solo_')
+				const isSoloMember = familyId.startsWith('solo_');
+				const headerText = isSoloMember ? 'Individual Member' : `Family ${familyId}`;
+				
 				familySection.innerHTML = `
-			<h6 class="family-header">Family ${familyId}</h6>
+			<h6 class="family-header">${headerText}</h6>
 			<div class="family-members"></div>
 		`;
 
@@ -829,7 +837,8 @@
 		// Helper Functions
 		function groupByFamily(members) {
 			return members.reduce((groups, member) => {
-				const familyId = member.family_id || 'individual';
+				// For solo members (family_id = 0 or null), use their pre_reg_id as unique key
+				const familyId = (member.family_id && member.family_id !== 0) ? member.family_id : `solo_${member.id}`;
 				groups[familyId] = groups[familyId] || [];
 				groups[familyId].push(member);
 				return groups;

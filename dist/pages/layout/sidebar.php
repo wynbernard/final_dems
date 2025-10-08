@@ -90,13 +90,13 @@
             <li class="nav-item">
               <a href="./idps_user.php" class="nav-link <?php echo ($current_page == 'idps_user.php') ? 'active' : ''; ?>">
                 <i class="fas fa-people-roof nav-icon"></i>
-                <p>Registrations</p>
+                <p>Evacuess</p>
               </a>
             </li>
             <li class="nav-item">
               <a href="./pre_reg.php" class="nav-link <?php echo ($current_page == 'pre_reg.php') ? 'active' : ''; ?>">
                 <i class="bi bi-journal-text nav-icon"></i>
-                <p>Pre-Registration</p>
+                <p>Registration</p>
               </a>
             </li>
 

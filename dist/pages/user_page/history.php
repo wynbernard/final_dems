@@ -59,14 +59,17 @@
 													<tbody>
 											<?php
 											while ($row = $hres->fetch_assoc()) {
-												// get distributed items aggregated
-												$distQ = $conn->prepare("SELECT d.resource_id, ra.resource_name, SUM(d.quantity) AS total_qty FROM resource_distribution_table d LEFT JOIN resource_allocation_table ra ON d.resource_id = ra.resource_id WHERE d.evac_reg_id = ? GROUP BY d.resource_id");
-												$distQ->bind_param('i', $row['evac_reg_id']);
+												// get distributed items aggregated for this user (table uses pre_reg_id)
+												$distQ = $conn->prepare("SELECT d.resource_id, ra.resource_name, SUM(d.quantity) AS total_qty, MIN(ra.measurement_unit) AS unit FROM resource_distribution_table d LEFT JOIN resource_allocation_table ra ON d.resource_id = ra.resource_id WHERE d.pre_reg_id = ? GROUP BY d.resource_id");
+												$distQ->bind_param('i', $row['pre_reg_id']);
 												$distQ->execute();
 												$distR = $distQ->get_result();
 												$items = [];
 												while ($di = $distR->fetch_assoc()) {
-													$items[] = htmlspecialchars($di['resource_name']) . ' x ' . intval($di['total_qty']);
+													$label = htmlspecialchars($di['resource_name']);
+													$qty = intval($di['total_qty']);
+													$unit = htmlspecialchars($di['unit'] ?? '');
+													$items[] = $label . ' x ' . $qty . ($unit ? (' ' . $unit) : '');
 												}
 											?>
 												<tr>
@@ -84,11 +87,11 @@
 												</tr>
 											<?php
 											}
-											?>
+												?>
 													</tbody>
-												</table>
-											</div>
-											<?php
+													</table>
+												</div>
+												<?php
 										} else {
 											?>
 											<div class="empty-state text-center py-4">
@@ -98,12 +101,90 @@
 											</div>
 											<?php
 										}
-									}
-									?>
+											}
+											?>
+										</div>
+										</div>
+									</div>
 								</div>
+								<div class="col-12">
+									<div class="card rounded-3 overflow-hidden mt-3">
+										<div class="card-header">
+											<h5 class="card-title text-white mb-0"><i class="fas fa-boxes me-2"></i> Resource Distribution History</h5>
+										</div>
+										<div class="card-body">
+											<?php
+											if ($userPreRegId) {
+												$distHist = $conn->prepare("SELECT 
+													d.date_time, 
+													d.resource_id, 
+													d.quantity, 
+													d.unit, 
+													d.distribution_type, 
+													ra.resource_name,
+													(
+														SELECT er.status 
+														FROM evac_reg_table er 
+														WHERE er.pre_reg_id = d.pre_reg_id 
+														  AND er.date_reg <= d.date_time 
+														ORDER BY er.date_reg DESC 
+														LIMIT 1
+													) AS reg_status_at_time
+												FROM resource_distribution_table d 
+												LEFT JOIN resource_allocation_table ra ON d.resource_id = ra.resource_id 
+												WHERE d.pre_reg_id = ? 
+												ORDER BY d.date_time DESC");
+												$distHist->bind_param('i', $userPreRegId);
+												$distHist->execute();
+												$distRes = $distHist->get_result();
+												if ($distRes && $distRes->num_rows > 0) {
+													?>
+													<div class="table-responsive">
+														<table class="table table-hover align-middle">
+															<thead class="table-light">
+																<tr>
+																	<th>Date</th>
+																	<th>Resource</th>
+																	<th>Quantity</th>
+																	<th>Type</th>
+																	<th>Status</th>
+																</tr>
+															</thead>
+															<tbody>
+																<?php while ($drow = $distRes->fetch_assoc()): ?>
+																<tr>
+																	<td><?= htmlspecialchars($drow['date_time']) ?></td>
+																	<td><?= htmlspecialchars($drow['resource_name'] ?? ('#' . $drow['resource_id'])) ?></td>
+																	<td><?= intval($drow['quantity']) . ' ' . htmlspecialchars($drow['unit'] ?? '') ?></td>
+																	<td><?= htmlspecialchars(ucfirst($drow['distribution_type'] ?? '')) ?></td>
+																	<td>
+																		<?php 
+																			$onsite = (isset($drow['reg_status_at_time']) && $drow['reg_status_at_time'] === 'Evacuated');
+																			$badgeClass = $onsite ? 'badge bg-success' : 'badge bg-secondary';
+																			$label = $onsite ? 'On-site' : 'Off-site';
+																		?>
+																		<span class="<?= $badgeClass ?>"><?= $label ?></span>
+																	</td>
+																</tr>
+																<?php endwhile; ?>
+															</tbody>
+														</table>
+													</div>
+													<?php
+												} else {
+													?>
+													<div class="empty-state text-center py-4">
+														<i class="fas fa-box-open fa-2x"></i>
+														<h6 class="mt-3">No distribution history</h6>
+														<p class="text-muted">No resources have been recorded for your account.</p>
+													</div>
+													<?php
+												}
+											}
+											?>
+										</div>
+									</div>
 								</div>
-							</div>
-						</div>
 					</div>
 				</div>
 			</main>

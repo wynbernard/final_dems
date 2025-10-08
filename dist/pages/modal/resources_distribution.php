@@ -10,12 +10,17 @@
     <div class="row">
         <!-- Left: Scanner + Camera -->
         <div class="col-md-6">
-            <div class="mb-2">
+            <div class="d-flex justify-content-between align-items-center mb-2">
                 <label for="cameraSelect" class="form-label">Select Camera</label>
-                <select id="cameraSelect" class="form-select"></select>
+                <div class="d-flex align-items-center gap-2">
+                    <span id="scannerStatus" class="scanner-indicator scanner-indicator--idle">Idle</span>
+                    <select id="cameraSelect" class="form-select"></select>
+                </div>
             </div>
 
-            <div id="qr-reader" class="qr-preview mb-3"></div>
+            <div id="qr-reader" class="qr-preview mb-3 position-relative">
+                <div class="qr-frame" aria-hidden="true"></div>
+            </div>
 
             <div class="mt-2">
                 <button class="btn btn-sm btn-success" id="startScannerBtn">Start Scanner</button>
@@ -131,6 +136,16 @@
 				qrbox: 300
 			},
 			async (decodedText) => {
+				// Flash indicator on successful scan
+				const indicator = document.getElementById('scannerStatus');
+				if (indicator) {
+					indicator.textContent = 'Scanned';
+					indicator.classList.remove('scanner-indicator--idle');
+					indicator.classList.add('scanner-indicator--active');
+					setTimeout(() => {
+						indicator.textContent = 'Ready';
+					}, 800);
+				}
 				const match = decodedText.trim().match(/pre_reg(?:_id)?:\s*(\d+)/i);
 				if (!match) return;
 
@@ -173,26 +188,41 @@
 						return;
 					}
 
-					if (!locationData.success) {
-						Swal.fire({
-							icon: 'error',
-							title: 'Location Mismatch',
-							text: locationData.message || 'This evacuee is not registered for this location.',
-							timer: 3000,
-							showConfirmButton: true
-						});
-						return;
-					}
+                    if (!locationData.success) {
+                        const isNoActiveLocation = (
+                            locationData.no_active_location === true ||
+                            locationData.status === 'no_active_location' ||
+                            locationData.code === 'NO_ACTIVE_LOCATION' ||
+                            (!locationData.evacuee_location_id && !locationData.evacuee_location_name)
+                        );
+                        if (isNoActiveLocation) {
+                            // Permit distribution when evacuee has no active location
+                            locationData.success = true;
+                            locationData.evacuee_location_name = locationData.evacuee_location_name || 'No active location';
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Location Mismatch',
+                                text: locationData.message || 'This evacuee is registered in another evacuation location.',
+                                timer: 3000,
+                                showConfirmButton: true
+                            });
+                            return;
+                        }
+                    }
 
 					// If location check passes, perform validation depending on distribution type
 					const distributionType = document.getElementById('distributionType')?.value || 'family';
 
 					// helper to send distribution form
-					async function sendDistribution(targetPreRegId, overrideDistributionType = null) {
-						const form = document.getElementById("resource-selection-form");
+                    async function sendDistribution(targetPreRegId, overrideDistributionType = null) {
+                        const form = document.getElementById("resource-selection-form");
 						const formData = new FormData(form);
 						formData.append("pre_reg_id", targetPreRegId);
 						if (overrideDistributionType) formData.set('distribution_type', overrideDistributionType);
+                        if (typeof staffLocationId !== 'undefined' && staffLocationId) {
+                            formData.append('staff_evac_loc_id', staffLocationId);
+                        }
 
 						const resp = await fetch("../fetch_data/recieve_resources_ajax.php", {
 							method: "POST",
@@ -356,6 +386,12 @@
 
 		document.getElementById("startScannerBtn").disabled = true;
 		document.getElementById("stopScannerBtn").disabled = false;
+		const indicator = document.getElementById('scannerStatus');
+		if (indicator) {
+			indicator.textContent = 'Scanning…';
+			indicator.classList.remove('scanner-indicator--idle');
+			indicator.classList.add('scanner-indicator--active');
+		}
 		
 	} catch (cameraError) {
 		console.error("Camera initialization failed:", cameraError);
@@ -387,6 +423,12 @@
 		}
 		document.getElementById("startScannerBtn").disabled = false;
 		document.getElementById("stopScannerBtn").disabled = true;
+		const indicator = document.getElementById('scannerStatus');
+		if (indicator) {
+			indicator.textContent = 'Idle';
+			indicator.classList.add('scanner-indicator--idle');
+			indicator.classList.remove('scanner-indicator--active');
+		}
 	}
 
 	// Event listeners
@@ -458,5 +500,36 @@
 		height: 100% !important;
 		object-fit: cover;
 		border-radius: 10px;
+	}
+
+	/* Scanner indicator */
+	.scanner-indicator {
+		font-size: 12px;
+		padding: 2px 8px;
+		border-radius: 999px;
+		border: 1px solid rgba(0,0,0,0.1);
+	}
+	.scanner-indicator--idle {
+		background: #f8f9fa;
+		color: #6c757d;
+	}
+	.scanner-indicator--active {
+		background: #e7f7ee;
+		color: #198754;
+		box-shadow: 0 0 0 2px rgba(25,135,84,0.15);
+	}
+
+	/* QR frame overlay */
+	.qr-frame {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 240px;
+		height: 240px;
+		border: 3px solid rgba(25,135,84,0.85);
+		border-radius: 12px;
+		box-shadow: 0 0 0 9999px rgba(0,0,0,0.08) inset;
+		pointer-events: none;
 	}
 </style>

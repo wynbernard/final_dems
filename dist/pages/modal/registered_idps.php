@@ -1617,7 +1617,7 @@ function loadBarangays() {
 								<div class="col-12">
 									<div class="id-card family-card">
 										<div class="card-header">
-											<div class="card-title">KANLAON EVACUATION PLAN</div>
+												<div class="card-title"><?= htmlspecialchars($selectedDisasterId ? ($conn->query("SELECT disaster_name FROM disaster_table WHERE disaster_id = " . (int)$selectedDisasterId)->fetch_assoc()['disaster_name'] ?? 'EVACUATION') . ' EVACUATION PLAN' : 'KANLAON EVACUATION PLAN') ?></div>
 											<div class="card-subtitle">BAKWIT CARD</div>
 											<!-- <div class="registration-type">FAMILY</div> -->
 										</div>

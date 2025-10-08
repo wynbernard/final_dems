@@ -21,7 +21,7 @@ try {
             COALESCE((
                 SELECT COUNT(DISTINCT rt.pre_reg_id)
                 FROM evac_reg_table rt
-                WHERE rt.room_id = r.room_id
+                WHERE rt.room_id = r.room_id and rt.status = 'Evacuated'
             ), 0) AS current_occupancy
         FROM room_table r
         WHERE r.evac_loc_id = ?

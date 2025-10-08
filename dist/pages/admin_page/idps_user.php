@@ -130,7 +130,7 @@ WHERE evac_reg_table.status = 'Evacuated'
 
                                     <?php
                                     $locationId = $_GET['location_id'] ?? '';
-                                    $selectedDisasterId = $_GET['disaster_id'] ?? '';
+                                    $selectedDisasterId = $_GET['disasterId'] ?? '';
 
                                     // Age classification query (filter only if location selected)
                                     $ageQuery = "
@@ -167,6 +167,11 @@ WHERE evac_reg_table.status = 'Evacuated'
                                         }
                                     } else {
                                         $ageQuery .= " WHERE er.status = 'Evacuated'";
+                                    }
+
+                                    // Apply disaster filter to age stats if selected
+                                    if (!empty($selectedDisasterId)) {
+                                        $ageQuery .= " AND er.disaster_id = '" . mysqli_real_escape_string($conn, $selectedDisasterId) . "'";
                                     }
 
                                     $ageResult = mysqli_query($conn, $ageQuery);
@@ -206,16 +211,21 @@ WHERE evac_reg_table.status = 'Evacuated'
                             $locationId = $_GET['location_id'] ?? '';
 
                             // Initialize base query
-                            $query = "SELECT r.evac_reg_id, p.f_name, p.l_name, p.m_name, l.name AS location_name, rm.room_name , r.date_reg, r.status
+                            $query = "SELECT r.evac_reg_id, p.f_name, p.l_name, p.m_name, p.family_id, p.gender, p.date_of_birth, p.registered_as AS registered_as, l.name AS location_name, rm.room_name , r.date_reg, r.status
 									FROM evac_reg_table r
 									LEFT JOIN pre_reg_table p ON r.pre_reg_id = p.pre_reg_id
 									JOIN evac_loc_table l ON r.evac_loc_id = l.evac_loc_id
-									LEFT JOIN room_table rm ON r.room_id = rm.room_id";
+								LEFT JOIN room_table rm ON r.room_id = rm.room_id";
 
                             // For staff users - always filter by their assigned location
                             if ($_SESSION['role'] == 'Staff') {
                                 $staff_location_id = $_SESSION['evac_loc_id'];
                                 $query .= " WHERE r.evac_loc_id = '$staff_location_id' AND r.status = 'Evacuated' ";
+                                if (!empty($selectedDisasterId)) {
+                                    $query .= " AND r.disaster_id = '" . mysqli_real_escape_string($conn, $selectedDisasterId) . "'";
+                                }
+                                // Only show family heads
+                                $query .= " AND p.relation_to_family = 'Head of Family'";
                             }
                             // For admin users - handle different location selections
                             elseif ($_SESSION['role'] == 'Admin') {
@@ -223,7 +233,7 @@ WHERE evac_reg_table.status = 'Evacuated'
                                     // Show evacuees from all locations except the first few main locations
                                     // This gives a practical meaning to "other" locations
                                     $query .= " WHERE r.status = 'Evacuated' ";
-                                    
+
                                     // Get the first 3 locations as "main" locations and exclude them
                                     $mainLocQuery = mysqli_query($conn, "SELECT evac_loc_id FROM evac_loc_table ORDER BY evac_loc_id ASC LIMIT 3");
                                     $mainLocationIds = [];
@@ -236,12 +246,27 @@ WHERE evac_reg_table.status = 'Evacuated'
                                             $query .= " AND r.evac_loc_id NOT IN ($mainLocationIdsStr)";
                                         }
                                     }
+                                    if (!empty($selectedDisasterId)) {
+                                        $query .= " AND r.disaster_id = '" . mysqli_real_escape_string($conn, $selectedDisasterId) . "'";
+                                    }
+                                    // Only show family heads
+                                    $query .= " AND p.relation_to_family = 'Head of Family'";
                                 } elseif (!empty($locationId)) {
                                     // Show evacuees from specific selected location
                                     $query .= " WHERE r.evac_loc_id = '$locationId' AND r.status = 'Evacuated'";
+                                    if (!empty($selectedDisasterId)) {
+                                        $query .= " AND r.disaster_id = '" . mysqli_real_escape_string($conn, $selectedDisasterId) . "'";
+                                    }
+                                    // Only show family heads
+                                    $query .= " AND p.relation_to_family = 'Head of Family'";
                                 } else {
                                     // Show all evacuees (All Locations option)
                                     $query .= " WHERE r.status = 'Evacuated' ";
+                                    if (!empty($selectedDisasterId)) {
+                                        $query .= " AND r.disaster_id = '" . mysqli_real_escape_string($conn, $selectedDisasterId) . "'";
+                                    }
+                                    // Only show family heads
+                                    $query .= " AND p.relation_to_family = 'Head of Family'";
                                 }
                             }
 
@@ -280,11 +305,111 @@ WHERE evac_reg_table.status = 'Evacuated'
                                                             <td><?= htmlspecialchars($row['room_name']) ?></td>
                                                             <td><?= date("F j, Y g:i A", strtotime($row['date_reg'])) ?></td>
                                                             <td>
+                                                                <?php
+                                                                // Pre-render family members content for fast modal loading
+                                                                $familyMembersHtml = '';
+                                                                $familyId = intval($row['family_id'] ?? 0);
+                                                                if ($familyId > 0) {
+                                                                    // Fetch head of family
+                                                                    $headSql = "SELECT f_name, m_name, l_name, gender, date_of_birth FROM pre_reg_table WHERE family_id = $familyId AND relation_to_family = 'Head of Family' ORDER BY pre_reg_id DESC LIMIT 1";
+                                                                    $headRes = mysqli_query($conn, $headSql);
+                                                                    $headHtml = '';
+                                                                    if ($headRes && mysqli_num_rows($headRes) > 0) {
+                                                                        $h = mysqli_fetch_assoc($headRes);
+                                                                        $hdob = !empty($h['date_of_birth']) ? new DateTime($h['date_of_birth']) : null;
+                                                                        $hage = $hdob ? (new DateTime('today'))->diff($hdob)->y : '';
+                                                                        $hfull = trim(($h['f_name'] ?? '') . ' ' . (!empty($h['m_name']) ? $h['m_name'] . ' ' : '') . ($h['l_name'] ?? ''));
+                                                                        $headHtml = '
+                                                                            <div class="mb-3">
+                                                                                <h6 class="fw-bold mb-2"><i class="fas fa-user-shield me-2 text-primary"></i>Head of Family</h6>
+                                                                                <div class="row g-3">
+                                                                                    <div class="col-md-6">
+                                                                                        <p class="mb-1"><strong>Name:</strong> ' . htmlspecialchars($hfull) . '</p>
+                                                                                        <p class="mb-1"><strong>Gender:</strong> ' . htmlspecialchars($h['gender'] ?? '') . '</p>
+                                                                                        <p class="mb-1"><strong>Age:</strong> ' . htmlspecialchars($hage) . '</p>
+                                                                                    </div>
+                                                                                    <div class="col-md-6">
+                                                                                        <p class="mb-1"><strong>Location:</strong> ' . htmlspecialchars($row['location_name'] ?? '') . '</p>
+                                                                                        <p class="mb-1"><strong>Room:</strong> ' . htmlspecialchars($row['room_name'] ?? '') . '</p>
+                                                                                        <p class="mb-1"><strong>Date Registered:</strong> ' . htmlspecialchars(date('F j, Y g:i A', strtotime($row['date_reg']))) . '</p>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>';
+                                                                    }
+
+                                                                    // Fetch members excluding head
+                                                                    $membersSql = "SELECT f_name, m_name, l_name, gender, date_of_birth, relation_to_family FROM pre_reg_table WHERE family_id = $familyId AND relation_to_family <> 'Head of Family' ORDER BY relation_to_family, f_name";
+                                                                    $membersRes = mysqli_query($conn, $membersSql);
+                                                                    if ($membersRes && mysqli_num_rows($membersRes) > 0) {
+                                                                        $rowsHtml = '';
+                                                                        while ($m = mysqli_fetch_assoc($membersRes)) {
+                                                                            $mdob = !empty($m['date_of_birth']) ? new DateTime($m['date_of_birth']) : null;
+                                                                            $mage = $mdob ? (new DateTime('today'))->diff($mdob)->y : '';
+                                                                            $fullName = trim(($m['f_name'] ?? '') . ' ' . (!empty($m['m_name']) ? $m['m_name'] . ' ' : '') . ($m['l_name'] ?? ''));
+                                                                            $rowsHtml .= '<tr>'
+                                                                                . '<td>' . htmlspecialchars($fullName) . '</td>'
+                                                                                . '<td><span class="badge rounded-pill bg-light text-dark border">' . htmlspecialchars($m['relation_to_family'] ?? '') . '</span></td>'
+                                                                                . '<td><span class="badge rounded-pill bg-primary-subtle text-primary border">' . htmlspecialchars($m['gender'] ?? '') . '</span></td>'
+                                                                                . '<td><span class="badge rounded-pill bg-secondary-subtle text-secondary border">' . htmlspecialchars($mage) . '</span></td>'
+                                                                                . '</tr>';
+                                                                        }
+                                                                        $familyMembersHtml = '
+                                                                            <div class="container bg-white p-3">
+                                                                                ' . $headHtml . '
+                                                                                <h6 class="fw-bold mb-2 d-flex align-items-center gap-2"><i class="fas fa-users text-primary"></i><span>Family Members</span><span class="badge rounded-pill bg-light text-dark border">' . mysqli_num_rows($membersRes) . '</span></h6>
+                                                                                <div class="table-responsive">
+                                                                                    <table class="table table-sm align-middle">
+                                                                                        <thead class="table-light">
+                                                                                            <tr>
+                                                                                                <th>Name</th>
+                                                                                                <th>Relation</th>
+                                                                                                <th>Gender</th>
+                                                                                                <th>Age</th>
+                                                                                            </tr>
+                                                                                        </thead>
+                                                                                        <tbody>' . $rowsHtml . '</tbody>
+                                                                                    </table>
+                                                                                </div>
+                                                                            </div>';
+                                                                    } else {
+                                                                        // No members aside from head
+                                                                        $familyMembersHtml = '<div class="container bg-white p-3">' . $headHtml . '<div class="p-2">No other family members found.</div></div>';
+                                                                    }
+                                                                } else {
+                                                                    // Not a family: show individual's own details
+                                                                    $dob = !empty($row['date_of_birth']) ? new DateTime($row['date_of_birth']) : null;
+                                                                    $age = $dob ? (new DateTime('today'))->diff($dob)->y : '';
+                                                                    $fullName = trim(($row['f_name'] ?? '') . ' ' . (!empty($row['m_name']) ? $row['m_name'] . ' ' : '') . ($row['l_name'] ?? ''));
+                                                                    $familyMembersHtml = '
+                                                                        <div class="container bg-white p-3">
+                                                                            <h6 class="fw-bold mb-2"><i class="fas fa-id-card me-2 text-primary"></i>Individual Details</h6>
+                                                                            <div class="row g-3">
+                                                                                <div class="col-md-6">
+                                                                                    <p class="mb-1"><strong>Name:</strong> ' . htmlspecialchars($fullName) . '</p>
+                                                                                    <p class="mb-1"><strong>Gender:</strong> ' . htmlspecialchars($row['gender'] ?? '') . '</p>
+                                                                                    <p class="mb-1"><strong>Age:</strong> ' . htmlspecialchars($age) . '</p>
+                                                                                </div>
+                                                                                <div class="col-md-6">
+                                                                                    <p class="mb-1"><strong>Location:</strong> ' . htmlspecialchars($row['location_name'] ?? '') . '</p>
+                                                                                    <p class="mb-1"><strong>Room:</strong> ' . htmlspecialchars($row['room_name'] ?? '') . '</p>
+                                                                                    <p class="mb-1"><strong>Date Registered:</strong> ' . htmlspecialchars(date('F j, Y g:i A', strtotime($row['date_reg']))) . '</p>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>';
+                                                                }
+                                                                ?>
+                                                                <div class="d-none" id="family-members-<?= (int)$row['evac_reg_id'] ?>"><?= $familyMembersHtml ?></div>
                                                                 <button
                                                                     class="btn btn-sm btn-info view-idp-btn"
                                                                     data-bs-toggle="modal"
                                                                     data-bs-target="#idpDetailsModal"
-                                                                    data-id="<?= $row['evac_reg_id'] ?>">
+                                                                    data-id="<?= $row['evac_reg_id'] ?>"
+                                                                    data-name="<?= htmlspecialchars($row['f_name'] . ' ' . ($row['m_name'] ? $row['m_name'] . ' ' : '') . $row['l_name']) ?>"
+                                                                    data-has-family="<?= $familyId > 0 ? '1' : '0' ?>"
+                                                                    data-location="<?= htmlspecialchars($row['location_name']) ?>"
+                                                                    data-room="<?= htmlspecialchars($row['room_name']) ?>"
+                                                                    data-date="<?= htmlspecialchars(date('M d, Y g:i A', strtotime($row['date_reg']))) ?>"
+                                                                    data-registered="<?= htmlspecialchars($row['registered_as'] ?? '') ?>">
                                                                     <i class="fas fa-eye me-1"></i> View Details
                                                                 </button>
                                                             </td>
@@ -293,7 +418,7 @@ WHERE evac_reg_table.status = 'Evacuated'
                                                 else: ?>
                                                     <tr>
                                                         <td colspan="5" class="text-center">
-                                                            <?php 
+                                                            <?php
                                                             if (empty($locationId)) {
                                                                 echo 'No IDPs found in the system.';
                                                             } elseif ($locationId == 'other') {
@@ -336,6 +461,17 @@ WHERE evac_reg_table.status = 'Evacuated'
                         if (form) {
                             form.submit();
                         }
+                    }
+                });
+            }
+
+            // Handle disaster dropdown change to auto-submit form
+            const disasterSelect = document.getElementById('disasterSelect');
+            if (disasterSelect) {
+                disasterSelect.addEventListener('change', function() {
+                    const form = document.getElementById('locationForm');
+                    if (form) {
+                        form.submit();
                     }
                 });
             }
@@ -513,6 +649,7 @@ WHERE evac_reg_table.status = 'Evacuated'
 	bmt2.barangay_name AS family_barangay,
 	CONCAT(sat.purok, ', ', bmt.barangay_name, ', ', sat.city_municipality) AS solo_address,
 	bmt.barangay_name AS solo_barangay,
+    dt.disaster_name,
     -- Count members for each family
     (
         SELECT COUNT(*) 
@@ -532,6 +669,7 @@ LEFT JOIN solo_address_table sat ON prt.solo_address_id = sat.solo_address_id
 LEFT JOIN family_table ft ON prt2.family_id = ft.family_id
 LEFT JOIN barangay_manegement_table bmt ON sat.barangay_id = bmt.barangay_id
 LEFT JOIN barangay_manegement_table bmt2 ON ft.barangay_id = bmt2.barangay_id
+LEFT JOIN disaster_table dt ON ert.disaster_id = dt.disaster_id
 WHERE prt.relation_to_family = 'Head of Family' AND ert.status = 'Evacuated'
 GROUP BY prt.family_id
 ORDER BY MAX(ert.date_reg) DESC";
@@ -560,7 +698,7 @@ ORDER BY MAX(ert.date_reg) DESC";
                                     <div class="id-card <?= $isFamily ? 'family-card' : 'solo-card' ?>">
                                         <!-- Header -->
                                         <div class="card-header">
-                                            <div class="card-title">KANLAON EVACUATION PLAN</div>
+                                            <div class="card-title"><?= htmlspecialchars($reg['disaster_name'] ?? 'EVACUATION SYSTEM') ?> PLAN</div>
                                             <div class="card-subtitle">BAKWIT CARD</div>
                                             <div class="registration-type">
                                                 <?= $isFamily ? 'FAMILY' : 'INDIVIDUAL' ?>
