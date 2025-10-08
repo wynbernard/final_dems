@@ -337,8 +337,12 @@ WHERE evac_reg_table.status = 'Evacuated'
                                                                             </div>';
                                                                     }
 
-                                                                    // Fetch members excluding head
-                                                                    $membersSql = "SELECT f_name, m_name, l_name, gender, date_of_birth, relation_to_family FROM pre_reg_table WHERE family_id = $familyId AND relation_to_family <> 'Head of Family' ORDER BY relation_to_family, f_name";
+                                                                    // Fetch members excluding head and check if they are registered in evac_reg_table
+                                                                    $membersSql = "SELECT pr.pre_reg_id, pr.f_name, pr.m_name, pr.l_name, pr.gender, pr.date_of_birth, pr.relation_to_family,
+                                                                        (CASE WHEN EXISTS (SELECT 1 FROM evac_reg_table er WHERE er.pre_reg_id = pr.pre_reg_id AND er.status = 'Evacuated') THEN 1 ELSE 0 END) AS is_evacuated
+                                                                        FROM pre_reg_table pr
+                                                                        WHERE pr.family_id = $familyId AND pr.relation_to_family <> 'Head of Family'
+                                                                        ORDER BY pr.relation_to_family, pr.f_name";
                                                                     $membersRes = mysqli_query($conn, $membersSql);
                                                                     if ($membersRes && mysqli_num_rows($membersRes) > 0) {
                                                                         $rowsHtml = '';
@@ -346,11 +350,14 @@ WHERE evac_reg_table.status = 'Evacuated'
                                                                             $mdob = !empty($m['date_of_birth']) ? new DateTime($m['date_of_birth']) : null;
                                                                             $mage = $mdob ? (new DateTime('today'))->diff($mdob)->y : '';
                                                                             $fullName = trim(($m['f_name'] ?? '') . ' ' . (!empty($m['m_name']) ? $m['m_name'] . ' ' : '') . ($m['l_name'] ?? ''));
+                                                                            $isPresent = isset($m['is_evacuated']) && intval($m['is_evacuated']) === 1;
+                                                                            $statusBadge = $isPresent ? '<span class="badge rounded-pill bg-success text-white border ms-1">Present</span>' : '<span class="badge rounded-pill bg-danger text-white border ms-1">Absent</span>';
                                                                             $rowsHtml .= '<tr>'
                                                                                 . '<td>' . htmlspecialchars($fullName) . '</td>'
                                                                                 . '<td><span class="badge rounded-pill bg-light text-dark border">' . htmlspecialchars($m['relation_to_family'] ?? '') . '</span></td>'
                                                                                 . '<td><span class="badge rounded-pill bg-primary-subtle text-primary border">' . htmlspecialchars($m['gender'] ?? '') . '</span></td>'
                                                                                 . '<td><span class="badge rounded-pill bg-secondary-subtle text-secondary border">' . htmlspecialchars($mage) . '</span></td>'
+                                                                                . '<td>' . $statusBadge . '</td>'
                                                                                 . '</tr>';
                                                                         }
                                                                         $familyMembersHtml = '
@@ -365,6 +372,7 @@ WHERE evac_reg_table.status = 'Evacuated'
                                                                                                 <th>Relation</th>
                                                                                                 <th>Gender</th>
                                                                                                 <th>Age</th>
+                                                                                                <th>Status</th>
                                                                                             </tr>
                                                                                         </thead>
                                                                                         <tbody>' . $rowsHtml . '</tbody>
@@ -637,7 +645,33 @@ WHERE evac_reg_table.status = 'Evacuated'
                 <?php
                 include '../../../database/conn.php';
 
-                // Fetch full details for last 4 registrations
+                // Build filters for disaster and location based on the page controls
+                $selectedDisaster = isset($_GET['disasterId']) && $_GET['disasterId'] !== '' ? mysqli_real_escape_string($conn, $_GET['disasterId']) : null;
+                $pageLocationId = isset($_GET['location_id']) ? $_GET['location_id'] : '';
+
+                $disasterFilter = $selectedDisaster ? " AND ert.disaster_id = '" . $selectedDisaster . "' " : '';
+                $locationFilter = '';
+                if ($pageLocationId !== '') {
+                    if ($pageLocationId === 'other') {
+                        // Exclude the first few main locations (same heuristic as the main listing)
+                        $mainLocQuery = mysqli_query($conn, "SELECT evac_loc_id FROM evac_loc_table ORDER BY evac_loc_id ASC LIMIT 3");
+                        $mainLocationIds = [];
+                        if ($mainLocQuery && mysqli_num_rows($mainLocQuery) > 0) {
+                            while ($mainLoc = mysqli_fetch_assoc($mainLocQuery)) {
+                                $mainLocationIds[] = $mainLoc['evac_loc_id'];
+                            }
+                            if (!empty($mainLocationIds)) {
+                                $mainLocationIdsStr = implode(',', $mainLocationIds);
+                                $locationFilter = " AND ert.evac_loc_id NOT IN ($mainLocationIdsStr) ";
+                            }
+                        }
+                    } else {
+                        $safeLoc = mysqli_real_escape_string($conn, $pageLocationId);
+                        $locationFilter = " AND ert.evac_loc_id = '" . $safeLoc . "' ";
+                    }
+                }
+
+                // Fetch full details for last registrations (filtered by selected disaster/location if present)
                 $sql = "SELECT 
     prt.registered_as AS type,
     prt.family_id,
@@ -670,12 +704,12 @@ LEFT JOIN family_table ft ON prt2.family_id = ft.family_id
 LEFT JOIN barangay_manegement_table bmt ON sat.barangay_id = bmt.barangay_id
 LEFT JOIN barangay_manegement_table bmt2 ON ft.barangay_id = bmt2.barangay_id
 LEFT JOIN disaster_table dt ON ert.disaster_id = dt.disaster_id
-WHERE prt.relation_to_family = 'Head of Family' AND ert.status = 'Evacuated'
+WHERE prt.relation_to_family = 'Head of Family' AND ert.status = 'Evacuated'" . $disasterFilter . $locationFilter . "
 GROUP BY prt.family_id
 ORDER BY MAX(ert.date_reg) DESC";
 
                 $result = $conn->query($sql);
-                $registrations = $result->fetch_all(MYSQLI_ASSOC);
+                $registrations = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
 
                 // Close connection
                 $conn->close();
@@ -1420,8 +1454,6 @@ ORDER BY MAX(ert.date_reg) DESC";
             });
         });
     </script>
-
-
 </body>
 
 </html>
