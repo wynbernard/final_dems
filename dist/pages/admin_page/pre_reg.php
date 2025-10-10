@@ -2032,7 +2032,7 @@ ORDER BY prt.registered_as, prt.family_id, prt.relation_to_family, prt.l_name, p
                                 .id-card-print .form-table td { padding: 0 0; vertical-align: top; }
                                 .id-card-print .form-table td:first-child {
                                     width: 28%;
-                                    font-size: 5px;
+                                    font-size: 7px;
                                     font-weight: bold;
                                     text-transform: uppercase;
                                     padding: 2px 3px;
@@ -2044,7 +2044,7 @@ ORDER BY prt.registered_as, prt.family_id, prt.relation_to_family, prt.l_name, p
                                 }
                                 .id-card-print .form-table td:last-child {
                                     width: 72%;
-                                    font-size: 6px;
+                                    font-size: 10px;
                                     padding: 2px 4px;
                                     border-bottom: 1px solid #000;
                                     vertical-align: middle;
@@ -2072,9 +2072,8 @@ ORDER BY prt.registered_as, prt.family_id, prt.relation_to_family, prt.l_name, p
                                     border-radius: 4px;
                                 }
                                 .id-card-print .logo-placeholder {
-                                    width: 50px;
-                                    height: 50px;
-                                    border: 1px dashed #8b4513;
+                                    width: 30px;
+                                    height: 30px;
                                     border-radius: 50%;
                                     display:flex; align-items:center; justify-content:center;
                                     background:#deb887; color:#8b4513; font-size:10px;
