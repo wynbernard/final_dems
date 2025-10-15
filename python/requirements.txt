@@ -1,0 +1,20 @@
+# Data Analysis and Machine Learning
+pandas>=1.5.0
+numpy>=1.21.0
+scikit-learn>=1.1.0
+statsmodels>=0.13.0
+
+# Database Connectivity
+sqlalchemy>=1.4.0
+pymysql>=1.0.0
+
+# Image Processing and OCR
+Pillow>=9.0.0
+pytesseract>=0.3.10
+
+# Additional utilities
+matplotlib>=3.5.0
+seaborn>=0.11.0
+
+# Population-based forecasting enhancements
+scipy>=1.9.0

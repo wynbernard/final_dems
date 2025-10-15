@@ -3,7 +3,7 @@ include '../../../database/session.php';
 include '../layout/head_links.php';
 
 // Fetch predictive forecast results from barangay forecasts
-$query = "SELECT `id`, `date`, `barangay_name`, `period`, `scale_range`, `forecast`, `lower_bound`, `upper_bound`, `created_at` FROM `brgy_forecasts` ORDER BY `date` DESC, `barangay_name`";
+$query = "SELECT `brgy_forecast_id`, `date`, `barangay_name`, `period`, `scale_range`, `forecast`, `lower_bound`, `upper_bound`, `created_at` FROM `brgy_forecasts` ORDER BY `date` DESC, `barangay_name`";
 $result = mysqli_query($conn, $query);
 ?>
 
@@ -62,7 +62,6 @@ $result = mysqli_query($conn, $query);
 												<th>No.</th>
 												<th><i class="bi bi-geo-alt-fill"></i> Barangay</th>
 												<th><i class="bi bi-calendar-event"></i> Date</th>
-												<th><i class="bi bi-clock"></i> Period</th>
 												<th><i class="bi bi-activity"></i> Scale Range</th>
 												<th><i class="bi bi-people-fill"></i> Forecast</th>
 												<th><i class="bi bi-arrows-fullscreen"></i> CI</th>
@@ -83,9 +82,6 @@ $result = mysqli_query($conn, $query);
 													</td>
 													<td class="align-middle px-2 py-1" style="font-size: 0.85rem;">
 														<?php echo htmlspecialchars($row['date']); ?>
-													</td>
-													<td class="align-middle px-2 py-1" style="font-size: 0.85rem;">
-														<?php echo htmlspecialchars($row['period']); ?>
 													</td>
 													<td class="align-middle px-2 py-1 text-danger fw-bold" style="font-size: 0.9rem;">
 														<?php echo htmlspecialchars($row['scale_range']); ?>
