@@ -54,11 +54,7 @@ if (!$result) {
 								<button type="button" class="btn btn-primary btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#addDisasterModal">
 									<i class="fas fa-plus-circle"></i> Add Disaster Record
 								</button>
-								<button type="button" class="btn btn-success btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#visualizeModal">
-									<i class="fas fa-map-marked-alt"></i> Show Map & Graph
-								</button>
 							</div>
-
 							<div class="card-body">
 								<div class="table-responsive">
 									<table id="disasterTable" class="table table-sm">
