@@ -32,6 +32,9 @@ document.getElementById('ic_image').addEventListener('change', function() {
 										if (qrCode) {
 											let qrData;
 											qrData = JSON.parse(qrCode.data);
+											
+											// Alert the QR code data
+											alert("QR Code detected!\nQR Data:\n" + JSON.stringify(qrData, null, 2));
 
 											const qrFname  = (qrData.subject?.fName || "").trim().toLowerCase();
 											const qrMname  = (qrData.subject?.mName || "").trim().toLowerCase();
@@ -111,8 +114,8 @@ document.getElementById('ic_image').addEventListener('change', function() {
 										text
 									}
 								}) => {
-									const normalize = str => str.toLowerCase().replace(/[^\w\s\-\/]/gi, '').replace(/\s+/g, ' ').trim();
-									const cleanText = normalize(text);
+									// Clean the extracted text
+									const cleanText = text.replace(/\s+/g, ' ').trim();
 
 									// ID number extraction
 									const idNumberMatch = cleanText.match(/\b([A-Z0-9]{3,}-[A-Z0-9]{2,}-[A-Z0-9]{3,}(?:-[A-Z0-9]+)?)\b|\b\d{4}-\d{4}-\d{4}-\d{4}\b/);
@@ -161,17 +164,23 @@ document.getElementById('ic_image').addEventListener('change', function() {
 										idSelect.value = detectedType;
 									}
 
-									const fnameMatch = cleanText.includes(fname);
-									const mnameMatch = mname ? cleanText.includes(mname) : true; // optional
-									const lnameMatch = cleanText.includes(lname);
-									const extMatch = ext ? cleanText.includes(ext) : true;
+									// Extract names from OCR text using word boundaries for exact matching
+									const extractNameFromText = (name, text) => {
+										const words = text.split(/\s+/);
+										return words.some(word => word.toLowerCase() === name.toLowerCase());
+									};
+
+									const fnameMatch = extractNameFromText(fname, cleanText);
+									const mnameMatch = mname ? extractNameFromText(mname, cleanText) : true; // optional
+									const lnameMatch = extractNameFromText(lname, cleanText);
+									const extMatch = ext ? extractNameFromText(ext, cleanText) : true;
 
 									if (fnameMatch && mnameMatch && lnameMatch && extMatch) {
 										Swal.fire({
 											icon: 'success',
 											title: 'Name Matched',
-											text: '✅ Name matched successfully!',
-											confirmButtonColor: '#198754'
+											confirmButtonColor: '#198754',
+											width: '600px'
 										});
 									} else {
 										const unmatched = [];
@@ -189,8 +198,8 @@ document.getElementById('ic_image').addEventListener('change', function() {
 										Swal.fire({
 											icon: 'error',
 											title: 'Name Mismatch',
-											html: message,
-											confirmButtonColor: '#dc3545'
+											confirmButtonColor: '#dc3545',
+											width: '600px'
 										});
 									}
 								}).catch(err => {
