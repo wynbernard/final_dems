@@ -40,12 +40,28 @@ document.getElementById('ic_image').addEventListener('change', function() {
 											const qrMname  = (qrData.subject?.mName || "").trim().toLowerCase();
 											const qrLname  = (qrData.subject?.lName || "").trim().toLowerCase();
 											const qrSuffix = (qrData.subject?.Suffix || "").trim().toLowerCase();
+											
+											// Console log QR code data for debugging
+											console.log("=== QR CODE DATA ===");
+											console.log("QR First Name:", qrFname);
+											console.log("QR Middle Name:", qrMname);
+											console.log("QR Last Name:", qrLname);
+											console.log("QR Suffix:", qrSuffix);
+											console.log("===================");
 
 											 // Compare each field (middle name & suffix optional if left blank)
 											const isFnameMatch = fname === qrFname;
 											const isMnameMatch = mname ? mname === qrMname : true;
 											const isLnameMatch = lname === qrLname;
 											const isExtMatch   = ext   ? ext === qrSuffix : true;
+											
+											// Console log QR code matching results
+											console.log("=== QR CODE MATCHING ===");
+											console.log("First Name Match:", isFnameMatch);
+											console.log("Middle Name Match:", isMnameMatch);
+											console.log("Last Name Match:", isLnameMatch);
+											console.log("Extension Match:", isExtMatch);
+											console.log("========================");
 
 
 											// Extract PCN (PhilSys number format: ####-####-####-####)
@@ -116,6 +132,12 @@ document.getElementById('ic_image').addEventListener('change', function() {
 								}) => {
 									// Clean the extracted text
 									const cleanText = text.replace(/\s+/g, ' ').trim();
+									
+									// Console log the extracted text for debugging
+									console.log("=== OCR EXTRACTED TEXT ===");
+									console.log("Raw text:", text);
+									console.log("Cleaned text:", cleanText);
+									console.log("===========================");
 
 									// ID number extraction
 									const idNumberMatch = cleanText.match(/\b([A-Z0-9]{3,}-[A-Z0-9]{2,}-[A-Z0-9]{3,}(?:-[A-Z0-9]+)?)\b|\b\d{4}-\d{4}-\d{4}-\d{4}\b/);
@@ -170,10 +192,24 @@ document.getElementById('ic_image').addEventListener('change', function() {
 										return words.some(word => word.toLowerCase() === name.toLowerCase());
 									};
 
+									// Console log the input names for debugging
+									console.log("=== NAME COMPARISON ===");
+									console.log("Input First Name:", fname);
+									console.log("Input Middle Name:", mname);
+									console.log("Input Last Name:", lname);
+									console.log("Input Extension:", ext);
+									
 									const fnameMatch = extractNameFromText(fname, cleanText);
 									const mnameMatch = mname ? extractNameFromText(mname, cleanText) : true; // optional
 									const lnameMatch = extractNameFromText(lname, cleanText);
 									const extMatch = ext ? extractNameFromText(ext, cleanText) : true;
+									
+									// Console log the matching results
+									console.log("First Name Match:", fnameMatch);
+									console.log("Middle Name Match:", mnameMatch);
+									console.log("Last Name Match:", lnameMatch);
+									console.log("Extension Match:", extMatch);
+									console.log("========================");
 
 									if (fnameMatch && mnameMatch && lnameMatch && extMatch) {
 										Swal.fire({

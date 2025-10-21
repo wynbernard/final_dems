@@ -50,8 +50,8 @@
 
 						<div class="col-md-3">
 							<div class="mb-3">
-								<label class="form-label">Middle Name <span class="text-danger">*</span></label>
-								<input type="text" name="m_name" id="m_name" class="form-control" placeholder="Enter Middle Name" required>
+								<label class="form-label">Middle Name <span class="text-danger"></span></label>
+								<input type="text" name="m_name" id="m_name" class="form-control" placeholder="Enter Middle Name">
 							</div>
 						</div>
 						<div class="col-md-3">
