@@ -120,5 +120,74 @@
             if (date) chips.push('<span class="chip"><i class="fas fa-calendar"></i>' + date + '</span>');
             $('#detailsChips').html(chips.join(''));
         });
+
+        // Handle edit member status button clicks
+        $(document).on('click', '.edit-member-btn', function(e) {
+            e.preventDefault();
+            const btn = $(this);
+            const preRegId = btn.data('pre-reg-id');
+            const evacRegId = btn.data('evac-reg-id');
+            const action = btn.data('action');
+            const isPresent = btn.data('is-present') === '1';
+
+            // Show confirmation
+            const actionText = action === 'mark_present' ? 'Mark as Present' : 'Mark as Absent';
+            if (!confirm('Are you sure you want to ' + actionText + '?')) {
+                return;
+            }
+
+            // Show loading state
+            const originalHtml = btn.html();
+            btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Updating...').prop('disabled', true);
+
+            // Send AJAX request
+            $.ajax({
+                url: '../action/update_family_member_status.php',
+                method: 'POST',
+                data: {
+                    pre_reg_id: preRegId,
+                    evac_reg_id: evacRegId,
+                    action: action
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        // Update the status badge
+                        const statusContainer = $('.member-status-' + preRegId);
+                        const newBadge = action === 'mark_present' 
+                            ? '<span class="badge rounded-pill bg-success text-white border ms-1">Present</span>'
+                            : '<span class="badge rounded-pill bg-danger text-white border ms-1">Absent</span>';
+                        statusContainer.html(newBadge);
+
+                        // Update button
+                        const newAction = action === 'mark_present' ? 'mark_absent' : 'mark_present';
+                        const newActionText = newAction === 'mark_present' ? 'Mark as Present' : 'Mark as Absent';
+                        btn.data('action', newAction);
+                        btn.data('is-present', action === 'mark_present' ? '1' : '0');
+                        btn.html('<i class="fas fa-edit me-1"></i> Edit');
+
+                        // Show success message
+                        alert('Member status updated successfully!');
+                    } else {
+                        alert('Error: ' + response.message);
+                        btn.html(originalHtml).prop('disabled', false);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error:', error);
+                    let errorMsg = 'An error occurred while updating member status.';
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            errorMsg = response.message;
+                        }
+                    } catch (e) {
+                        // Use default error message
+                    }
+                    alert(errorMsg);
+                    btn.html(originalHtml).prop('disabled', false);
+                }
+            });
+        });
     });
     </script>

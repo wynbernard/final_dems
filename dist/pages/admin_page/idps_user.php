@@ -1,5 +1,6 @@
 <?php
 include '../../../database/session.php'; // Include your database connection file
+include '../../../database/encryption.php'; // Include encryption helper
 include '../layout/head_links.php'; // Include any necessary CSS or JS files
 
 
@@ -84,7 +85,8 @@ WHERE evac_reg_table.status = 'Evacuated'
 
                                             if ($query && mysqli_num_rows($query) > 0) {
                                                 $loc = mysqli_fetch_assoc($query);
-                                                echo '<option value="' . htmlspecialchars($loc['evac_loc_id']) . '" selected>' . htmlspecialchars($loc['name']) . '</option>';
+                                                $encryptedLocId = encrypt_for_display($loc['evac_loc_id']);
+                                                echo '<option value="' . htmlspecialchars($encryptedLocId) . '" selected>' . htmlspecialchars($loc['name']) . '</option>';
                                             } else {
                                                 echo '<option value="" selected>Location Not Found</option>';
                                             }
@@ -95,13 +97,14 @@ WHERE evac_reg_table.status = 'Evacuated'
                                             $query = mysqli_query($conn, "SELECT evac_loc_id, name FROM evac_loc_table ORDER BY name ASC");
                                             if ($query) {
                                                 while ($loc = mysqli_fetch_assoc($query)) {
-                                                    $selected = (isset($_GET['location_id']) && $_GET['location_id'] == $loc['evac_loc_id']) ? 'selected' : '';
-                                                    echo '<option value="' . htmlspecialchars($loc['evac_loc_id']) . '" ' . $selected . '>' . htmlspecialchars($loc['name']) . '</option>';
+                                                    $encryptedLocId = encrypt_for_display($loc['evac_loc_id']);
+                                                    $selected = (isset($_GET['location_id']) && decrypt_from_url($_GET['location_id']) == $loc['evac_loc_id']) ? 'selected' : '';
+                                                    echo '<option value="' . htmlspecialchars($encryptedLocId) . '" ' . $selected . '>' . htmlspecialchars($loc['name']) . '</option>';
                                                 }
                                             }
                                             // Add "Other" option to show evacuees from other locations
-                                            $otherSelected = (isset($_GET['location_id']) && $_GET['location_id'] == 'other') ? 'selected' : '';
-                                            echo '<option value="other" ' . $otherSelected . '>Other Locations</option>';
+                                            $otherSelected = (isset($_GET['location_id']) && decrypt_from_url($_GET['location_id']) == 'other') ? 'selected' : '';
+                                            echo '<option value="' . htmlspecialchars(encrypt_for_display('other')) . '" ' . $otherSelected . '>Other Locations</option>';
                                         }
                                         ?>
                                     </select>
@@ -112,8 +115,9 @@ WHERE evac_reg_table.status = 'Evacuated'
                                         $disasterQuery = mysqli_query($conn, "SELECT disaster_id, disaster_name FROM disaster_table WHERE status = 'Ongoing' ORDER BY disaster_id DESC");
                                         if ($disasterQuery && mysqli_num_rows($disasterQuery) > 0) {
                                             while ($disaster = mysqli_fetch_assoc($disasterQuery)) {
-                                                $selected = (isset($_GET['disasterId']) && $_GET['disasterId'] == $disaster['disaster_id']) ? 'selected' : '';
-                                                echo '<option value="' . htmlspecialchars($disaster['disaster_id']) . '" ' . $selected . '>' . htmlspecialchars($disaster['disaster_name']) . '</option>';
+                                                $encryptedDisasterId = encrypt_for_display($disaster['disaster_id']);
+                                                $selected = (isset($_GET['disasterId']) && decrypt_from_url($_GET['disasterId']) == $disaster['disaster_id']) ? 'selected' : '';
+                                                echo '<option value="' . htmlspecialchars($encryptedDisasterId) . '" ' . $selected . '>' . htmlspecialchars($disaster['disaster_name']) . '</option>';
                                             }
                                         } else {
                                             echo '<option value="">No disaster events found</option>';
@@ -129,8 +133,9 @@ WHERE evac_reg_table.status = 'Evacuated'
                                     <button type="button" class="btn btn-danger mb-2 ms-2" id="dispatchAllBtn"><i class="fas fa-truck-moving me-1"></i> Dispatch All</button>
 
                                     <?php
-                                    $locationId = $_GET['location_id'] ?? '';
-                                    $selectedDisasterId = $_GET['disasterId'] ?? '';
+                                    // Decrypt URL parameters
+                                    $locationId = isset($_GET['location_id']) ? decrypt_from_url($_GET['location_id']) : '';
+                                    $selectedDisasterId = isset($_GET['disasterId']) ? decrypt_from_url($_GET['disasterId']) : '';
 
                                     // Age classification query (filter only if location selected)
                                     $ageQuery = "
@@ -207,8 +212,10 @@ WHERE evac_reg_table.status = 'Evacuated'
                             </div>
 
                             <?php
-                            // Get the selected location ID
-                            $locationId = $_GET['location_id'] ?? '';
+                            // Get the selected location ID (already decrypted above)
+                            if (!isset($locationId)) {
+                                $locationId = isset($_GET['location_id']) ? decrypt_from_url($_GET['location_id']) : '';
+                            }
 
                             // Initialize base query
                             $query = "SELECT r.evac_reg_id, p.f_name, p.l_name, p.m_name, p.family_id, p.gender, p.date_of_birth, p.registered_as AS registered_as, l.name AS location_name, rm.room_name , r.date_reg, r.status
@@ -352,12 +359,14 @@ WHERE evac_reg_table.status = 'Evacuated'
                                                                             $fullName = trim(($m['f_name'] ?? '') . ' ' . (!empty($m['m_name']) ? $m['m_name'] . ' ' : '') . ($m['l_name'] ?? ''));
                                                                             $isPresent = isset($m['is_evacuated']) && intval($m['is_evacuated']) === 1;
                                                                             $statusBadge = $isPresent ? '<span class="badge rounded-pill bg-success text-white border ms-1">Present</span>' : '<span class="badge rounded-pill bg-danger text-white border ms-1">Absent</span>';
-                                                                            $rowsHtml .= '<tr>'
+                                                                            $editBtn = '<button class="btn btn-sm btn-primary edit-member-btn" data-pre-reg-id="' . $m['pre_reg_id'] . '" data-evac-reg-id="' . $row['evac_reg_id'] . '" data-action="' . ($isPresent ? 'mark_absent' : 'mark_present') . '" data-is-present="' . ($isPresent ? '1' : '0') . '"><i class="fas fa-edit me-1"></i> Edit</button>';
+                                                                            $rowsHtml .= '<tr data-member-id="' . $m['pre_reg_id'] . '">'
                                                                                 . '<td>' . htmlspecialchars($fullName) . '</td>'
                                                                                 . '<td><span class="badge rounded-pill bg-light text-dark border">' . htmlspecialchars($m['relation_to_family'] ?? '') . '</span></td>'
                                                                                 . '<td><span class="badge rounded-pill bg-primary-subtle text-primary border">' . htmlspecialchars($m['gender'] ?? '') . '</span></td>'
                                                                                 . '<td><span class="badge rounded-pill bg-secondary-subtle text-secondary border">' . htmlspecialchars($mage) . '</span></td>'
-                                                                                . '<td>' . $statusBadge . '</td>'
+                                                                                . '<td><span class="member-status-' . $m['pre_reg_id'] . '">' . $statusBadge . '</span></td>'
+                                                                                . '<td>' . $editBtn . '</td>'
                                                                                 . '</tr>';
                                                                         }
                                                                         $familyMembersHtml = '
@@ -373,6 +382,7 @@ WHERE evac_reg_table.status = 'Evacuated'
                                                                                                 <th>Gender</th>
                                                                                                 <th>Age</th>
                                                                                                 <th>Status</th>
+                                                                                                <th>Action</th>
                                                                                             </tr>
                                                                                         </thead>
                                                                                         <tbody>' . $rowsHtml . '</tbody>
@@ -646,8 +656,11 @@ WHERE evac_reg_table.status = 'Evacuated'
                 include '../../../database/conn.php';
 
                 // Build filters for disaster and location based on the page controls
-                $selectedDisaster = isset($_GET['disasterId']) && $_GET['disasterId'] !== '' ? mysqli_real_escape_string($conn, $_GET['disasterId']) : null;
-                $pageLocationId = isset($_GET['location_id']) ? $_GET['location_id'] : '';
+                $selectedDisaster = isset($_GET['disasterId']) && $_GET['disasterId'] !== '' ? decrypt_from_url($_GET['disasterId']) : null;
+                if ($selectedDisaster) {
+                    $selectedDisaster = mysqli_real_escape_string($conn, $selectedDisaster);
+                }
+                $pageLocationId = isset($_GET['location_id']) ? decrypt_from_url($_GET['location_id']) : '';
 
                 $disasterFilter = $selectedDisaster ? " AND ert.disaster_id = '" . $selectedDisaster . "' " : '';
                 $locationFilter = '';

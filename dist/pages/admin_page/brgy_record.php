@@ -2,9 +2,9 @@
 include '../../../database/session.php';
 include '../layout/head_links.php';
 
-// Fetch barangay disaster records
+// Fetch barangay disaster records (include disaster id so we can aggregate by disaster)
 $query = "
- SELECT brgy_record_id, barangay_name, total_evacuess, disaster_table.disaster_name as disaster_name, scale, brgy_record_table.date as date
+ SELECT brgy_record_id, brgy_record_table.disaster_id as disaster_id, barangay_name, total_evacuess, disaster_table.disaster_name as disaster_name, scale, brgy_record_table.date as date
  FROM brgy_record_table
  LEFT JOIN disaster_table ON brgy_record_table.disaster_id = disaster_table.disaster_id
  ORDER BY date ASC
@@ -14,13 +14,25 @@ $result = mysqli_query($conn, $query);
 // Build unified dataset
 $allDates = [];
 $dataByBarangay = [];
+$sumByDisasterDate = []; // disaster_id => date => sum
+$disasterList = []; // disaster_id => disaster_name
 
 while ($row = mysqli_fetch_assoc($result)) {
   $barangay = $row['barangay_name'];
   $date = $row['date'];
+  $disasterId = $row['disaster_id'];
+  $disasterName = $row['disaster_name'];
 
   $allDates[] = $date; // collect all dates
   $dataByBarangay[$barangay][$date] = (int)$row['total_evacuess'];
+
+  // aggregate sums by disaster and date
+  if (!empty($disasterId)) {
+    $disasterList[$disasterId] = $disasterName ?: ('Disaster ' . $disasterId);
+    if (!isset($sumByDisasterDate[$disasterId])) $sumByDisasterDate[$disasterId] = [];
+    if (!isset($sumByDisasterDate[$disasterId][$date])) $sumByDisasterDate[$disasterId][$date] = 0;
+    $sumByDisasterDate[$disasterId][$date] += (int)$row['total_evacuess'];
+  }
 }
 
 // make dates unique & sorted
@@ -36,6 +48,19 @@ foreach ($dataByBarangay as $barangay => $records) {
   }
   $barangayDatasets[] = [
     'label' => $barangay,
+    'data' => $series
+  ];
+}
+
+// Build aggregated datasets per disaster (sums across all barangays for each date)
+$disasterDatasets = [];
+foreach ($sumByDisasterDate as $dId => $dateSums) {
+  $series = [];
+  foreach ($allDates as $date) {
+    $series[] = isset($dateSums[$date]) ? (int)$dateSums[$date] : null;
+  }
+  $disasterDatasets[] = [
+    'label' => ($disasterList[$dId] ?? $dId),
     'data' => $series
   ];
 }
@@ -66,12 +91,14 @@ while ($row = mysqli_fetch_assoc($forecastResult)) {
         $forecastData[$barangay] = [];
     }
     
-    $forecastData[$barangay][$scale] = [
-        'forecast' => (float)$row['forecast'],
-        'lower_bound' => (float)$row['lower_bound'],
-        'upper_bound' => (float)$row['upper_bound'],
-        'accuracy' => (float)$row['accuracy_percentage']
-    ];
+  $forecastData[$barangay][$scale] = [
+    'forecast' => (float)$row['forecast'],
+    'lower_bound' => isset($row['lower_bound']) ? (float)$row['lower_bound'] : null,
+    'upper_bound' => isset($row['upper_bound']) ? (float)$row['upper_bound'] : null,
+    'accuracy' => isset($row['accuracy_percentage']) ? (float)$row['accuracy_percentage'] : null,
+    'date' => isset($row['date']) ? $row['date'] : null,
+    'period' => isset($row['period']) ? $row['period'] : null
+  ];
 }
 
 // Add forecast dates to extend the timeline
@@ -268,8 +295,29 @@ $combinedDates = array_merge($allDates, $forecastDates);
     const combinedLabels = <?php echo json_encode($combinedDates); ?>;
     const forecastData = <?php echo json_encode($forecastData); ?>;
 
+    // Build a tolerant lookup for forecastData: normalize keys (lowercase, remove punctuation, collapse spaces)
+    const forecastLookup = {};
+    function normalizeKey(s) {
+      if (!s && s !== 0) return '';
+      return String(s)
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, ' ');
+    }
+    Object.keys(forecastData || {}).forEach(k => {
+      const v = forecastData[k];
+      forecastLookup[k] = v;
+      const nk = normalizeKey(k);
+      forecastLookup[nk] = v;
+    });
+    // Debug: expose forecast lookup keys to console for troubleshooting
+    console.debug('forecastLookup keys:', Object.keys(forecastLookup));
+
     // Barangay datasets
     const rawDatasets = <?php echo json_encode($barangayDatasets); ?>;
+  // Aggregated disaster datasets (sums across all barangays grouped by disaster)
+  const aggregatedDisasterDatasets = <?php echo json_encode($disasterDatasets); ?>;
 
     // Find the index where historical data ends
     const historicalEndIndex = historicalLabels.length - 1;
@@ -277,12 +325,19 @@ $combinedDates = array_merge($allDates, $forecastDates);
     function makeChartDatasets(list, selectedBarangay = '__all__') {
       const datasets = [];
       
+      // Colors for different disasters/barangays
+      const colors = ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6610f2', '#fd7e14', '#20c997'];
+      let colorIndex = 0;
+      
       list.forEach(ds => {
         if (selectedBarangay !== '__all__' && ds.label !== selectedBarangay) return;
         
-        // Create extended data array with nulls for forecast period
-        const extendedData = [...ds.data];
-        for (let i = ds.data.length; i < combinedLabels.length; i++) {
+        const currentColor = colors[colorIndex % colors.length];
+        colorIndex++;
+        
+        // Historical data only (pad to full combined length so Chart.js aligns indexes)
+        const extendedData = ds.data.slice(0, historicalEndIndex + 1);
+        for (let i = extendedData.length; i < combinedLabels.length; i++) {
           extendedData.push(null);
         }
         
@@ -299,7 +354,7 @@ $combinedDates = array_merge($allDates, $forecastDates);
           borderWidth: 3,
           fill: true,
           tension: 0.4,
-          spanGaps: false,
+          spanGaps: true,
           pointRadius: 4,
           pointHoverRadius: 6,
           pointBackgroundColor: '#007bff',
@@ -310,46 +365,127 @@ $combinedDates = array_merge($allDates, $forecastDates);
           pointHoverBorderWidth: 3
         });
         
-        // Add predictive line if forecast data exists
-        if (forecastData[ds.label] && forecastData[ds.label]['4-7']) {
-          const forecast = forecastData[ds.label]['4-7'];
+  // Add predictive lines if forecast data exists for this barangay (use normalized lookup)
+  const normalizedLabel = (typeof ds.label === 'string') ? ds.label.split(' (')[0] : ds.label;
+  const fd = forecastLookup[normalizedLabel] || forecastLookup[normalizedLabel.trim().toLowerCase()] || forecastLookup[normalizeKey(normalizedLabel)];
+  // Debug: log which forecast match was found (if any)
+  console.debug('Forecast match for:', normalizedLabel, '->', fd ? Object.keys(fd) : null);
+        if (fd) {
+          const lastHistoricalValue = ds.data[ds.data.length - 1];
+          const scales = Object.keys(fd);
+
+          if (lastHistoricalValue !== null && lastHistoricalValue !== undefined && scales.length > 0) {
+            scales.forEach((scale) => {
+              const forecast = fd[scale];
+              if (!forecast || !forecast.date) return;
+
+              // Build predictive data array (nulls except forecast point and connector)
+              const predictiveData = new Array(combinedLabels.length).fill(null);
+
+              // place last historical value at the last historical index to connect
+              predictiveData[historicalEndIndex] = lastHistoricalValue;
+
+              // find forecast date index in combinedLabels
+              const forecastIndex = combinedLabels.indexOf(forecast.date);
+              if (forecastIndex === -1) {
+                // If forecast date not in combinedLabels, place forecast at last index
+                predictiveData[combinedLabels.length - 1] = forecast.forecast;
+              } else {
+                predictiveData[forecastIndex] = forecast.forecast;
+              }
+
+              // color by scale when available
+              const scaleColors = {
+                '1-3': '#28a745',
+                '4-7': '#ffc107',
+                '8-10': '#dc3545'
+              };
+              const predColor = scaleColors[scale] || currentColor;
+
+              // push predictive dataset for this scale
+              datasets.push({
+                label: `${ds.label} (Predicted ${scale})`,
+                data: predictiveData,
+                borderColor: predColor,
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                borderDash: [8,4],
+                fill: false,
+                tension: 0.4,
+                spanGaps: true,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: predColor,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointHoverBackgroundColor: predColor,
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 3,
+                pointStyle: 'triangle'
+              });
+
+              // add bounds if provided
+              if (forecast.lower_bound !== undefined && forecast.upper_bound !== undefined) {
+                const boundsData = new Array(combinedLabels.length).fill(null);
+                const bIndex = forecastIndex === -1 ? combinedLabels.length - 1 : forecastIndex;
+                boundsData[bIndex] = [forecast.lower_bound, forecast.upper_bound];
+                datasets.push({
+                  label: `${ds.label} (${scale} Bounds)`,
+                  data: boundsData,
+                  borderColor: 'transparent',
+                  backgroundColor: predColor + '22',
+                  fill: true,
+                  tension: 0.4,
+                  spanGaps: true,
+                  pointRadius: 0
+                });
+              }
+            });
+          }
+        } else {
+          // For aggregated disaster datasets or datasets without specific forecast data
+          // Generate predictions based on trend
           const lastHistoricalValue = ds.data[ds.data.length - 1];
           
-          if (lastHistoricalValue !== null && lastHistoricalValue !== undefined) {
-            // Create predictive data array
-            const predictiveData = [...ds.data];
-            
-            // Add forecast values for the next 7 days
-            for (let i = 0; i < 7; i++) {
-              const forecastValue = forecast.forecast + (Math.random() - 0.5) * 5; // Add some variation
-              predictiveData.push(Math.max(0, forecastValue));
+          if (lastHistoricalValue !== null && lastHistoricalValue !== undefined && ds.data.length > 2) {
+            // Calculate trend from last few values
+            const lastValues = ds.data.filter(v => v !== null).slice(-3);
+            if (lastValues.length >= 2) {
+              const trend = (lastValues[lastValues.length - 1] - lastValues[0]) / (lastValues.length - 1);
+              const predictiveData = [...ds.data];
+              
+              // Add predicted values based on trend
+              for (let i = 0; i < 7; i++) {
+                const predictedValue = Math.max(0, lastHistoricalValue + trend * (i + 1));
+                predictiveData.push(predictedValue);
+              }
+              
+              // Predictive line with enhanced styling
+              const predictionGradient = ctx.createLinearGradient(0, 0, 0, 400);
+              predictionGradient.addColorStop(0, 'rgba(255, 107, 53, 0.15)');
+              predictionGradient.addColorStop(1, 'rgba(255, 107, 53, 0.05)');
+              
+              datasets.push({
+                label: ds.label + ' (Predicted)',
+                data: predictiveData,
+                borderColor: '#ff6b35',
+                backgroundColor: predictionGradient,
+                borderWidth: 3,
+                borderDash: [8, 4],
+                fill: true,
+                tension: 0.4,
+                spanGaps: true,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#ff6b35',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointHoverBackgroundColor: '#e55a2b',
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 3,
+                pointStyle: 'triangle'
+              });
             }
-            
-            // Predictive line with enhanced styling
-            const predictionGradient = ctx.createLinearGradient(0, 0, 0, 400);
-            predictionGradient.addColorStop(0, 'rgba(255, 107, 53, 0.15)');
-            predictionGradient.addColorStop(1, 'rgba(255, 107, 53, 0.05)');
-            
-            datasets.push({
-              label: ds.label + ' (Predicted)',
-              data: predictiveData,
-              borderColor: '#ff6b35',
-              backgroundColor: predictionGradient,
-              borderWidth: 3,
-              borderDash: [8, 4], // Enhanced dashed pattern
-              fill: true,
-              tension: 0.4,
-              spanGaps: false,
-              pointRadius: 4,
-              pointHoverRadius: 6,
-              pointBackgroundColor: '#ff6b35',
-              pointBorderColor: '#fff',
-              pointBorderWidth: 2,
-              pointHoverBackgroundColor: '#e55a2b',
-              pointHoverBorderColor: '#fff',
-              pointHoverBorderWidth: 3,
-              pointStyle: 'triangle'
-            });
           }
         }
       });
@@ -412,8 +548,16 @@ $combinedDates = array_merge($allDates, $forecastDates);
                 const isForecast = context.dataIndex > historicalEndIndex;
                 
                 if (dataset.label.includes('Predicted')) {
-                  const accuracy = forecastData[dataset.label.split(' (')[0]]?.['4-7']?.accuracy;
-                  return `${dataset.label}: ${value} evacuees (Accuracy: ${accuracy?.toFixed(1)}%)`;
+                  // parse base barangay and scale from label like "Barangay Name (Predicted 4-7)"
+                  const base = dataset.label.split(' (')[0];
+                  const scaleMatch = dataset.label.match(/Predicted\s*(.*)\)/);
+                  const scale = scaleMatch ? scaleMatch[1] : null;
+                  const f = forecastLookup[base] || forecastLookup[base.trim().toLowerCase()];
+                  const accuracy = f && scale ? (f[scale]?.accuracy ?? null) : null;
+                  if (accuracy !== null && accuracy !== undefined) {
+                    return `${dataset.label}: ${value} evacuees (Accuracy: ${accuracy.toFixed(1)}%)`;
+                  }
+                  return `${dataset.label}: ${value} evacuees`;
                 }
                 return `${dataset.label}: ${value} evacuees`;
               },
@@ -536,23 +680,18 @@ $combinedDates = array_merge($allDates, $forecastDates);
     const select = document.getElementById('barangaySelect');
     select.addEventListener('change', function() {
       const val = this.value;
-      if (val === '__all__') {
+        if (val === '__all__') {
         chart.data.labels = originalLabels.slice();
-        chart.data.datasets = makeChartDatasets(rawDatasets);
+        // When All Barangays is selected, show each barangay with its prediction (display predictions for all barangays)
+        chart.data.datasets = makeChartDatasets(rawDatasets, '__all__');
       } else {
         const filtered = rawDatasets.filter(d => d.label === val);
         const ds = filtered.length ? filtered[0] : null;
         if (ds) {
-          const newLabels = [];
-          const newData = [];
-          for (let i = 0; i < ds.data.length; i++) {
-            if (ds.data[i] !== null && ds.data[i] !== undefined) {
-              newLabels.push(historicalLabels[i]);
-              newData.push(ds.data[i]);
-            }
-          }
-          chart.data.labels = newLabels;
-          chart.data.datasets = makeChartDatasets([{label: ds.label, data: newData}], val);
+          // Keep all dates but just update the chart with the selected barangay's data
+          chart.data.labels = combinedLabels;
+          // Use the original dataset to preserve forecast handling
+          chart.data.datasets = makeChartDatasets([ds], val);
         }
       }
       chart.update();

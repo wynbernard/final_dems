@@ -7,10 +7,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	$f_name = trim($_POST['f_name']);
 	$m_name = trim($_POST['m_name']);
 	$l_name = trim($_POST['l_name']);
-	
-	// Set middle name to null if empty
 	if (empty($m_name)) {
-		$m_name = null;
+		$m_name = ' ';
 	}
 	$name_extension = trim($_POST['name_extension']);
 	$contact_no = trim($_POST['contact_no']);
