@@ -453,6 +453,54 @@
 	
 	// Resource dropdown behavior
 	document.addEventListener('DOMContentLoaded', function() {
+	    // Store available quantities for validation
+	    const availableQuantities = {};
+	    
+	    // Fetch available quantities from server
+	    async function fetchAvailableQuantities() {
+	        try {
+	            const response = await fetch('../fetch_data/get_resource_quantities.php');
+	            const data = await response.json();
+	            if (data.success) {
+	                data.resources.forEach(resource => {
+	                    availableQuantities[resource.resource_id] = resource.quantity;
+	                });
+	            }
+	        } catch (error) {
+	            console.error('Failed to fetch available quantities:', error);
+	        }
+	    }
+	    
+	    // Validate quantity input
+	    function validateQuantity(input) {
+	        const resourceId = input.name.match(/\[(\d+)\]/)[1];
+	        const requestedQty = parseInt(input.value);
+	        const availableQty = availableQuantities[resourceId];
+	        
+	        if (availableQty !== undefined && requestedQty > availableQty) {
+	            input.classList.add('is-invalid');
+	            input.setCustomValidity(`Available quantity: ${availableQty}`);
+	            
+	            // Show error message
+	            let errorDiv = input.parentNode.querySelector('.invalid-feedback');
+	            if (!errorDiv) {
+	                errorDiv = document.createElement('div');
+	                errorDiv.className = 'invalid-feedback';
+	                input.parentNode.appendChild(errorDiv);
+	            }
+	            errorDiv.textContent = `Available: ${availableQty}`;
+	        } else {
+	            input.classList.remove('is-invalid');
+	            input.setCustomValidity('');
+	            
+	            // Remove error message
+	            const errorDiv = input.parentNode.querySelector('.invalid-feedback');
+	            if (errorDiv) {
+	                errorDiv.remove();
+	            }
+	        }
+	    }
+	    
 	    function updateDropdownLabel() {
 	        const checked = Array.from(document.querySelectorAll('.resource-checkbox:checked'));
 	        const label = document.getElementById('resourceDropdownLabel');
@@ -472,15 +520,36 @@
 	            const qty = document.querySelector(`.resource-qty[name="quantity[${id}]"]`);
 	            if (this.checked) {
 	                qty.disabled = false;
+	                validateQuantity(qty);
 	            } else {
 	                qty.disabled = true;
+	                qty.classList.remove('is-invalid');
+	                qty.setCustomValidity('');
+	                const errorDiv = qty.parentNode.querySelector('.invalid-feedback');
+	                if (errorDiv) {
+	                    errorDiv.remove();
+	                }
 	            }
 	            updateDropdownLabel();
+	        });
+	    });
+	    
+	    // Add validation to quantity inputs
+	    document.querySelectorAll('.resource-qty').forEach(input => {
+	        input.addEventListener('input', function() {
+	            validateQuantity(this);
+	        });
+	        
+	        input.addEventListener('blur', function() {
+	            validateQuantity(this);
 	        });
 	    });
 	
 	    // Initialize label based on any pre-checked inputs
 	    updateDropdownLabel();
+	    
+	    // Fetch available quantities when modal opens
+	    fetchAvailableQuantities();
 	});
 </script>
 
@@ -531,5 +600,19 @@
 		border-radius: 12px;
 		box-shadow: 0 0 0 9999px rgba(0,0,0,0.08) inset;
 		pointer-events: none;
+	}
+	
+	/* Quantity validation styling */
+	.resource-qty.is-invalid {
+		border-color: #dc3545;
+		box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+	}
+	
+	.invalid-feedback {
+		display: block;
+		width: 100%;
+		margin-top: 0.25rem;
+		font-size: 0.875em;
+		color: #dc3545;
 	}
 </style>

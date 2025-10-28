@@ -60,6 +60,30 @@ try {
 	foreach ($resourceIds as $resourceId) {
 		$qty = isset($quantities[$resourceId]) ? max(1, (int)$quantities[$resourceId]) : 1;
 
+		// Check available quantity in inventory
+		$inventoryStmt = $conn->prepare("SELECT quantity, resource_name FROM resource_allocation_table WHERE resource_id = ?");
+		$inventoryStmt->bind_param("i", $resourceId);
+		$inventoryStmt->execute();
+		$inventoryResult = $inventoryStmt->get_result();
+		
+		if ($inventoryResult->num_rows === 0) {
+			echo json_encode(['success' => false, 'message' => 'Resource not found in inventory.']);
+			exit;
+		}
+		
+		$inventoryRow = $inventoryResult->fetch_assoc();
+		$availableQty = (int)$inventoryRow['quantity'];
+		$resourceName = $inventoryRow['resource_name'];
+		
+		// Check if requested quantity exceeds available quantity
+		if ($qty > $availableQty) {
+			echo json_encode([
+				'success' => false, 
+				'message' => "Insufficient quantity for '{$resourceName}'. Available: {$availableQty}, Requested: {$qty}"
+			]);
+			exit;
+		}
+
 		// Check if already distributed for the same distribution type (by pre_reg_id)
 		$checkDup = $conn->prepare("SELECT 1 FROM resource_distribution_table WHERE pre_reg_id = ? AND resource_id = ? AND distribution_type = ?");
 		$checkDup->bind_param("iis", $preRegId, $resourceId, $distributionType);
@@ -67,10 +91,34 @@ try {
 		$dupResult = $checkDup->get_result();
 
 		if ($dupResult->num_rows === 0) {
-			$stmt = $conn->prepare("INSERT INTO resource_distribution_table (pre_reg_id, resource_id, quantity, date_time, distribution_type, status) VALUES (?, ?, ?, NOW(), ?, ?)");
-			$stmt->bind_param("iiiss", $preRegId, $resourceId, $qty, $distributionType, $claimStatus);
-			$stmt->execute();
-			$inserted[] = $resourceId;
+			// Start transaction to ensure both operations succeed or fail together
+			$conn->begin_transaction();
+			
+			try {
+				// Insert distribution record
+				$stmt = $conn->prepare("INSERT INTO resource_distribution_table (pre_reg_id, resource_id, quantity, date_time, distribution_type, status) VALUES (?, ?, ?, NOW(), ?, ?)");
+				$stmt->bind_param("iiiss", $preRegId, $resourceId, $qty, $distributionType, $claimStatus);
+				$stmt->execute();
+				
+				// Update inventory by subtracting distributed quantity
+				$updateInventoryStmt = $conn->prepare("UPDATE resource_allocation_table SET quantity = quantity - ? WHERE resource_id = ?");
+				$updateInventoryStmt->bind_param("ii", $qty, $resourceId);
+				$updateInventoryStmt->execute();
+				
+				// Check if update was successful
+				if ($updateInventoryStmt->affected_rows === 0) {
+					throw new Exception("Failed to update inventory for resource ID: {$resourceId}");
+				}
+				
+				// Commit transaction
+				$conn->commit();
+				$inserted[] = $resourceId;
+				
+			} catch (Exception $e) {
+				// Rollback transaction on error
+				$conn->rollback();
+				throw $e;
+			}
 		}
 	}
 
@@ -95,7 +143,8 @@ try {
 		"success" => true,
 		"name" => $nameRow['l_name'] ?? "Family",
 		"inserted" => $inserted,
-		"claim_status" => $claimStatus
+		"claim_status" => $claimStatus,
+		"message" => "Resources distributed successfully and inventory updated."
 	]);
 } catch (Exception $e) {
 	echo json_encode([

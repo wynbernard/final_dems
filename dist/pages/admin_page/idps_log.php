@@ -16,19 +16,19 @@ if ($role === 'Staff') {
 				room_table.room_name,
 				evac_loc_table.name,
 				logs_table.status
-			FROM evac_reg_table
-			LEFT JOIN logs_table 
-			ON evac_reg_table.evac_reg_id = logs_table.evac_reg_id
-			LEFT JOIN pre_reg_table 
+			FROM logs_table
+			INNER JOIN evac_reg_table 
+			ON logs_table.evac_reg_id = evac_reg_table.evac_reg_id
+			INNER JOIN pre_reg_table 
 			ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
 			LEFT JOIN room_table 
 			ON evac_reg_table.room_id = room_table.room_id
 			LEFT JOIN evac_loc_table
 			ON evac_reg_table.evac_loc_id = evac_loc_table.evac_loc_id
-			WHERE evac_reg_table.evac_loc_id = '" . mysqli_real_escape_string($conn, $assigned_loc) . "' 
-			";
+			WHERE evac_reg_table.evac_loc_id = '" . mysqli_real_escape_string($conn, $assigned_loc) . "'
+			ORDER BY logs_table.date_time DESC";
 } else {
-// 	// Admin: show all logs
+	// Admin: show all logs
 	$query = "SELECT 
 				evac_reg_table.*,
 				pre_reg_table.f_name,
@@ -37,20 +37,27 @@ if ($role === 'Staff') {
 				room_table.room_name,
 				evac_loc_table.name,
 				logs_table.status
-			FROM evac_reg_table
-			LEFT JOIN logs_table 
-			ON evac_reg_table.evac_reg_id = logs_table.evac_reg_id
-			LEFT JOIN pre_reg_table 
+			FROM logs_table
+			INNER JOIN evac_reg_table 
+			ON logs_table.evac_reg_id = evac_reg_table.evac_reg_id
+			INNER JOIN pre_reg_table 
 			ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
 			LEFT JOIN room_table 
 			ON evac_reg_table.room_id = room_table.room_id
 			LEFT JOIN evac_loc_table
-			ON evac_reg_table.evac_loc_id = evac_loc_table.evac_loc_id";
+			ON evac_reg_table.evac_loc_id = evac_loc_table.evac_loc_id
+			ORDER BY logs_table.date_time DESC";
 }
 
 $result = mysqli_query($conn, $query);
 if (!$result) {
 	die("Query failed: " . mysqli_error($conn)); // Debugging for SQL errors
+}
+
+// Debug: Log the query and role for troubleshooting
+error_log("Logs Query for role '$role': " . $query);
+if ($role === 'Staff') {
+	error_log("Staff assigned location ID: " . $assigned_loc);
 }
 ?>
 <!DOCTYPE html>
@@ -99,10 +106,23 @@ if (!$result) {
 			<div class="app-content-header">
 				<div class="container-fluid">
 					<div class="row">
-						<div class="col-sm-6 d-flex align-items-center gap-2">
-							<i class="bi bi-journal-text fs-2 text-primary"></i>
+					<div class="col-sm-6 d-flex align-items-center gap-2">
+						<i class="bi bi-journal-text fs-2 text-primary"></i>
+						<div>
 							<h3 class="mb-0">Logs Record</h3>
+							<?php if ($role === 'Staff' && !empty($assigned_loc)): 
+								// Get location name for display
+								$locQuery = "SELECT name FROM evac_loc_table WHERE evac_loc_id = ?";
+								$locStmt = $conn->prepare($locQuery);
+								$locStmt->bind_param("i", $assigned_loc);
+								$locStmt->execute();
+								$locResult = $locStmt->get_result();
+								$locationName = $locResult->fetch_assoc()['name'] ?? 'Unknown Location';
+							?>
+								<small class="text-muted">📍 Viewing logs for: <strong><?= htmlspecialchars($locationName) ?></strong></small>
+							<?php endif; ?>
 						</div>
+					</div>
 
 						<div class="col-sm-6">
 							<ol class="breadcrumb float-sm-end">

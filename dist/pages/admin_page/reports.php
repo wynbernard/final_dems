@@ -418,23 +418,29 @@ foreach ($evacRegData as $row) {
                         $role = $_SESSION['role'] ?? 'Staff';  // default to staff if not set
                         $assignedLocation = $_SESSION['evac_loc_id'] ?? '';
 
-                        // Base query
-                        $sql = "SELECT d.evac_reg_id, r.resource_name, pr.f_name AS evacuee_name, 
-               d.date_time AS date_received, d.quantity AS quantity, r.measurement_unit AS unit, 
-               evt.name AS evacuation_center,evt.evac_loc_id
-        FROM resource_distribution_table d
-        LEFT JOIN evac_reg_table e ON d.evac_reg_id = e.evac_reg_id
-        LEFT JOIN evac_loc_table evt ON e.evac_loc_id = evt.evac_loc_id
-        LEFT JOIN pre_reg_table pr ON e.pre_reg_id = pr.pre_reg_id
-        LEFT JOIN resource_allocation_table r ON d.resource_id = r.resource_id";
+                        // Base query (join distribution to evac/evacuee via pre_reg_id)
+                        $sql = "SELECT 
+                                pr.f_name AS evacuee_name,
+                                r.resource_name,
+                                d.date_time AS date_received,
+                                d.quantity AS quantity,
+                                r.measurement_unit AS unit,
+                                evt.name AS evacuation_center,
+                                evt.evac_loc_id
+                            FROM resource_distribution_table d
+                            LEFT JOIN pre_reg_table pr ON d.pre_reg_id = pr.pre_reg_id
+                            LEFT JOIN evac_reg_table e ON e.pre_reg_id = pr.pre_reg_id
+                            LEFT JOIN admin_table a ON a.admin_id = a.admin_id
+                            LEFT JOIN evac_loc_table evt ON e.evac_loc_id = evt.evac_loc_id
+                            LEFT JOIN resource_allocation_table r ON d.resource_id = r.resource_id";
 
                         // Add condition if role is staff to filter by assigned location
                         if ($role === 'Staff' && !empty($assignedLocation)) {
-                            $sql .= " WHERE evt.evac_loc_id = ?";
+                            $sql .= " WHERE a.evac_loc_id = ?";
                         }
 
-                        $sql .= " GROUP BY d.evac_reg_id, r.resource_name
-          ORDER BY r.resource_name";
+                        $sql .= " GROUP BY pr.pre_reg_id, r.resource_name, d.date_time, d.quantity, r.measurement_unit, evt.name, evt.evac_loc_id
+          ORDER BY d.date_time DESC";
 
                         // Prepare and execute
                         if ($stmt = $conn->prepare($sql)) {
@@ -471,6 +477,9 @@ foreach ($evacRegData as $row) {
                                         <button id="downloadPdfBtns" class="btn btn-outline-success btn-sm">
                                             <i class="bi bi-file-earmark-pdf"></i> Download PDF
                                         </button>
+                                        <a href="../action/export_distribution_csv.php" class="btn btn-outline-secondary btn-sm">
+                                            <i class="bi bi-file-earmark-excel"></i> Export to Excel
+                                        </a>
                                     </div>
 
                                     <div class="table-responsive">
@@ -479,6 +488,7 @@ foreach ($evacRegData as $row) {
                                                 <tr>
                                                     <th>Evacuee Name</th>
                                                     <th>Resource Name</th>
+                                                    <th>Evacuation Center</th>
                                                     <th>Quantity</th>
                                                     <th>Date Received</th>
                                                 </tr>
@@ -496,6 +506,7 @@ foreach ($evacRegData as $row) {
                                                                 );
                                                                 ?>
                                                             </td>
+                                                            <td><?php echo htmlspecialchars($dist['evacuation_center'] ?? ''); ?></td>
                                                             <td><?php echo htmlspecialchars($dist['quantity'] ?? 'Unknown'); ?></td>
                                                             <td>
                                                                 <?php
@@ -511,7 +522,7 @@ foreach ($evacRegData as $row) {
                                                     <?php endforeach; ?>
                                                 <?php else: ?>
                                                     <tr>
-                                                        <td colspan="3" class="text-center">No distribution data found.</td>
+                                                        <td colspan="5" class="text-center">No distribution data found.</td>
                                                     </tr>
                                                 <?php endif; ?>
                                             </tbody>

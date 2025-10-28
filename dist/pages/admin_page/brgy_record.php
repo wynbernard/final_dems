@@ -400,11 +400,19 @@ $combinedDates = array_merge($allDates, $forecastDates);
                 '4-7': '#ffc107',
                 '8-10': '#dc3545'
               };
+              
+              // Map scale ranges to Low/Medium/High labels
+              const scaleLabels = {
+                '1-3': 'Low',
+                '4-7': 'Medium',
+                '8-10': 'High'
+              };
               const predColor = scaleColors[scale] || currentColor;
+              const scaleLabel = scaleLabels[scale] || scale;
 
               // push predictive dataset for this scale
               datasets.push({
-                label: `${ds.label} (Predicted ${scale})`,
+                label: `${ds.label} (Predicted ${scaleLabel})`,
                 data: predictiveData,
                 borderColor: predColor,
                 backgroundColor: 'transparent',
@@ -430,7 +438,7 @@ $combinedDates = array_merge($allDates, $forecastDates);
                 const bIndex = forecastIndex === -1 ? combinedLabels.length - 1 : forecastIndex;
                 boundsData[bIndex] = [forecast.lower_bound, forecast.upper_bound];
                 datasets.push({
-                  label: `${ds.label} (${scale} Bounds)`,
+                  label: `${ds.label} (${scaleLabel} Bounds)`,
                   data: boundsData,
                   borderColor: 'transparent',
                   backgroundColor: predColor + '22',
@@ -505,6 +513,11 @@ $combinedDates = array_merge($allDates, $forecastDates);
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+          padding: {
+            right: 10
+          }
+        },
         interaction: {
           intersect: false,
           mode: 'index'
@@ -548,10 +561,19 @@ $combinedDates = array_merge($allDates, $forecastDates);
                 const isForecast = context.dataIndex > historicalEndIndex;
                 
                 if (dataset.label.includes('Predicted')) {
-                  // parse base barangay and scale from label like "Barangay Name (Predicted 4-7)"
+                  // parse base barangay and scale from label like "Barangay Name (Predicted Medium)"
                   const base = dataset.label.split(' (')[0];
                   const scaleMatch = dataset.label.match(/Predicted\s*(.*)\)/);
-                  const scale = scaleMatch ? scaleMatch[1] : null;
+                  const scaleLabel = scaleMatch ? scaleMatch[1] : null;
+                  
+                  // Map back to original scale for accuracy lookup
+                  const scaleLabels = {
+                    'Low': '1-3',
+                    'Medium': '4-7',
+                    'High': '8-10'
+                  };
+                  const scale = scaleLabels[scaleLabel] || scaleLabel;
+                  
                   const f = forecastLookup[base] || forecastLookup[base.trim().toLowerCase()];
                   const accuracy = f && scale ? (f[scale]?.accuracy ?? null) : null;
                   if (accuracy !== null && accuracy !== undefined) {
@@ -643,7 +665,12 @@ $combinedDates = array_merge($allDates, $forecastDates);
               },
               maxRotation: 45,
               minRotation: 0,
+              maxTicksLimit: 10,
               callback: function(value, index) {
+                // Hide dates for predictive/forecast period
+                if (index > historicalEndIndex) {
+                  return '';
+                }
                 const date = new Date(this.getLabelForValue(value));
                 return date.toLocaleDateString('en-US', { 
                   month: 'short', 

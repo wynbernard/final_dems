@@ -13,13 +13,15 @@
 						<div class="alert alert-info mb-3 me-3">
 							<strong>Location:</strong>
 							<?php
-							// Safely get parameters with null coalescing operator
-							$selectedLocationId = $_GET['location_id'] ?? $_SESSION['evac_loc_id'] ?? '';
+                            // Get decrypted location id if present, else fallback to staff's assigned location
+                            $selectedLocationId = isset($_GET['location_id']) && $_GET['location_id'] !== ''
+                                ? decrypt_from_url($_GET['location_id'])
+                                : ($_SESSION['evac_loc_id'] ?? '');
 
 							if ($selectedLocationId) {
 								// Query location name using prepared statement
-								$stmt = $conn->prepare("SELECT name FROM evac_loc_table WHERE evac_loc_id = ?");
-								$stmt->bind_param("s", $selectedLocationId);
+                                $stmt = $conn->prepare("SELECT name FROM evac_loc_table WHERE evac_loc_id = ?");
+                                $stmt->bind_param("s", $selectedLocationId);
 								$stmt->execute();
 								$result = $stmt->get_result();
 
@@ -59,17 +61,20 @@
 								}
 							}
 							?>
-							<input type="hidden" name="location_id" value="<?php echo htmlspecialchars($selectedLocationId); ?>">
+                            <input type="hidden" name="location_id" value="<?php echo htmlspecialchars($selectedLocationId); ?>">
 						</div>
 						<div class="alert alert-info mb-3">
 							<strong>Disaster Event:</strong>
 							<span id="disasterEventName">
 								<?php
-								$selectedDisasterId = $_GET['disasterId'] ?? '';
+                                // Decrypt selected disaster id if provided in URL
+                                $selectedDisasterId = isset($_GET['disasterId']) && $_GET['disasterId'] !== ''
+                                    ? decrypt_from_url($_GET['disasterId'])
+                                    : '';
 								$disasterName = '';
 								if ($selectedDisasterId) {
-									$stmt = $conn->prepare("SELECT disaster_name FROM disaster_table WHERE disaster_id = ?");
-									$stmt->bind_param("i", $selectedDisasterId);
+                                    $stmt = $conn->prepare("SELECT disaster_name FROM disaster_table WHERE disaster_id = ?");
+                                    $stmt->bind_param("i", $selectedDisasterId);
 									$stmt->execute();
 									$result = $stmt->get_result();
 									if ($result && $result->num_rows > 0) {
@@ -85,7 +90,7 @@
 								}
 								?>
 							</span>
-							<input type="hidden" name="disasterId" id="disasterIdHidden" value="<?php echo htmlspecialchars($selectedDisasterId); ?>">
+                            <input type="hidden" name="disasterId" id="disasterIdHidden" value="<?php echo htmlspecialchars($selectedDisasterId); ?>">
 						</div>
 						<div class="ms-3">
 							<label for="room_id" class="form-label"><strong>Room :</strong></label>

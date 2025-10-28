@@ -86,7 +86,7 @@ WHERE evac_reg_table.status = 'Evacuated'
                                             if ($query && mysqli_num_rows($query) > 0) {
                                                 $loc = mysqli_fetch_assoc($query);
                                                 $encryptedLocId = encrypt_for_display($loc['evac_loc_id']);
-                                                echo '<option value="' . htmlspecialchars($encryptedLocId) . '" selected>' . htmlspecialchars($loc['name']) . '</option>';
+                                                echo '<option data-raw-id="' . (int)$loc['evac_loc_id'] . '" value="' . htmlspecialchars($encryptedLocId) . '" selected>' . htmlspecialchars($loc['name']) . '</option>';
                                             } else {
                                                 echo '<option value="" selected>Location Not Found</option>';
                                             }
@@ -99,12 +99,12 @@ WHERE evac_reg_table.status = 'Evacuated'
                                                 while ($loc = mysqli_fetch_assoc($query)) {
                                                     $encryptedLocId = encrypt_for_display($loc['evac_loc_id']);
                                                     $selected = (isset($_GET['location_id']) && decrypt_from_url($_GET['location_id']) == $loc['evac_loc_id']) ? 'selected' : '';
-                                                    echo '<option value="' . htmlspecialchars($encryptedLocId) . '" ' . $selected . '>' . htmlspecialchars($loc['name']) . '</option>';
+                                                    echo '<option data-raw-id="' . (int)$loc['evac_loc_id'] . '" value="' . htmlspecialchars($encryptedLocId) . '" ' . $selected . '>' . htmlspecialchars($loc['name']) . '</option>';
                                                 }
                                             }
                                             // Add "Other" option to show evacuees from other locations
                                             $otherSelected = (isset($_GET['location_id']) && decrypt_from_url($_GET['location_id']) == 'other') ? 'selected' : '';
-                                            echo '<option value="' . htmlspecialchars(encrypt_for_display('other')) . '" ' . $otherSelected . '>Other Locations</option>';
+                                            echo '<option data-raw-id="other" value="' . htmlspecialchars(encrypt_for_display('other')) . '" ' . $otherSelected . '>Other Locations</option>';
                                         }
                                         ?>
                                     </select>
@@ -117,7 +117,7 @@ WHERE evac_reg_table.status = 'Evacuated'
                                             while ($disaster = mysqli_fetch_assoc($disasterQuery)) {
                                                 $encryptedDisasterId = encrypt_for_display($disaster['disaster_id']);
                                                 $selected = (isset($_GET['disasterId']) && decrypt_from_url($_GET['disasterId']) == $disaster['disaster_id']) ? 'selected' : '';
-                                                echo '<option value="' . htmlspecialchars($encryptedDisasterId) . '" ' . $selected . '>' . htmlspecialchars($disaster['disaster_name']) . '</option>';
+                                                echo '<option data-raw-id="' . (int)$disaster['disaster_id'] . '" value="' . htmlspecialchars($encryptedDisasterId) . '" ' . $selected . '>' . htmlspecialchars($disaster['disaster_name']) . '</option>';
                                             }
                                         } else {
                                             echo '<option value="">No disaster events found</option>';
@@ -494,10 +494,17 @@ WHERE evac_reg_table.status = 'Evacuated'
                 });
             }
 
+            // Expose raw IDs for use in other scripts (registration, etc.)
+            const selectedLocOption = document.getElementById('locationSelect')?.selectedOptions?.[0];
+            const selectedDisasterOption = document.getElementById('disasterSelect')?.selectedOptions?.[0];
+            window.selectedLocationIdRaw = selectedLocOption ? (selectedLocOption.dataset.rawId || '') : '';
+            window.selectedDisasterIdRaw = selectedDisasterOption ? (selectedDisasterOption.dataset.rawId || '') : '';
+
             const btn = document.getElementById('dispatchAllBtn');
             if (btn) {
                 btn.addEventListener('click', function() {
-                    const loc = document.getElementById('locationSelect').value;
+                    const locOption = document.getElementById('locationSelect').selectedOptions[0];
+                    const loc = locOption ? (locOption.dataset.rawId || '') : '';
                     if (!loc) {
                         if (window.Swal) {
                             Swal.fire({
