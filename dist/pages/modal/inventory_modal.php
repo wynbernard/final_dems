@@ -29,6 +29,8 @@
 							<option value="box">Box</option>
 							<option value="kg">Kilogram (kg)</option>
 							<option value="litre">Litre</option>
+							<option value="peso">Peso (PHP)</option>
+							<option value="other">Other</option>
 						</select>
 					</div>
 					<!-- Optional: Add expiration date if needed

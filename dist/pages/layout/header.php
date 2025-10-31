@@ -15,10 +15,6 @@
 		<!--begin::End Navbar Links-->
 		<ul class="navbar-nav ms-auto">
 			<li class="nav-item dropdown">
-				<a class="nav-link" data-bs-toggle="dropdown" href="#">
-					<i class="bi bi-chat-text"></i>
-					<span class="navbar-badge badge text-bg-danger">3</span>
-				</a>
 				<div class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
 					<a href="#" class="dropdown-item">
 						<!--begin::Message-->
@@ -99,10 +95,6 @@
 			<!--end::Messages Dropdown Menu-->
 			<!--begin::Notifications Dropdown Menu-->
 			<li class="nav-item dropdown">
-				<a class="nav-link" data-bs-toggle="dropdown" href="#">
-					<i class="bi bi-bell-fill"></i>
-					<span class="navbar-badge badge text-bg-warning">15</span>
-				</a>
 				<div class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
 					<span class="dropdown-item dropdown-header">15 Notifications</span>
 					<div class="dropdown-divider"></div>

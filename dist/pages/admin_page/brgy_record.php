@@ -239,7 +239,7 @@ $combinedDates = array_merge($allDates, $forecastDates);
                           // build a list of barangays for the dropdown
                           $barangayList = array_keys($dataByBarangay);
                           foreach ($barangayList as $bname) {
-                            echo '<option value="' . htmlspecialchars($bname) . '">🏘️ ' . htmlspecialchars($bname) . '</option>';
+                            echo '<option value="' . htmlspecialchars($bname) . '" id="barangaySelect">🏘️ ' . htmlspecialchars($bname) . '</option>';
                           }
                           ?>
                         </select>
@@ -322,15 +322,127 @@ $combinedDates = array_merge($allDates, $forecastDates);
     // Find the index where historical data ends
     const historicalEndIndex = historicalLabels.length - 1;
 
-    function makeChartDatasets(list, selectedBarangay = '__all__') {
-      const datasets = [];
-      
-      // Colors for different disasters/barangays
+      function makeChartDatasets(list, selectedBarangay = '__all__') {
+        const datasets = [];
+        
+        // If "All Barangays" is selected, show aggregated data
+        if (selectedBarangay === '__all__') {
+          // Calculate aggregated data (sum of all barangays)
+          const aggregatedData = new Array(combinedLabels.length).fill(0);
+          
+          list.forEach(ds => {
+            // Sum data for each time point
+            for (let i = 0; i < Math.min(ds.data.length, combinedLabels.length); i++) {
+              if (ds.data[i] !== null && ds.data[i] !== undefined && !isNaN(ds.data[i])) {
+                aggregatedData[i] += ds.data[i];
+              }
+            }
+          });
+          
+          // Create single historical line for all barangays combined
+          const extendedData = aggregatedData.slice(0, historicalEndIndex + 1);
+          for (let i = extendedData.length; i < combinedLabels.length; i++) {
+            extendedData.push(null);
+          }
+          
+          // Historical data line with gradient
+          const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+          gradient.addColorStop(0, 'rgba(0, 123, 255, 0.1)');
+          gradient.addColorStop(1, 'rgba(0, 123, 255, 0.05)');
+          
+          datasets.push({
+            label: 'Total Evacuees (All Barangays)',
+            data: extendedData,
+            borderColor: '#007bff',
+            backgroundColor: gradient,
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            spanGaps: true,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#007bff',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointHoverBackgroundColor: '#0056b3',
+            pointHoverBorderColor: '#fff',
+            pointHoverBorderWidth: 3
+          });
+          
+          // Generate predictions for the aggregated data
+          const lastHistoricalValue = aggregatedData[historicalEndIndex] || 0;
+          
+          // Calculate trend from aggregated data
+          const validValues = aggregatedData.filter(v => v !== null && v !== undefined && !isNaN(v));
+          let trend = 0;
+          
+          if (validValues.length >= 2) {
+            const lastValues = validValues.slice(-Math.min(3, validValues.length));
+            trend = (lastValues[lastValues.length - 1] - lastValues[0]) / (lastValues.length - 1);
+          }
+          
+          // Generate predictions for Low, Medium, and High risk scenarios
+          const riskScenarios = [
+            { scale: '1-3', label: 'Low', color: '#28a745', multiplier: -0.3 },
+            { scale: '4-7', label: 'Medium', color: '#ffc107', multiplier: 0.0 },
+            { scale: '8-10', label: 'High', color: '#dc3545', multiplier: 0.3 }
+          ];
+          
+          riskScenarios.forEach(scenario => {
+            const scenarioData = new Array(combinedLabels.length).fill(null);
+            
+            // Connect to last historical value
+            if (lastHistoricalValue > 0) {
+              scenarioData[historicalEndIndex] = lastHistoricalValue;
+            }
+            
+            // Generate prediction based on trend and scenario multiplier
+            const adjustedTrend = trend * scenario.multiplier;
+            const predictedValue = Math.max(0, lastHistoricalValue + adjustedTrend);
+            scenarioData[combinedLabels.length - 1] = predictedValue;
+            
+            // Add intermediate points to make the line more visible
+            const steps = 3; // Number of intermediate points
+            for (let i = 1; i < steps; i++) {
+              const stepIndex = historicalEndIndex + Math.floor((combinedLabels.length - 1 - historicalEndIndex) * i / steps);
+              const stepValue = lastHistoricalValue + (predictedValue - lastHistoricalValue) * i / steps;
+              scenarioData[stepIndex] = stepValue;
+            }
+            
+            // Add predictive dataset for this scenario
+            datasets.push({
+              label: `Total Evacuees (Predicted ${scenario.label})`,
+              data: scenarioData,
+              borderColor: scenario.color,
+              backgroundColor: 'transparent',
+              borderWidth: 3,
+              borderDash: [8, 4],
+              fill: false,
+              tension: 0.4,
+              spanGaps: false,
+              pointRadius: 5,
+              pointHoverRadius: 8,
+              pointBackgroundColor: scenario.color,
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointHoverBackgroundColor: scenario.color,
+              pointHoverBorderColor: '#fff',
+              pointHoverBorderWidth: 3,
+              pointStyle: 'triangle'
+            });
+          });
+          
+          return datasets;
+        }
+        
+        // Colors for different disasters/barangays
       const colors = ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6610f2', '#fd7e14', '#20c997'];
       let colorIndex = 0;
       
       list.forEach(ds => {
         if (selectedBarangay !== '__all__' && ds.label !== selectedBarangay) return;
+        
+        console.log('Processing dataset:', ds.label, 'Data length:', ds.data.length);
         
         const currentColor = colors[colorIndex % colors.length];
         colorIndex++;
@@ -452,57 +564,83 @@ $combinedDates = array_merge($allDates, $forecastDates);
           }
         } else {
           // For aggregated disaster datasets or datasets without specific forecast data
-          // Generate predictions based on trend
-          const lastHistoricalValue = ds.data[ds.data.length - 1];
+          // Generate predictions based on trend for ALL barangays - ALWAYS generate predictions
+          console.log('Generating predictions for:', ds.label, 'Data:', ds.data);
           
-          if (lastHistoricalValue !== null && lastHistoricalValue !== undefined && ds.data.length > 2) {
-            // Calculate trend from last few values
-            const lastValues = ds.data.filter(v => v !== null).slice(-3);
-            if (lastValues.length >= 2) {
-              const trend = (lastValues[lastValues.length - 1] - lastValues[0]) / (lastValues.length - 1);
-              const predictiveData = [...ds.data];
-              
-              // Add predicted values based on trend
-              for (let i = 0; i < 7; i++) {
-                const predictedValue = Math.max(0, lastHistoricalValue + trend * (i + 1));
-                predictiveData.push(predictedValue);
-              }
-              
-              // Predictive line with enhanced styling
-              const predictionGradient = ctx.createLinearGradient(0, 0, 0, 400);
-              predictionGradient.addColorStop(0, 'rgba(255, 107, 53, 0.15)');
-              predictionGradient.addColorStop(1, 'rgba(255, 107, 53, 0.05)');
-              
-              datasets.push({
-                label: ds.label + ' (Predicted)',
-                data: predictiveData,
-                borderColor: '#ff6b35',
-                backgroundColor: predictionGradient,
-                borderWidth: 3,
-                borderDash: [8, 4],
-                fill: true,
-                tension: 0.4,
-                spanGaps: true,
-                pointRadius: 4,
-                pointHoverRadius: 6,
-                pointBackgroundColor: '#ff6b35',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointHoverBackgroundColor: '#e55a2b',
-                pointHoverBorderColor: '#fff',
-                pointHoverBorderWidth: 3,
-                pointStyle: 'triangle'
-              });
-            }
+          // Find the last valid historical value, or use 0 as fallback
+          const validValues = ds.data.filter(v => v !== null && v !== undefined && !isNaN(v));
+          const lastHistoricalValue = validValues.length > 0 ? validValues[validValues.length - 1] : 0;
+          
+          console.log('Valid values for', ds.label, ':', validValues, 'Last value:', lastHistoricalValue);
+          
+          // Always generate predictions, even if no historical data
+          let trend = 0;
+          
+          // Calculate trend if we have enough data points
+          if (validValues.length >= 2) {
+            const lastValues = validValues.slice(-Math.min(3, validValues.length));
+            trend = (lastValues[lastValues.length - 1] - lastValues[0]) / (lastValues.length - 1);
+            console.log('Calculated trend for', ds.label, ':', trend);
+          } else {
+            console.log('Insufficient data for trend calculation, using default trend of 0');
           }
+          
+          // Generate predictions for Low, Medium, and High risk scenarios
+          const riskScenarios = [
+            { scale: '1-3', label: 'Low', color: '#28a745', multiplier: 0.5 },
+            { scale: '4-7', label: 'Medium', color: '#ffc107', multiplier: 1.0 },
+            { scale: '8-10', label: 'High', color: '#dc3545', multiplier: 1.5 }
+          ];
+          
+          riskScenarios.forEach(scenario => {
+            const scenarioData = new Array(combinedLabels.length).fill(null);
+            
+            // Connect to last historical value (or 0 if no data)
+            if (lastHistoricalValue > 0) {
+              scenarioData[historicalEndIndex] = lastHistoricalValue;
+            }
+            
+            // Generate prediction based on trend and scenario multiplier
+            const adjustedTrend = trend * scenario.multiplier;
+            const predictedValue = Math.max(0, lastHistoricalValue + adjustedTrend);
+            scenarioData[combinedLabels.length - 1] = predictedValue;
+            
+            console.log(`Adding ${scenario.label} prediction for ${ds.label}:`, predictedValue);
+            
+            // Add predictive dataset for this scenario
+            datasets.push({
+              label: `${ds.label} (Predicted ${scenario.label})`,
+              data: scenarioData,
+              borderColor: scenario.color,
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              borderDash: [8, 4],
+              fill: false,
+              tension: 0.4,
+              spanGaps: true,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBackgroundColor: scenario.color,
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointHoverBackgroundColor: scenario.color,
+              pointHoverBorderColor: '#fff',
+              pointHoverBorderWidth: 3,
+              pointStyle: 'triangle'
+            });
+          });
         }
       });
+      
+      console.log('Total datasets created:', datasets.length);
+      console.log('Dataset labels:', datasets.map(d => d.label));
       
       return datasets;
     }
 
     // keep a copy of the original labels (full union of dates)
     const originalLabels = combinedLabels.slice();
+    const barangaySelect = document.getElementById('barangaySelect').value;
 
     let chart = new Chart(ctx, {
       type: 'line',
@@ -515,6 +653,7 @@ $combinedDates = array_merge($allDates, $forecastDates);
         maintainAspectRatio: false,
         layout: {
           padding: {
+            left: -10,
             right: 10
           }
         },
@@ -525,7 +664,7 @@ $combinedDates = array_merge($allDates, $forecastDates);
         plugins: {
           title: {
             display: true,
-            text: 'Total Evacuees per Barangay with Predictions',
+            text: 'Total Evacuees' + barangaySelect + ' with Predictions for Possible Disaster',
             font: {
               size: 18,
               weight: 'bold',
@@ -595,7 +734,7 @@ $combinedDates = array_merge($allDates, $forecastDates);
           legend: {
             display: true,
             position: 'top',
-            align: 'start',
+            align: 'center',
             labels: {
               usePointStyle: true,
               pointStyle: 'circle',
@@ -608,14 +747,22 @@ $combinedDates = array_merge($allDates, $forecastDates);
               generateLabels: function(chart) {
                 const original = Chart.defaults.plugins.legend.labels.generateLabels;
                 const labels = original.call(this, chart);
-                labels.forEach(label => {
-                  if (label.text.includes('Predicted')) {
-                    label.text = '🔮 ' + label.text;
-                  } else {
-                    label.text = '📈 ' + label.text;
+                
+                // Filter to show only Low/Medium/High risk levels
+                const riskLabels = labels.filter(label => {
+                  return label.text.includes('Predicted') && 
+                         (label.text.includes('Low') || label.text.includes('Medium') || label.text.includes('High'));
+                });
+                
+                // Transform to show only the risk level
+                riskLabels.forEach(label => {
+                  const match = label.text.match(/\(Predicted (Low|Medium|High)\)/);
+                  if (match) {
+                    label.text = '🔮 ' + match[1];
                   }
                 });
-                return labels;
+                
+                return riskLabels;
               }
             }
           }
@@ -623,6 +770,7 @@ $combinedDates = array_merge($allDates, $forecastDates);
         scales: {
           y: {
             beginAtZero: true,
+            offset: true,
             grid: {
               color: 'rgba(0, 0, 0, 0.1)',
               drawBorder: false

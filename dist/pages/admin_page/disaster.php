@@ -62,8 +62,9 @@ if (!$result) {
 											<tr>
 											<tr>
 												<th> No.</th>
-												<th><i class="bi bi-exclamation-triangle-fill"></i> Disaster Type</th>
+												<th><i class="bi bi-exclamation-triangle-fill"></i> Disaster Name</th>
 												<th><i class="bi bi-calendar-event-fill"></i> Date</th>
+												<th><i class="bi bi-geo-alt-fill"></i> Disaster Type</th>
 												<th><i class="bi bi-scale"></i> Scale(1-10)</th>
 												<th><i class="bi bi-check-circle-fill"></i> Status</th>
 												<th><i class="bi bi-gear-fill"></i> Actions</th>
@@ -71,7 +72,7 @@ if (!$result) {
 											</tr>
 											</tr>
 										</thead>
-										<tbody>
+										<tbody>	
 											<?php
 											$counter = 1;
 											if (mysqli_num_rows($result) > 0) {
@@ -80,6 +81,7 @@ if (!$result) {
 														<td class="cell-number"><?php echo $counter++; ?>.</td>
 														<td class="cell-disaster-name"><?php echo htmlspecialchars($disaster['disaster_name']); ?></td>
 														<td class="cell-date"><?php echo htmlspecialchars($disaster['date']); ?></td>
+														<td class="cell-disaster-type">To Fix</td>
 														<td class="cell-scale"><?php echo htmlspecialchars($disaster['level']); ?></td>
 														<td class="cell-status">
 															<?php if ($disaster['status'] === 'Ongoing'): ?>
