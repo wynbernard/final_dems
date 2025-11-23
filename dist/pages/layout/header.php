@@ -180,93 +180,188 @@
 					<!--end::Menu Footer-->
 					<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 					<script>
-						document.getElementById("logoutBtn").addEventListener("click", function(e) {
-							e.preventDefault(); // Stop the default link behavior
+						document.addEventListener('DOMContentLoaded', function() {
+							// Logout Button Handler
+							const logoutBtn = document.getElementById("logoutBtn");
+							if (logoutBtn) {
+								logoutBtn.addEventListener("click", function(e) {
+									e.preventDefault();
+									const logoutUrl = this.href;
 
-							Swal.fire({
-								title: 'Are you sure?',
-								text: "You will be logged out.",
-								icon: 'warning',
-								showCancelButton: true,
-								confirmButtonColor: '#3085d6',
-								cancelButtonColor: '#d33',
-								confirmButtonText: 'Yes, log me out!'
-							}).then((result) => {
-								if (result.isConfirmed) {
-									window.location.href = this.href;
-								}
-							});
-						});
-
-						// Database Backup Button Handler
-						document.getElementById("dbBackupBtn").addEventListener("click", function(e) {
-							e.preventDefault(); // Stop the default link behavior
-
-							Swal.fire({
-								title: 'Backup Database?',
-								text: "This will download a complete backup of the database.",
-								icon: 'info',
-								showCancelButton: true,
-								confirmButtonColor: '#3085d6',
-								cancelButtonColor: '#6c757d',
-								confirmButtonText: 'Yes, download backup!',
-								cancelButtonText: 'Cancel'
-							}).then((result) => {
-								if (result.isConfirmed) {
-									// Show brief success message and trigger download
 									Swal.fire({
-										title: 'Download Started!',
-										text: 'Your database backup is being prepared. The download will start shortly.',
-										icon: 'success',
-										timer: 2000,
-										showConfirmButton: false,
-										timerProgressBar: true
+										title: 'Are you sure?',
+										text: "You will be logged out.",
+										icon: 'warning',
+										showCancelButton: true,
+										confirmButtonColor: '#3085d6',
+										cancelButtonColor: '#d33',
+										confirmButtonText: 'Yes, log me out!'
+									}).then((result) => {
+										if (result.isConfirmed) {
+											window.location.href = logoutUrl;
+										}
 									});
-									// Trigger download after a brief delay
-									setTimeout(() => {
-										window.location.href = this.href;
-									}, 500);
-								}
-							});
-						});
-
-
-							document.getElementById("dbRestoreBtn").addEventListener("click", function(e){
-								e.preventDefault();
-								var modal = new bootstrap.Modal(document.getElementById('restoreModal'));
-								modal.show();
-							});
-
-							document.getElementById("startRestoreBtn").addEventListener("click", function(){
-								const fileInput = document.getElementById("sqlfile");
-								const status = document.getElementById("restoreStatus");
-
-								if(fileInput.files.length === 0){
-									status.innerHTML = "<span class='text-danger'>Please select a .sql file.</span>";
-									return;
-								}
-
-								const formData = new FormData();
-								formData.append("sqlfile", fileInput.files[0]);
-
-								status.innerHTML = "Restoring database, please wait...";
-
-								fetch("../action/database_restore.php", {
-									method: "POST",
-									body: formData
-								})
-								.then(res => res.json())
-								.then(data => {
-									if(data.success){
-										status.innerHTML = "<span class='text-success'>✔ " + data.message + "</span>";
-									} else {
-										status.innerHTML = "<span class='text-danger'>✖ " + data.error + "</span>";
-									}
-								})
-								.catch(err => {
-									status.innerHTML = "<span class='text-danger'>Error: " + err + "</span>";
 								});
-							});
+							}
+
+							// Database Backup Button Handler
+							const dbBackupBtn = document.getElementById("dbBackupBtn");
+							if (dbBackupBtn) {
+								dbBackupBtn.addEventListener("click", function(e) {
+									e.preventDefault();
+									const backupUrl = this.href;
+
+									Swal.fire({
+										title: 'Backup Database?',
+										text: "This will download a complete backup of the database.",
+										icon: 'info',
+										showCancelButton: true,
+										confirmButtonColor: '#3085d6',
+										cancelButtonColor: '#6c757d',
+										confirmButtonText: 'Yes, download backup!',
+										cancelButtonText: 'Cancel'
+									}).then((result) => {
+										if (result.isConfirmed) {
+											// Show brief success message and trigger download
+											Swal.fire({
+												title: 'Download Started!',
+												text: 'Your database backup is being prepared. The download will start shortly.',
+												icon: 'success',
+												timer: 2000,
+												showConfirmButton: false,
+												timerProgressBar: true
+											});
+											// Trigger download after a brief delay
+											setTimeout(() => {
+												window.location.href = backupUrl;
+											}, 500);
+										}
+									});
+								});
+							}
+
+							// Database Restore Button Handler
+							const dbRestoreBtn = document.getElementById("dbRestoreBtn");
+							if (dbRestoreBtn) {
+								dbRestoreBtn.addEventListener("click", function(e) {
+									e.preventDefault();
+									const restoreModalEl = document.getElementById('restoreModal');
+									if (restoreModalEl) {
+										const modal = new bootstrap.Modal(restoreModalEl);
+										modal.show();
+									}
+								});
+							}
+
+							// Start Restore Button Handler
+							const startRestoreBtn = document.getElementById("startRestoreBtn");
+							if (startRestoreBtn) {
+								startRestoreBtn.addEventListener("click", function() {
+									const fileInput = document.getElementById("sqlfile");
+									const restoreModalEl = document.getElementById('restoreModal');
+
+									if (!fileInput || fileInput.files.length === 0) {
+										Swal.fire({
+											title: 'No File Selected',
+											text: 'Please select a .sql file to restore.',
+											icon: 'warning',
+											confirmButtonColor: '#3085d6'
+										});
+										return;
+									}
+
+									// Close the Bootstrap modal first
+									if (restoreModalEl) {
+										const restoreModal = bootstrap.Modal.getInstance(restoreModalEl);
+										if (restoreModal) {
+											restoreModal.hide();
+										}
+									}
+
+									// Show loading alert
+									Swal.fire({
+										title: 'Restoring Database',
+										text: 'Please wait while the database is being restored...',
+										icon: 'info',
+										allowOutsideClick: false,
+										allowEscapeKey: false,
+										showConfirmButton: false,
+										didOpen: () => {
+											Swal.showLoading();
+										}
+									});
+
+									const formData = new FormData();
+									formData.append("sqlfile", fileInput.files[0]);
+
+									fetch("../action/database_restore.php", {
+										method: "POST",
+										body: formData
+									})
+									.then(res => res.json())
+									.then(data => {
+										console.log(data);
+										if (data.success) {
+											// Show success with warning if there are minor errors
+											if (data.has_warnings) {
+												Swal.fire({
+													title: 'Restore Completed!',
+													html: data.message + '<br><br><small class="text-muted">Some minor warnings occurred but the restore was successful.</small>',
+													icon: 'success',
+													confirmButtonColor: '#28a745',
+													confirmButtonText: 'OK'
+												}).then(() => {
+													// Reset the form
+													const restoreForm = document.getElementById("restoreForm");
+													if (restoreForm) {
+														restoreForm.reset();
+													}
+													const restoreStatus = document.getElementById("restoreStatus");
+													if (restoreStatus) {
+														restoreStatus.innerHTML = "";
+													}
+												});
+											} else {
+												Swal.fire({
+													title: 'Success!',
+													text: data.message || 'Database restored successfully!',
+													icon: 'success',
+													confirmButtonColor: '#28a745',
+													confirmButtonText: 'OK'
+												}).then(() => {
+													// Reset the form
+													const restoreForm = document.getElementById("restoreForm");
+													if (restoreForm) {
+														restoreForm.reset();
+													}
+													const restoreStatus = document.getElementById("restoreStatus");
+													if (restoreStatus) {
+														restoreStatus.innerHTML = "";
+													}
+												});
+											}
+										} else {
+											Swal.fire({
+												title: 'Restore Failed',
+												text: data.message || 'An error occurred while restoring the database.',
+												icon: 'error',
+												confirmButtonColor: '#dc3545',
+												confirmButtonText: 'OK'
+											});
+										}
+									})
+									.catch(err => {
+										Swal.fire({
+											title: 'Error',
+											text: 'An unexpected error occurred: ' + err,
+											icon: 'error',
+											confirmButtonColor: '#dc3545',
+											confirmButtonText: 'OK'
+										});
+									});
+								});
+							}
+						});
 					</script>
 				</ul>
 			</li>
