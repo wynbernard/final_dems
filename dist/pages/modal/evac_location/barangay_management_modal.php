@@ -1,6 +1,6 @@
 <!-- Add Location Modal -->
  <?php
- include '../../../alert/warning.php';
+ include '../alert/warning.php';
  ?>
 <div class="modal fade" id="addLocationModal" tabindex="-1" aria-labelledby="addLocationModalLabel" aria-hidden="true">
 	<div class="modal-dialog modal-xl">
@@ -118,9 +118,39 @@
 								<label for="add_barangay_captain" class="form-label">Captain Name</label>
 								<input type="text" class="form-control" id="add_barangay_captain" name="barangay_captain_name" required>
 							</div>
-							<div>
+							<div class="mb-3">
 								<label for="add_barangay_population" class="form-label">Total Population</label>
 								<input type="number" class="form-control" id="add_barangay_population" name="total_population" required>
+							</div>
+
+							<!-- Disaster-Prone Type Section -->
+							<div class="mb-3">
+								<label class="form-label">Disaster-Prone Type(s)</label>
+								<small class="form-text text-muted d-block mb-2">Select all that apply</small>
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" id="add_select_all_prone" onchange="toggleAllProneTypes('add')">
+									<label class="form-check-label fw-bold" for="add_select_all_prone">Select All</label>
+								</div>
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" name="disaster_prone_type[]" id="add_flood_prone" value="Flood-prone" onchange="updateSelectAll('add')">
+									<label class="form-check-label" for="add_flood_prone">Flood-prone</label>
+								</div>
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" name="disaster_prone_type[]" id="add_earthquake_prone" value="Earthquake-prone" onchange="updateSelectAll('add')">
+									<label class="form-check-label" for="add_earthquake_prone">Earthquake-prone</label>
+								</div>
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" name="disaster_prone_type[]" id="add_landslide_prone" value="Landslide-prone" onchange="updateSelectAll('add')">
+									<label class="form-check-label" for="add_landslide_prone">Landslide-prone</label>
+								</div>
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" name="disaster_prone_type[]" id="add_typhoon_prone" value="Typhoon-prone" onchange="updateSelectAll('add')">
+									<label class="form-check-label" for="add_typhoon_prone">Typhoon-prone</label>
+								</div>
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" name="disaster_prone_type[]" id="add_none_prone" value="None" onchange="updateSelectAll('add')">
+									<label class="form-check-label" for="add_none_prone">None</label>
+								</div>
 							</div>
 
 							<!-- Signature Input Section -->
@@ -203,9 +233,39 @@
 								<label for="edit_barangay_captain" class="form-label fw-bold">Captain Name</label>
 								<input type="text" class="form-control" id="edit_barangay_captain" name="barangay_captain_name" required>
 							</div>
-							<div>
+							<div class="mb-3">
 								<label for="edit_total_population" class="form-label fw-bold">Total Population</label>
 								<input type="number" class="form-control" id="edit_total_population" name="total_population" required>
+							</div>
+
+							<!-- Disaster-Prone Type Section -->
+							<div class="mb-3">
+								<label class="form-label fw-bold">Disaster-Prone Type(s)</label>
+								<small class="form-text text-muted d-block mb-2">Select all that apply</small>
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" id="edit_select_all_prone" onchange="toggleAllProneTypes('edit')">
+									<label class="form-check-label fw-bold" for="edit_select_all_prone">Select All</label>
+								</div>
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" name="disaster_prone_type[]" id="edit_flood_prone" value="Flood-prone" onchange="updateSelectAll('edit')">
+									<label class="form-check-label" for="edit_flood_prone">Flood-prone</label>
+								</div>
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" name="disaster_prone_type[]" id="edit_earthquake_prone" value="Earthquake-prone" onchange="updateSelectAll('edit')">
+									<label class="form-check-label" for="edit_earthquake_prone">Earthquake-prone</label>
+								</div>
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" name="disaster_prone_type[]" id="edit_landslide_prone" value="Landslide-prone" onchange="updateSelectAll('edit')">
+									<label class="form-check-label" for="edit_landslide_prone">Landslide-prone</label>
+								</div>
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" name="disaster_prone_type[]" id="edit_typhoon_prone" value="Typhoon-prone" onchange="updateSelectAll('edit')">
+									<label class="form-check-label" for="edit_typhoon_prone">Typhoon-prone</label>
+								</div>
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" name="disaster_prone_type[]" id="edit_none_prone" value="None" onchange="updateSelectAll('edit')">
+									<label class="form-check-label" for="edit_none_prone">None</label>
+								</div>
 							</div>
 
 							<div class="mb-3">
@@ -277,6 +337,10 @@
 						<div class="mb-3">
 							<label class="form-label fw-bold">Barangay Captain</label>
 							<p id="modalCaptainName" class="form-control-plaintext"></p>
+						</div>
+						<div class="mb-3">
+							<label class="form-label fw-bold">Disaster-Prone Type</label>
+							<p id="modalDisasterProneType" class="form-control-plaintext"></p>
 						</div>
 						<div class="mb-3">
 							<label class="form-label fw-bold">Signature</label><br>
@@ -411,6 +475,46 @@
 
 <script>
 	// Boundary data is loaded from the main page
+	
+	// Function to toggle all disaster-prone type checkboxes
+	function toggleAllProneTypes(mode) {
+		const prefix = mode === 'add' ? 'add' : 'edit';
+		const selectAllCheckbox = document.getElementById(prefix + '_select_all_prone');
+		const checkboxes = document.querySelectorAll('input[name="disaster_prone_type[]"]');
+		
+		// Filter checkboxes for the current modal (add or edit)
+		const modalCheckboxes = Array.from(checkboxes).filter(cb => {
+			return cb.id.startsWith(prefix + '_');
+		});
+		
+		// Toggle all checkboxes based on "Select All" state
+		modalCheckboxes.forEach(checkbox => {
+			checkbox.checked = selectAllCheckbox.checked;
+		});
+	}
+	
+	// Function to update "Select All" checkbox state
+	function updateSelectAll(mode) {
+		const prefix = mode === 'add' ? 'add' : 'edit';
+		const selectAllCheckbox = document.getElementById(prefix + '_select_all_prone');
+		const checkboxes = document.querySelectorAll('input[name="disaster_prone_type[]"]');
+		
+		// Filter checkboxes for the current modal (add or edit)
+		const modalCheckboxes = Array.from(checkboxes).filter(cb => {
+			return cb.id.startsWith(prefix + '_');
+		});
+		
+		// Exclude "None" checkbox from the count
+		const proneTypeCheckboxes = modalCheckboxes.filter(cb => cb.value !== 'None');
+		
+		// Check if all prone type checkboxes (excluding "None") are checked
+		const allChecked = proneTypeCheckboxes.length > 0 && proneTypeCheckboxes.every(cb => cb.checked);
+		
+		// Update "Select All" checkbox state
+		if (selectAllCheckbox) {
+			selectAllCheckbox.checked = allChecked;
+		}
+	}
 </script>
 <script src="../scripts/evac_location_script/barangay_management.js?v=<?php echo time(); ?>"></script>
 <!-- Leaflet CSS -->

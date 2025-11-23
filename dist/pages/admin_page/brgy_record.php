@@ -2,116 +2,172 @@
 include '../../../database/session.php';
 include '../layout/head_links.php';
 
-// Fetch barangay disaster records (include disaster id so we can aggregate by disaster)
+// Load barangay boundaries for disaster-prone types
+$boundaryFile = dirname(dirname(dirname(__DIR__))) . '/address_json/barangay_boundaries.json';
+$barangayBoundaries = [];
+if (file_exists($boundaryFile)) {
+    $boundaryData = @file_get_contents($boundaryFile);
+    if ($boundaryData !== false) {
+        $decoded = json_decode($boundaryData, true);
+        if (is_array($decoded)) {
+            $barangayBoundaries = $decoded;
+        }
+    }
+}
+
+// Extract all unique disaster-prone types from barangay_boundaries.json
+$allProneTypes = [];
+foreach ($barangayBoundaries as $barangayName => $barangayData) {
+    if (isset($barangayData['disaster_prone_types']) && is_array($barangayData['disaster_prone_types'])) {
+        foreach ($barangayData['disaster_prone_types'] as $proneType) {
+            if (!in_array($proneType, $allProneTypes)) {
+                $allProneTypes[] = $proneType;
+            }
+        }
+    }
+}
+sort($allProneTypes);
+
+// Function to get affected barangays for a specific prone type
+function getAffectedBarangaysByProneType($proneType, $barangayBoundaries) {
+    $affectedBarangays = [];
+    
+    foreach ($barangayBoundaries as $barangayName => $barangayData) {
+        if (isset($barangayData['disaster_prone_types']) && is_array($barangayData['disaster_prone_types'])) {
+            if (in_array($proneType, $barangayData['disaster_prone_types'])) {
+                $affectedBarangays[] = $barangayName;
+            }
+        }
+    }
+    
+    return $affectedBarangays;
+}
+
+// Fetch barangay disaster records from disaster_occurrence_history
 $query = "
- SELECT brgy_record_id, brgy_record_table.disaster_id as disaster_id, barangay_name, total_evacuess, disaster_table.disaster_name as disaster_name, scale, brgy_record_table.date as date
- FROM brgy_record_table
- LEFT JOIN disaster_table ON brgy_record_table.disaster_id = disaster_table.disaster_id
- ORDER BY date ASC
+ SELECT 
+    history_id, 
+    disaster_id, 
+    barangay_id, 
+    barangay_name, 
+    disaster_type, 
+    severity_scale, 
+    total_affected, 
+    record_date, 
+    rainfall_mm, 
+    wind_speed_kph, 
+    temperature_c
+ FROM disaster_occurrence_history
+ WHERE 1=1
+ ORDER BY barangay_name ASC, record_date ASC
 ";
 $result = mysqli_query($conn, $query);
 
-// Build unified dataset
-$allDates = [];
-$dataByBarangay = [];
-$sumByDisasterDate = []; // disaster_id => date => sum
-$disasterList = []; // disaster_id => disaster_name
+// Build data grouped by barangay (aggregate total affected per barangay)
+$dataByBarangay = []; // barangay_name => total_affected
+$barangayList = []; // List of all unique barangays
+$disasterTypesByBarangay = []; // barangay_name => [disaster_type => total_affected]
 
 while ($row = mysqli_fetch_assoc($result)) {
   $barangay = $row['barangay_name'];
-  $date = $row['date'];
-  $disasterId = $row['disaster_id'];
-  $disasterName = $row['disaster_name'];
+  $disasterType = $row['disaster_type'];
+  $totalAffected = (int)$row['total_affected'];
 
-  $allDates[] = $date; // collect all dates
-  $dataByBarangay[$barangay][$date] = (int)$row['total_evacuess'];
-
-  // aggregate sums by disaster and date
-  if (!empty($disasterId)) {
-    $disasterList[$disasterId] = $disasterName ?: ('Disaster ' . $disasterId);
-    if (!isset($sumByDisasterDate[$disasterId])) $sumByDisasterDate[$disasterId] = [];
-    if (!isset($sumByDisasterDate[$disasterId][$date])) $sumByDisasterDate[$disasterId][$date] = 0;
-    $sumByDisasterDate[$disasterId][$date] += (int)$row['total_evacuess'];
+  // Add to barangay list
+  if (!in_array($barangay, $barangayList)) {
+    $barangayList[] = $barangay;
   }
+
+  // Aggregate total affected per barangay
+  if (!isset($dataByBarangay[$barangay])) {
+    $dataByBarangay[$barangay] = 0;
+  }
+  $dataByBarangay[$barangay] += $totalAffected;
+
+  // Group by disaster type per barangay
+  if (!isset($disasterTypesByBarangay[$barangay])) {
+    $disasterTypesByBarangay[$barangay] = [];
+  }
+  if (!isset($disasterTypesByBarangay[$barangay][$disasterType])) {
+    $disasterTypesByBarangay[$barangay][$disasterType] = 0;
+  }
+  $disasterTypesByBarangay[$barangay][$disasterType] += $totalAffected;
 }
 
-// make dates unique & sorted
-$allDates = array_values(array_unique($allDates));
-sort($allDates);
+// Get all barangays from JSON file (to include those without data yet)
+$allBarangaysFromJSON = array_keys($barangayBoundaries);
+sort($allBarangaysFromJSON);
 
-// prepare data arrays (fill missing dates with null/0)
-$barangayDatasets = [];
-foreach ($dataByBarangay as $barangay => $records) {
-  $series = [];
-  foreach ($allDates as $date) {
-    $series[] = isset($records[$date]) ? $records[$date] : null; // null to break the line
+// Merge: include all barangays from JSON, but prioritize those with data
+$barangayList = array_unique(array_merge($barangayList, $allBarangaysFromJSON));
+sort($barangayList);
+
+// Prepare datasets for chart (barangays on x-axis, total affected on y-axis)
+$barangayDatasets = [
+  [
+    'label' => 'Total Affected',
+    'data' => array_map(function($barangay) use ($dataByBarangay) {
+      return $dataByBarangay[$barangay] ?? 0;
+    }, $barangayList)
+  ]
+];
+
+// Also prepare datasets by disaster type
+$allDisasterTypes = [];
+foreach ($disasterTypesByBarangay as $barangay => $disasters) {
+  foreach (array_keys($disasters) as $disasterType) {
+    if (!in_array($disasterType, $allDisasterTypes)) {
+      $allDisasterTypes[] = $disasterType;
+    }
   }
-  $barangayDatasets[] = [
-    'label' => $barangay,
-    'data' => $series
-  ];
 }
+sort($allDisasterTypes);
 
-// Build aggregated datasets per disaster (sums across all barangays for each date)
 $disasterDatasets = [];
-foreach ($sumByDisasterDate as $dId => $dateSums) {
+foreach ($allDisasterTypes as $disasterType) {
   $series = [];
-  foreach ($allDates as $date) {
-    $series[] = isset($dateSums[$date]) ? (int)$dateSums[$date] : null;
+  foreach ($barangayList as $barangay) {
+    $series[] = $disasterTypesByBarangay[$barangay][$disasterType] ?? 0;
   }
   $disasterDatasets[] = [
-    'label' => ($disasterList[$dId] ?? $dId),
+    'label' => $disasterType,
     'data' => $series
   ];
 }
 
-// Fetch forecast data from brgy_forecasts table
-$forecastQuery = "
-    SELECT 
-        barangay_name,
-        scale_range,
-        forecast,
-        lower_bound,
-        upper_bound,
-        accuracy_percentage,
-        date,
-        created_at
-    FROM brgy_forecasts 
-    ORDER BY barangay_name, scale_range, created_at DESC
+// For barangay-based chart, we don't need forecast dates
+// We'll use barangay names as labels instead
+
+// Prepare prone type to affected barangays mapping for JavaScript
+$proneTypeAffectedBarangays = [];
+foreach ($allProneTypes as $proneType) {
+    $affected = getAffectedBarangaysByProneType($proneType, $barangayBoundaries);
+    $proneTypeAffectedBarangays[$proneType] = $affected;
+}
+
+// Fetch all disaster occurrence history data for the table
+$historyQuery = "
+ SELECT 
+    history_id, 
+    disaster_id, 
+    barangay_id, 
+    barangay_name, 
+    disaster_type, 
+    severity_scale, 
+    total_affected, 
+    record_date, 
+    rainfall_mm, 
+    wind_speed_kph, 
+    temperature_c
+ FROM disaster_occurrence_history
+ WHERE 1=1
+ ORDER BY record_date DESC, barangay_name ASC
 ";
-$forecastResult = mysqli_query($conn, $forecastQuery);
-
-// Group forecast data by barangay
-$forecastData = [];
-while ($row = mysqli_fetch_assoc($forecastResult)) {
-    $barangay = $row['barangay_name'];
-    $scale = $row['scale_range'];
-    
-    if (!isset($forecastData[$barangay])) {
-        $forecastData[$barangay] = [];
-    }
-    
-  $forecastData[$barangay][$scale] = [
-    'forecast' => (float)$row['forecast'],
-    'lower_bound' => isset($row['lower_bound']) ? (float)$row['lower_bound'] : null,
-    'upper_bound' => isset($row['upper_bound']) ? (float)$row['upper_bound'] : null,
-    'accuracy' => isset($row['accuracy_percentage']) ? (float)$row['accuracy_percentage'] : null,
-    'date' => isset($row['date']) ? $row['date'] : null,
-    'period' => isset($row['period']) ? $row['period'] : null
-  ];
+$historyResult = mysqli_query($conn, $historyQuery);
+$historyData = [];
+while ($row = mysqli_fetch_assoc($historyResult)) {
+    $historyData[] = $row;
 }
-
-// Add forecast dates to extend the timeline
-$forecastDates = [];
-$lastHistoricalDate = end($allDates);
-$lastDate = new DateTime($lastHistoricalDate);
-for ($i = 1; $i <= 7; $i++) {
-    $lastDate->add(new DateInterval('P1D'));
-    $forecastDates[] = $lastDate->format('Y-m-d');
-}
-
-// Combine historical and forecast dates
-$combinedDates = array_merge($allDates, $forecastDates);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -121,7 +177,6 @@ $combinedDates = array_merge($allDates, $forecastDates);
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Barangay Record</title>
   <?php include '../layout/head_links.php'; ?>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     .chart-container {
       background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
@@ -232,14 +287,14 @@ $combinedDates = array_merge($allDates, $forecastDates);
                     <div class="col-md-6">
                       <div class="d-flex align-items-center gap-3">
                         <i class="bi bi-funnel fs-5 text-primary"></i>
-                        <label for="barangaySelect" class="mb-0 fw-semibold text-dark">Filter by Barangay:</label>
-                        <select id="barangaySelect" class="form-select w-auto">
-                          <option value="__all__">📊 All Barangays</option>
+                        <label for="disasterSelect" class="mb-0 fw-semibold text-dark">Filter by Disaster-Prone Type:</label>
+                        <select id="disasterSelect" class="form-select w-auto">
+                          <option value="__all__">🌍 All Prone Types</option>
                           <?php
-                          // build a list of barangays for the dropdown
-                          $barangayList = array_keys($dataByBarangay);
-                          foreach ($barangayList as $bname) {
-                            echo '<option value="' . htmlspecialchars($bname) . '" id="barangaySelect">🏘️ ' . htmlspecialchars($bname) . '</option>';
+                          // build a list of disaster-prone types from JSON
+                          foreach ($allProneTypes as $proneType) {
+                            $barangayCount = count($proneTypeAffectedBarangays[$proneType]);
+                            echo '<option value="' . htmlspecialchars($proneType) . '">⚠️ ' . htmlspecialchars($proneType) . ' (' . $barangayCount . ' barangay' . ($barangayCount > 1 ? 's' : '') . ')</option>';
                           }
                           ?>
                         </select>
@@ -247,22 +302,38 @@ $combinedDates = array_merge($allDates, $forecastDates);
                     </div>
                     <div class="col-md-6 text-end">
                       <div class="d-flex align-items-center justify-content-end gap-2">
-                        <span class="badge bg-primary">📈 Historical</span>
-                        <span class="badge bg-warning">🔮 Predicted</span>
+                        <span id="affectedBarangaysCount" class="badge bg-info" style="display: none;"></span>
                       </div>
                     </div>
                   </div>
                 </div>
                 
-                <div id="chartLoading" class="chart-loading">
-                  <div class="text-center">
-                    <div class="loading-spinner"></div>
-                    <p class="mt-3 text-muted">Loading chart data...</p>
-                  </div>
-                </div>
-                
-                <div class="chart-container" id="chartContainer" style="position: relative; height: 500px; width: 100%; display: none;">
-                  <canvas id="evacuationChart"></canvas>
+                <!-- Table for Barangays with Selected Prone Type -->
+                <div class="table-responsive mt-3">
+                  <table id="barangayTable" class="table table-striped table-hover table-bordered">
+                    <thead class="table-success sticky-header">
+                      <tr>
+                        <th>No.</th>
+                        <th><i class="bi bi-geo-alt-fill"></i> Barangay Name</th>
+                        <th><i class="bi bi-exclamation-triangle-fill"></i> Disaster-Prone Types</th>
+                        <th><i class="bi bi-exclamation-triangle-fill"></i> Disaster Type</th>
+                        <th><i class="bi bi-exclamation-triangle-fill"></i> Severity Scale</th>
+                        <th><i class="bi bi-people-fill"></i> Total Affected</th>
+                        <th><i class="bi bi-exclamation-triangle-fill"></i> Record Date</th>
+                        <th><i class="bi bi-exclamation-triangle-fill"></i> Rainfall (mm)</th>
+                        <th><i class="bi bi-exclamation-triangle-fill"></i> Wind Speed (kph)</th>
+                        <th><i class="bi bi-exclamation-triangle-fill"></i> Temperature (°C)</th>
+                      </tr>
+                    </thead>
+                    <tbody id="barangayTableBody">
+                      <tr>
+                        <td colspan="10" class="text-center text-muted">
+                          <i class="bi bi-info-circle me-2"></i>
+                          Select a disaster-prone type to view affected barangays
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -274,604 +345,198 @@ $combinedDates = array_merge($allDates, $forecastDates);
   </div>
 
   <script>
-    // Show loading state initially
+    // Initialize on page load
     document.addEventListener('DOMContentLoaded', function() {
-      const loadingDiv = document.getElementById('chartLoading');
-      const chartContainer = document.getElementById('chartContainer');
-      
-      // Simulate loading time for better UX
-      setTimeout(() => {
-        loadingDiv.style.display = 'none';
-        chartContainer.style.display = 'block';
-        initializeChart();
-      }, 1000);
-    });
+
+    // Get all barangays from JSON file (this is the source of truth)
+    const allBarangaysFromJSON = <?php echo json_encode($allBarangaysFromJSON); ?>;
     
-    function initializeChart() {
-      const ctx = document.getElementById('evacuationChart').getContext('2d');
-
-    // Dates from PHP
-    const historicalLabels = <?php echo json_encode($allDates); ?>;
-    const combinedLabels = <?php echo json_encode($combinedDates); ?>;
-    const forecastData = <?php echo json_encode($forecastData); ?>;
-
-    // Build a tolerant lookup for forecastData: normalize keys (lowercase, remove punctuation, collapse spaces)
-    const forecastLookup = {};
-    function normalizeKey(s) {
-      if (!s && s !== 0) return '';
-      return String(s)
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9\s]/g, '')
-        .replace(/\s+/g, ' ');
-    }
-    Object.keys(forecastData || {}).forEach(k => {
-      const v = forecastData[k];
-      forecastLookup[k] = v;
-      const nk = normalizeKey(k);
-      forecastLookup[nk] = v;
-    });
-    // Debug: expose forecast lookup keys to console for troubleshooting
-    console.debug('forecastLookup keys:', Object.keys(forecastLookup));
-
-    // Barangay datasets
-    const rawDatasets = <?php echo json_encode($barangayDatasets); ?>;
-  // Aggregated disaster datasets (sums across all barangays grouped by disaster)
-  const aggregatedDisasterDatasets = <?php echo json_encode($disasterDatasets); ?>;
-
-    // Find the index where historical data ends
-    const historicalEndIndex = historicalLabels.length - 1;
-
-      function makeChartDatasets(list, selectedBarangay = '__all__') {
-        const datasets = [];
-        
-        // If "All Barangays" is selected, show aggregated data
-        if (selectedBarangay === '__all__') {
-          // Calculate aggregated data (sum of all barangays)
-          const aggregatedData = new Array(combinedLabels.length).fill(0);
-          
-          list.forEach(ds => {
-            // Sum data for each time point
-            for (let i = 0; i < Math.min(ds.data.length, combinedLabels.length); i++) {
-              if (ds.data[i] !== null && ds.data[i] !== undefined && !isNaN(ds.data[i])) {
-                aggregatedData[i] += ds.data[i];
-              }
-            }
-          });
-          
-          // Create single historical line for all barangays combined
-          const extendedData = aggregatedData.slice(0, historicalEndIndex + 1);
-          for (let i = extendedData.length; i < combinedLabels.length; i++) {
-            extendedData.push(null);
-          }
-          
-          // Historical data line with gradient
-          const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-          gradient.addColorStop(0, 'rgba(0, 123, 255, 0.1)');
-          gradient.addColorStop(1, 'rgba(0, 123, 255, 0.05)');
-          
-          datasets.push({
-            label: 'Total Evacuees (All Barangays)',
-            data: extendedData,
-            borderColor: '#007bff',
-            backgroundColor: gradient,
-            borderWidth: 3,
-            fill: true,
-            tension: 0.4,
-            spanGaps: true,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            pointBackgroundColor: '#007bff',
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            pointHoverBackgroundColor: '#0056b3',
-            pointHoverBorderColor: '#fff',
-            pointHoverBorderWidth: 3
-          });
-          
-          // Generate predictions for the aggregated data
-          const lastHistoricalValue = aggregatedData[historicalEndIndex] || 0;
-          
-          // Calculate trend from aggregated data
-          const validValues = aggregatedData.filter(v => v !== null && v !== undefined && !isNaN(v));
-          let trend = 0;
-          
-          if (validValues.length >= 2) {
-            const lastValues = validValues.slice(-Math.min(3, validValues.length));
-            trend = (lastValues[lastValues.length - 1] - lastValues[0]) / (lastValues.length - 1);
-          }
-          
-          // Generate predictions for Low, Medium, and High risk scenarios
-          const riskScenarios = [
-            { scale: '1-3', label: 'Low', color: '#28a745', multiplier: -0.3 },
-            { scale: '4-7', label: 'Medium', color: '#ffc107', multiplier: 0.0 },
-            { scale: '8-10', label: 'High', color: '#dc3545', multiplier: 0.3 }
-          ];
-          
-          riskScenarios.forEach(scenario => {
-            const scenarioData = new Array(combinedLabels.length).fill(null);
-            
-            // Connect to last historical value
-            if (lastHistoricalValue > 0) {
-              scenarioData[historicalEndIndex] = lastHistoricalValue;
-            }
-            
-            // Generate prediction based on trend and scenario multiplier
-            const adjustedTrend = trend * scenario.multiplier;
-            const predictedValue = Math.max(0, lastHistoricalValue + adjustedTrend);
-            scenarioData[combinedLabels.length - 1] = predictedValue;
-            
-            // Add intermediate points to make the line more visible
-            const steps = 3; // Number of intermediate points
-            for (let i = 1; i < steps; i++) {
-              const stepIndex = historicalEndIndex + Math.floor((combinedLabels.length - 1 - historicalEndIndex) * i / steps);
-              const stepValue = lastHistoricalValue + (predictedValue - lastHistoricalValue) * i / steps;
-              scenarioData[stepIndex] = stepValue;
-            }
-            
-            // Add predictive dataset for this scenario
-            datasets.push({
-              label: `Total Evacuees (Predicted ${scenario.label})`,
-              data: scenarioData,
-              borderColor: scenario.color,
-              backgroundColor: 'transparent',
-              borderWidth: 3,
-              borderDash: [8, 4],
-              fill: false,
-              tension: 0.4,
-              spanGaps: false,
-              pointRadius: 5,
-              pointHoverRadius: 8,
-              pointBackgroundColor: scenario.color,
-              pointBorderColor: '#fff',
-              pointBorderWidth: 2,
-              pointHoverBackgroundColor: scenario.color,
-              pointHoverBorderColor: '#fff',
-              pointHoverBorderWidth: 3,
-              pointStyle: 'triangle'
-            });
-          });
-          
-          return datasets;
-        }
-        
-        // Colors for different disasters/barangays
-      const colors = ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6610f2', '#fd7e14', '#20c997'];
-      let colorIndex = 0;
+    // Barangay boundaries from JSON (for prone type lookup)
+    const barangayBoundariesJSON = <?php echo json_encode($barangayBoundaries); ?>;
+    
+    // Disaster-prone types and affected barangays from JSON
+    const proneTypeAffectedBarangays = <?php echo json_encode($proneTypeAffectedBarangays); ?>;
+    const allProneTypes = <?php echo json_encode($allProneTypes); ?>;
+    
+    // Disaster occurrence history data for table
+    const historyData = <?php echo json_encode($historyData); ?>;
+    
+    // Function to update the table based on selected prone type - show barangays from JSON
+    function updateBarangayTable(selectedProneType) {
+      const tbody = document.getElementById('barangayTableBody');
+      tbody.innerHTML = '';
       
-      list.forEach(ds => {
-        if (selectedBarangay !== '__all__' && ds.label !== selectedBarangay) return;
-        
-        console.log('Processing dataset:', ds.label, 'Data length:', ds.data.length);
-        
-        const currentColor = colors[colorIndex % colors.length];
-        colorIndex++;
-        
-        // Historical data only (pad to full combined length so Chart.js aligns indexes)
-        const extendedData = ds.data.slice(0, historicalEndIndex + 1);
-        for (let i = extendedData.length; i < combinedLabels.length; i++) {
-          extendedData.push(null);
-        }
-        
-        // Historical data line with gradient
-        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(0, 123, 255, 0.1)');
-        gradient.addColorStop(1, 'rgba(0, 123, 255, 0.05)');
-        
-        datasets.push({
-          label: ds.label,
-          data: extendedData,
-          borderColor: '#007bff',
-          backgroundColor: gradient,
-          borderWidth: 3,
-          fill: true,
-          tension: 0.4,
-          spanGaps: true,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          pointBackgroundColor: '#007bff',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          pointHoverBackgroundColor: '#0056b3',
-          pointHoverBorderColor: '#fff',
-          pointHoverBorderWidth: 3
+      if (selectedProneType === '__all__') {
+        // Show all barangays from JSON with their prone types
+        let rowNum = 1;
+        allBarangaysFromJSON.forEach(barangayName => {
+          const barangayInfo = barangayBoundariesJSON[barangayName] || {};
+          const proneTypes = barangayInfo.disaster_prone_types || [];
+          const proneTypesDisplay = proneTypes.length > 0 
+            ? proneTypes.map(type => `<span class="badge bg-info me-1">${escapeHtml(type)}</span>`).join('')
+            : '<span class="text-muted">None</span>';
+          
+          // Get records for this barangay
+          const barangayRecords = historyData.filter(r => r.barangay_name === barangayName);
+          
+          if (barangayRecords.length === 0) {
+            // Show barangay even if no records
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${rowNum++}</td>
+              <td><strong>${escapeHtml(barangayName)}</strong></td>
+              <td>${proneTypesDisplay}</td>
+              <td class="text-muted">No records</td>
+              <td>-</td>
+              <td>-</td>
+              <td>-</td>
+              <td>-</td>
+              <td>-</td>
+              <td>-</td>
+            `;
+            tbody.appendChild(row);
+          } else {
+            // Show each record for this barangay
+            barangayRecords.forEach(record => {
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                <td>${rowNum++}</td>
+                <td><strong>${escapeHtml(record.barangay_name)}</strong></td>
+                <td>${proneTypesDisplay}</td>
+                <td>${escapeHtml(record.disaster_type || 'N/A')}</td>
+                <td><span class="badge bg-${getSeverityBadgeColor(record.severity_scale)}">${escapeHtml(record.severity_scale || 'N/A')}</span></td>
+                <td><strong>${parseInt(record.total_affected || 0).toLocaleString()}</strong></td>
+                <td>${formatDate(record.record_date)}</td>
+                <td>${record.rainfall_mm ? parseFloat(record.rainfall_mm).toFixed(2) : 'N/A'}</td>
+                <td>${record.wind_speed_kph ? parseFloat(record.wind_speed_kph).toFixed(2) : 'N/A'}</td>
+                <td>${record.temperature_c ? parseFloat(record.temperature_c).toFixed(1) : 'N/A'}</td>
+              `;
+              tbody.appendChild(row);
+            });
+          }
         });
         
-  // Add predictive lines if forecast data exists for this barangay (use normalized lookup)
-  const normalizedLabel = (typeof ds.label === 'string') ? ds.label.split(' (')[0] : ds.label;
-  const fd = forecastLookup[normalizedLabel] || forecastLookup[normalizedLabel.trim().toLowerCase()] || forecastLookup[normalizeKey(normalizedLabel)];
-  // Debug: log which forecast match was found (if any)
-  console.debug('Forecast match for:', normalizedLabel, '->', fd ? Object.keys(fd) : null);
-        if (fd) {
-          const lastHistoricalValue = ds.data[ds.data.length - 1];
-          const scales = Object.keys(fd);
-
-          if (lastHistoricalValue !== null && lastHistoricalValue !== undefined && scales.length > 0) {
-            scales.forEach((scale) => {
-              const forecast = fd[scale];
-              if (!forecast || !forecast.date) return;
-
-              // Build predictive data array (nulls except forecast point and connector)
-              const predictiveData = new Array(combinedLabels.length).fill(null);
-
-              // place last historical value at the last historical index to connect
-              predictiveData[historicalEndIndex] = lastHistoricalValue;
-
-              // find forecast date index in combinedLabels
-              const forecastIndex = combinedLabels.indexOf(forecast.date);
-              if (forecastIndex === -1) {
-                // If forecast date not in combinedLabels, place forecast at last index
-                predictiveData[combinedLabels.length - 1] = forecast.forecast;
-              } else {
-                predictiveData[forecastIndex] = forecast.forecast;
-              }
-
-              // color by scale when available
-              const scaleColors = {
-                '1-3': '#28a745',
-                '4-7': '#ffc107',
-                '8-10': '#dc3545'
-              };
-              
-              // Map scale ranges to Low/Medium/High labels
-              const scaleLabels = {
-                '1-3': 'Low',
-                '4-7': 'Medium',
-                '8-10': 'High'
-              };
-              const predColor = scaleColors[scale] || currentColor;
-              const scaleLabel = scaleLabels[scale] || scale;
-
-              // push predictive dataset for this scale
-              datasets.push({
-                label: `${ds.label} (Predicted ${scaleLabel})`,
-                data: predictiveData,
-                borderColor: predColor,
-                backgroundColor: 'transparent',
-                borderWidth: 2,
-                borderDash: [8,4],
-                fill: false,
-                tension: 0.4,
-                spanGaps: true,
-                pointRadius: 4,
-                pointHoverRadius: 6,
-                pointBackgroundColor: predColor,
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointHoverBackgroundColor: predColor,
-                pointHoverBorderColor: '#fff',
-                pointHoverBorderWidth: 3,
-                pointStyle: 'triangle'
-              });
-
-              // add bounds if provided
-              if (forecast.lower_bound !== undefined && forecast.upper_bound !== undefined) {
-                const boundsData = new Array(combinedLabels.length).fill(null);
-                const bIndex = forecastIndex === -1 ? combinedLabels.length - 1 : forecastIndex;
-                boundsData[bIndex] = [forecast.lower_bound, forecast.upper_bound];
-                datasets.push({
-                  label: `${ds.label} (${scaleLabel} Bounds)`,
-                  data: boundsData,
-                  borderColor: 'transparent',
-                  backgroundColor: predColor + '22',
-                  fill: true,
-                  tension: 0.4,
-                  spanGaps: true,
-                  pointRadius: 0
-                });
-              }
-            });
-          }
-        } else {
-          // For aggregated disaster datasets or datasets without specific forecast data
-          // Generate predictions based on trend for ALL barangays - ALWAYS generate predictions
-          console.log('Generating predictions for:', ds.label, 'Data:', ds.data);
-          
-          // Find the last valid historical value, or use 0 as fallback
-          const validValues = ds.data.filter(v => v !== null && v !== undefined && !isNaN(v));
-          const lastHistoricalValue = validValues.length > 0 ? validValues[validValues.length - 1] : 0;
-          
-          console.log('Valid values for', ds.label, ':', validValues, 'Last value:', lastHistoricalValue);
-          
-          // Always generate predictions, even if no historical data
-          let trend = 0;
-          
-          // Calculate trend if we have enough data points
-          if (validValues.length >= 2) {
-            const lastValues = validValues.slice(-Math.min(3, validValues.length));
-            trend = (lastValues[lastValues.length - 1] - lastValues[0]) / (lastValues.length - 1);
-            console.log('Calculated trend for', ds.label, ':', trend);
-          } else {
-            console.log('Insufficient data for trend calculation, using default trend of 0');
-          }
-          
-          // Generate predictions for Low, Medium, and High risk scenarios
-          const riskScenarios = [
-            { scale: '1-3', label: 'Low', color: '#28a745', multiplier: 0.5 },
-            { scale: '4-7', label: 'Medium', color: '#ffc107', multiplier: 1.0 },
-            { scale: '8-10', label: 'High', color: '#dc3545', multiplier: 1.5 }
-          ];
-          
-          riskScenarios.forEach(scenario => {
-            const scenarioData = new Array(combinedLabels.length).fill(null);
-            
-            // Connect to last historical value (or 0 if no data)
-            if (lastHistoricalValue > 0) {
-              scenarioData[historicalEndIndex] = lastHistoricalValue;
-            }
-            
-            // Generate prediction based on trend and scenario multiplier
-            const adjustedTrend = trend * scenario.multiplier;
-            const predictedValue = Math.max(0, lastHistoricalValue + adjustedTrend);
-            scenarioData[combinedLabels.length - 1] = predictedValue;
-            
-            console.log(`Adding ${scenario.label} prediction for ${ds.label}:`, predictedValue);
-            
-            // Add predictive dataset for this scenario
-            datasets.push({
-              label: `${ds.label} (Predicted ${scenario.label})`,
-              data: scenarioData,
-              borderColor: scenario.color,
-              backgroundColor: 'transparent',
-              borderWidth: 2,
-              borderDash: [8, 4],
-              fill: false,
-              tension: 0.4,
-              spanGaps: true,
-              pointRadius: 4,
-              pointHoverRadius: 6,
-              pointBackgroundColor: scenario.color,
-              pointBorderColor: '#fff',
-              pointBorderWidth: 2,
-              pointHoverBackgroundColor: scenario.color,
-              pointHoverBorderColor: '#fff',
-              pointHoverBorderWidth: 3,
-              pointStyle: 'triangle'
-            });
-          });
+        // Hide count badge when showing all
+        const countBadge = document.getElementById('affectedBarangaysCount');
+        if (countBadge) {
+          countBadge.style.display = 'none';
         }
-      });
-      
-      console.log('Total datasets created:', datasets.length);
-      console.log('Dataset labels:', datasets.map(d => d.label));
-      
-      return datasets;
-    }
-
-    // keep a copy of the original labels (full union of dates)
-    const originalLabels = combinedLabels.slice();
-    const barangaySelect = document.getElementById('barangaySelect').value;
-
-    let chart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: combinedLabels,
-        datasets: makeChartDatasets(rawDatasets)
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: {
-          padding: {
-            left: -10,
-            right: 10
-          }
-        },
-        interaction: {
-          intersect: false,
-          mode: 'index'
-        },
-        plugins: {
-          title: {
-            display: true,
-            text: 'Total Evacuees' + barangaySelect + ' with Predictions for Possible Disaster',
-            font: {
-              size: 18,
-              weight: 'bold',
-              family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
-            },
-            color: '#2c3e50',
-            padding: {
-              top: 20,
-              bottom: 30
-            }
-          },
-          tooltip: {
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            titleColor: '#fff',
-            bodyColor: '#fff',
-            borderColor: '#007bff',
-            borderWidth: 1,
-            cornerRadius: 8,
-            displayColors: true,
-            callbacks: {
-              title: function(context) {
-                const date = new Date(context[0].label);
-                return date.toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                });
-              },
-              label: function(context) {
-                const dataset = context.dataset;
-                const value = context.formattedValue;
-                const isForecast = context.dataIndex > historicalEndIndex;
-                
-                if (dataset.label.includes('Predicted')) {
-                  // parse base barangay and scale from label like "Barangay Name (Predicted Medium)"
-                  const base = dataset.label.split(' (')[0];
-                  const scaleMatch = dataset.label.match(/Predicted\s*(.*)\)/);
-                  const scaleLabel = scaleMatch ? scaleMatch[1] : null;
-                  
-                  // Map back to original scale for accuracy lookup
-                  const scaleLabels = {
-                    'Low': '1-3',
-                    'Medium': '4-7',
-                    'High': '8-10'
-                  };
-                  const scale = scaleLabels[scaleLabel] || scaleLabel;
-                  
-                  const f = forecastLookup[base] || forecastLookup[base.trim().toLowerCase()];
-                  const accuracy = f && scale ? (f[scale]?.accuracy ?? null) : null;
-                  if (accuracy !== null && accuracy !== undefined) {
-                    return `${dataset.label}: ${value} evacuees (Accuracy: ${accuracy.toFixed(1)}%)`;
-                  }
-                  return `${dataset.label}: ${value} evacuees`;
-                }
-                return `${dataset.label}: ${value} evacuees`;
-              },
-              afterLabel: function(context) {
-                const isForecast = context.dataIndex > historicalEndIndex;
-                if (isForecast && !context.dataset.label.includes('Predicted')) {
-                  return '📊 Forecast Period';
-                }
-                return '';
-              }
-            }
-          },
-          legend: {
-            display: true,
-            position: 'top',
-            align: 'center',
-            labels: {
-              usePointStyle: true,
-              pointStyle: 'circle',
-              padding: 20,
-              font: {
-                size: 12,
-                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
-              },
-              color: '#2c3e50',
-              generateLabels: function(chart) {
-                const original = Chart.defaults.plugins.legend.labels.generateLabels;
-                const labels = original.call(this, chart);
-                
-                // Filter to show only Low/Medium/High risk levels
-                const riskLabels = labels.filter(label => {
-                  return label.text.includes('Predicted') && 
-                         (label.text.includes('Low') || label.text.includes('Medium') || label.text.includes('High'));
-                });
-                
-                // Transform to show only the risk level
-                riskLabels.forEach(label => {
-                  const match = label.text.match(/\(Predicted (Low|Medium|High)\)/);
-                  if (match) {
-                    label.text = '🔮 ' + match[1];
-                  }
-                });
-                
-                return riskLabels;
-              }
-            }
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            offset: true,
-            grid: {
-              color: 'rgba(0, 0, 0, 0.1)',
-              drawBorder: false
-            },
-            ticks: {
-              color: '#666',
-              font: {
-                size: 11,
-                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
-              },
-              callback: function(value) {
-                return value.toLocaleString();
-              }
-            },
-            title: {
-              display: true,
-              text: 'Number of Evacuees',
-              color: '#2c3e50',
-              font: {
-                size: 14,
-                weight: 'bold',
-                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
-              },
-              padding: {
-                top: 10,
-                bottom: 20
-              }
-            }
-          },
-          x: {
-            grid: {
-              color: 'rgba(0, 0, 0, 0.1)',
-              drawBorder: false
-            },
-            ticks: {
-              color: '#666',
-              font: {
-                size: 11,
-                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
-              },
-              maxRotation: 45,
-              minRotation: 0,
-              maxTicksLimit: 10,
-              callback: function(value, index) {
-                // Hide dates for predictive/forecast period
-                if (index > historicalEndIndex) {
-                  return '';
-                }
-                const date = new Date(this.getLabelForValue(value));
-                return date.toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric' 
-                });
-              }
-            },
-            title: {
-              display: true,
-              text: 'Date',
-              color: '#2c3e50',
-              font: {
-                size: 14,
-                weight: 'bold',
-                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
-              },
-              padding: {
-                top: 20,
-                bottom: 10
-              }
-            }
-          }
-        },
-        elements: {
-          point: {
-            hoverRadius: 8,
-            hoverBorderWidth: 3
-          }
+        
+        if (allBarangaysFromJSON.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No barangays found in JSON file</td></tr>';
         }
-      }
-    });
-
-    // Dropdown filter logic
-    const select = document.getElementById('barangaySelect');
-    select.addEventListener('change', function() {
-      const val = this.value;
-        if (val === '__all__') {
-        chart.data.labels = originalLabels.slice();
-        // When All Barangays is selected, show each barangay with its prediction (display predictions for all barangays)
-        chart.data.datasets = makeChartDatasets(rawDatasets, '__all__');
       } else {
-        const filtered = rawDatasets.filter(d => d.label === val);
-        const ds = filtered.length ? filtered[0] : null;
-        if (ds) {
-          // Keep all dates but just update the chart with the selected barangay's data
-          chart.data.labels = combinedLabels;
-          // Use the original dataset to preserve forecast handling
-          chart.data.datasets = makeChartDatasets([ds], val);
-        }
+        // Filter by prone type - show only barangays with selected prone type from JSON
+        const affectedBarangays = proneTypeAffectedBarangays[selectedProneType] || [];
+        
+        if (affectedBarangays.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">No barangays found with ${selectedProneType}</td></tr>`;
+        } else {
+          let rowNum = 1;
+          affectedBarangays.forEach(barangayName => {
+            const barangayInfo = barangayBoundariesJSON[barangayName] || {};
+            const proneTypes = barangayInfo.disaster_prone_types || [];
+            const proneTypesDisplay = proneTypes.length > 0 
+              ? proneTypes.map(type => `<span class="badge bg-info me-1">${escapeHtml(type)}</span>`).join('')
+              : '<span class="text-muted">None</span>';
+            
+            // Get records for this barangay
+            const barangayRecords = historyData.filter(r => r.barangay_name === barangayName);
+            
+            if (barangayRecords.length === 0) {
+              // Show barangay even if no records
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                <td>${rowNum++}</td>
+                <td><strong>${escapeHtml(barangayName)}</strong></td>
+                <td>${proneTypesDisplay}</td>
+                <td class="text-muted">No records</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+              `;
+              tbody.appendChild(row);
+              } else {
+              // Show each record for this barangay
+              barangayRecords.forEach(record => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                  <td>${rowNum++}</td>
+                  <td><strong>${escapeHtml(record.barangay_name)}</strong></td>
+                  <td>${proneTypesDisplay}</td>
+                  <td>${escapeHtml(record.disaster_type || 'N/A')}</td>
+                  <td><span class="badge bg-${getSeverityBadgeColor(record.severity_scale)}">${escapeHtml(record.severity_scale || 'N/A')}</span></td>
+                  <td><strong>${parseInt(record.total_affected || 0).toLocaleString()}</strong></td>
+                  <td>${formatDate(record.record_date)}</td>
+                  <td>${record.rainfall_mm ? parseFloat(record.rainfall_mm).toFixed(2) : 'N/A'}</td>
+                  <td>${record.wind_speed_kph ? parseFloat(record.wind_speed_kph).toFixed(2) : 'N/A'}</td>
+                  <td>${record.temperature_c ? parseFloat(record.temperature_c).toFixed(1) : 'N/A'}</td>
+                `;
+                tbody.appendChild(row);
+                });
+              }
+            });
+          }
       }
-      chart.update();
-    });
     }
+    
+    // Helper functions
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function formatDate(dateString) {
+      if (!dateString) return 'N/A';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+    
+    function getSeverityBadgeColor(scale) {
+      if (!scale) return 'secondary';
+      const scaleLower = scale.toString().toLowerCase();
+      
+      // Handle text-based severity scales
+      if (scaleLower.includes('low') || scaleLower.includes('minor')) {
+        return 'success'; // Green for low severity
+      }
+      if (scaleLower.includes('moderate') || scaleLower.includes('medium')) {
+        return 'warning'; // Yellow for moderate severity
+      }
+      if (scaleLower.includes('high') || scaleLower.includes('severe') || scaleLower.includes('extreme')) {
+        return 'danger'; // Red for high/severe severity
+      }
+      
+      // Handle numeric ranges (fallback for old data format)
+      if (scale.includes('-')) {
+        const scaleNum = parseInt(scale.split('-')[0]);
+        if (scaleNum >= 1 && scaleNum <= 3) return 'success';
+        if (scaleNum >= 4 && scaleNum <= 7) return 'warning';
+        if (scaleNum >= 8 && scaleNum <= 10) return 'danger';
+      }
+      
+      return 'secondary';
+    }
+
+    const disasterSelect = document.getElementById('disasterSelect');
+    let selectedProneType = disasterSelect.value;
+    
+    // Initialize table on page load
+    updateBarangayTable(selectedProneType);
+    
+    // Dropdown filter logic - filter by prone type
+    disasterSelect.addEventListener('change', function() {
+      const val = this.value;
+      selectedProneType = val;
+      
+      // Update the table
+      updateBarangayTable(val);
+    });
+    });
   </script>
 </body>
 

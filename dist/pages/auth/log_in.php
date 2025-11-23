@@ -87,7 +87,7 @@
 				</form>
 
 				<div class="text-center mt-3">
-					<p>User Pre-Registration <a href="user_registration.php" class="text-primary">Sign up</a></p>
+					<p>User Pre-Registration <a href="user_registration.php" class="text-primary" id="registerLink">Sign up</a></p>
 				</div>
 			</div>
 		</div>

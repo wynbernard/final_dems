@@ -86,6 +86,7 @@ if (!$result) {
 												<th><i class="bi bi-geo-alt-fill"></i> Location</th>
 												<th><i class="bi bi-person-badge-fill"></i> Barangay Captain</th>
 												<th><i class="bi bi-people-fill"></i> Total Population</th>
+												<th><i class="bi bi-exclamation-triangle-fill"></i> Disaster-Prone Type</th>
 												<th><i class="bi bi-list-check"></i> Pre-registered</th>
 												<th><i class="bi bi-exclamation-triangle"></i> Evacuation Needed</th>
 												<th class="text-center" style="text-align: center; vertical-align: middle;">
@@ -103,6 +104,18 @@ if (!$result) {
 														<td class="cell-location "><?php echo htmlspecialchars($barangay['barangay_name']); ?></td>
 														<td class="cell-address justify-content-center text-centerz"><?php echo htmlspecialchars($barangay['barangay_captain_name']); ?></td>
 														<td class="cell-population justify-content-center text-centerz"><?php echo number_format((int)$barangay['total_population']); ?></td>
+														<td class="cell-disaster-prone text-center">
+															<?php 
+															$proneTypes = [];
+															// Load from JSON file only
+															if (isset($barangayBoundaries[$barangay['barangay_name']]) && 
+																isset($barangayBoundaries[$barangay['barangay_name']]['disaster_prone_types'])) {
+																$proneTypes = $barangayBoundaries[$barangay['barangay_name']]['disaster_prone_types'];
+															}
+															$proneTypeDisplay = !empty($proneTypes) ? implode(', ', array_map('htmlspecialchars', $proneTypes)) : 'Not specified';
+															echo $proneTypeDisplay;
+															?>
+														</td>
 														<td class="cell-prereg text-center"><?php echo isset($barangay['pre_reg_count']) ? number_format((int)$barangay['pre_reg_count'], 0) : 0; ?></td>
 														<td>
 															<div class="form-check form-switch">
@@ -128,15 +141,22 @@ if (!$result) {
 																<i class="fas fa-trash"></i> Delete
 															</a>
 
-							<a href="barangay_view.php?id=<?php echo (int)$barangay['barangay_id']; ?>"
-								class="btn btn-outline-primary btn-sm shadow">
+							<a href="#" 
+								class="btn btn-outline-primary btn-sm shadow view-btn"
+								data-id="<?php echo (int)$barangay['barangay_id']; ?>"
+								data-name1="<?php echo htmlspecialchars($barangay['barangay_name']); ?>"
+								data-captain="<?php echo htmlspecialchars($barangay['barangay_captain_name']); ?>"
+								data-signature="<?php echo htmlspecialchars($barangay['signature_brgy_captain']); ?>"
+								data-latitude="<?php echo htmlspecialchars($barangay['latitude']); ?>"
+								data-longitude="<?php echo htmlspecialchars($barangay['longitude']); ?>"
+								data-bs-toggle="modal" data-bs-target="#viewBarangayModal">
 								<i class="fas fa-eye"></i> View
 							</a>
 														</td>
 													</tr>
 											<?php endwhile;
 											} else {
-												echo "<tr><td colspan='7' class='text-center'>No location records found.</td></tr>";
+												echo "<tr><td colspan='8' class='text-center'>No location records found.</td></tr>";
 											}
 											?>
 										</tbody>

@@ -4,6 +4,13 @@ include '../../../../database/conn.php';
 require '../../../../phpqrcode/qrlib.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+	// Check Data Privacy Act consent
+	if (!isset($_POST['data_privacy_consent']) || $_POST['data_privacy_consent'] !== 'accepted') {
+		$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> You must agree to the Data Privacy Act Terms and Policy to proceed with registration.";
+		header("Location: ../auth/user_registration.php");
+		exit();
+	}
+	
 	$f_name = trim($_POST['f_name']);
 	$m_name = trim($_POST['m_name']);
 	$l_name = trim($_POST['l_name']);

@@ -234,6 +234,12 @@
                 "lat": 10.514954,
                 "lng": 122.974505
             }
+        ],
+        "disaster_prone_types": [
+            "Flood-prone",
+            "Earthquake-prone",
+            "Landslide-prone",
+            "Typhoon-prone"
         ]
     },
     "qwqwe": {
@@ -426,6 +432,12 @@
                 "lat": 10.512591,
                 "lng": 122.945792
             }
+        ]
+    },
+    "Alianza": {
+        "disaster_prone_types": [
+            "Flood-prone",
+            "Landslide-prone"
         ]
     }
 }

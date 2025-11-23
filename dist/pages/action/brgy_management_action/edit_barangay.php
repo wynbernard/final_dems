@@ -6,6 +6,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$barangay_name = trim($_POST['barangay_name']);
 	$captain_name = trim($_POST['barangay_captain_name']);
 	$total_population = intval($_POST['total_population'] ?? 0);
+	
+	// Handle multiple disaster-prone types (only for JSON file)
+	$disaster_prone_types = [];
+	if (isset($_POST['disaster_prone_type']) && is_array($_POST['disaster_prone_type'])) {
+		$disaster_prone_types = array_filter(array_map('trim', $_POST['disaster_prone_type']));
+		// Remove "None" if other types are selected
+		if (count($disaster_prone_types) > 1 && in_array('None', $disaster_prone_types)) {
+			$disaster_prone_types = array_filter($disaster_prone_types, function($v) { return $v !== 'None'; });
+		}
+	}
+	
 	$latitude = $_POST['latitude'];
 	$longitude = $_POST['longitude'];
 	$current_signature = $_POST['current_signature'];
@@ -82,14 +93,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				if (count($validCoords) >= 2) {
 					$boundaries[$barangay_name] = [
 						'type' => count($validCoords) >= 3 ? 'polygon' : 'polyline',
-						'coordinates' => $validCoords
+						'coordinates' => $validCoords,
+						'disaster_prone_types' => $disaster_prone_types
 					];
+				}
+			} else {
+				// Even without boundary, save disaster-prone types if provided
+				if (!empty($disaster_prone_types)) {
+					if (!isset($boundaries[$barangay_name])) {
+						$boundaries[$barangay_name] = [];
+					}
+					$boundaries[$barangay_name]['disaster_prone_types'] = $disaster_prone_types;
 				}
 			}
 		} else {
-			// If boundary_json is empty, remove the boundary from JSON file
+			// If boundary_json is empty, preserve existing boundary but update disaster-prone types
 			if (isset($boundaries[$barangay_name])) {
-				unset($boundaries[$barangay_name]);
+				// Preserve existing boundary data (coordinates, type) and update disaster-prone types
+				if (!empty($disaster_prone_types)) {
+					$boundaries[$barangay_name]['disaster_prone_types'] = $disaster_prone_types;
+				} else {
+					// If no disaster-prone types provided, remove that field but keep boundary
+					if (isset($boundaries[$barangay_name]['disaster_prone_types'])) {
+						unset($boundaries[$barangay_name]['disaster_prone_types']);
+					}
+				}
+			} else {
+				// No existing entry, create one if we have disaster-prone types
+				if (!empty($disaster_prone_types)) {
+					$boundaries[$barangay_name] = [
+						'disaster_prone_types' => $disaster_prone_types
+					];
+				}
 			}
 		}
 		

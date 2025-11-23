@@ -26,6 +26,10 @@ ALTER TABLE `barangay_manegement_table`
 ADD COLUMN `total_population` INT(11) DEFAULT 0 AFTER `longitude`,
 ADD COLUMN `population_updated_date` DATE DEFAULT NULL AFTER `total_population`;
 
+-- Add disaster-prone type to barangay management table
+ALTER TABLE `barangay_manegement_table` 
+ADD COLUMN `disaster_prone_type` VARCHAR(100) DEFAULT '' AFTER `total_population`;
+
 -- Create brgy_forecasts table with scaling only
 CREATE TABLE IF NOT EXISTS `brgy_forecasts` (
   `id` int(11) NOT NULL AUTO_INCREMENT,

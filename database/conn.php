@@ -1,17 +1,14 @@
 <?php
 
-$servername = "srv1322.hstgr.io";
-$username   = "u520834156_userDEMS";
-$password   = "5YnY61~U~Hz";
-$dbname     = "u520834156_DBDems";
+// $servername = "srv1322.hstgr.io";
+// $username   = "u520834156_userDEMS";
+// $password   = "5YnY61~U~Hz";
+// $dbname     = "u520834156_DBDems";
 
-
-
-// $servername = "localhost";
-// $username = "root";
-// $password = "";
-// $dbname = "f_dems";
-
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "f_dems";
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);

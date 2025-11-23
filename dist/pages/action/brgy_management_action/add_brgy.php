@@ -7,6 +7,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$barangay_name = trim($_POST['barangay_name'] ?? '');
 	$captain_name = trim($_POST['barangay_captain_name'] ?? '');
 	$total_population = intval($_POST['total_population'] ?? 0);
+	
+	// Handle multiple disaster-prone types (only for JSON file)
+	$disaster_prone_types = [];
+	if (isset($_POST['disaster_prone_type']) && is_array($_POST['disaster_prone_type'])) {
+		$disaster_prone_types = array_filter(array_map('trim', $_POST['disaster_prone_type']));
+		// Remove "None" if other types are selected
+		if (count($disaster_prone_types) > 1 && in_array('None', $disaster_prone_types)) {
+			$disaster_prone_types = array_filter($disaster_prone_types, function($v) { return $v !== 'None'; });
+		}
+	}
+	
 	$latitude = floatval($_POST['latitude'] ?? 0);
 	$longitude = floatval($_POST['longitude'] ?? 0);
 	$signature_option = $_POST['signature_option'] ?? 'draw';
@@ -60,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		}
 	}
 
-	// Insert into database
+	// Insert into database (without disaster_prone_type - saved only in JSON)
 	$stmt = $conn->prepare("INSERT INTO barangay_manegement_table (barangay_name, barangay_captain_name, latitude, longitude, signature_brgy_captain, total_population) VALUES (?, ?, ?, ?, ?, ?)");
 	$stmt->bind_param("ssddsi", $barangay_name, $captain_name, $latitude, $longitude, $signature_path, $total_population);
 
@@ -104,15 +115,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				if (count($validCoords) >= 2) {
 					$boundaries[$barangay_name] = [
 						'type' => count($validCoords) >= 3 ? 'polygon' : 'polyline',
-						'coordinates' => $validCoords
+						'coordinates' => $validCoords,
+						'disaster_prone_types' => $disaster_prone_types
 					];
+				}
+			} else {
+				// Even without boundary, save disaster-prone types if provided
+				if (!empty($disaster_prone_types)) {
+					if (!isset($boundaries[$barangay_name])) {
+						$boundaries[$barangay_name] = [];
+					}
+					$boundaries[$barangay_name]['disaster_prone_types'] = $disaster_prone_types;
 				}
 			}
 		} else {
-			// If boundary_json is empty, remove the boundary from JSON file
-			if (isset($boundaries[$barangay_name])) {
-				unset($boundaries[$barangay_name]);
+			// If boundary_json is empty, save disaster-prone types if provided
+			if (!empty($disaster_prone_types)) {
+				if (!isset($boundaries[$barangay_name])) {
+					$boundaries[$barangay_name] = [];
+				}
+				$boundaries[$barangay_name]['disaster_prone_types'] = $disaster_prone_types;
 			}
+			// Note: We don't remove existing entries here for add operation
 		}
 		
 		// Save updated boundaries to file

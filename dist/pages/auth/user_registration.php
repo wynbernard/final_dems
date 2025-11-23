@@ -27,7 +27,93 @@
 	</div>
 	<?php include '../alert/warning.php'; ?>
 
-	<div class="container">
+	<?php
+	// Check if user has accepted the Data Privacy Act terms
+	$termsAccepted = isset($_GET['terms_accepted']) && $_GET['terms_accepted'] == '1';
+	if (!$termsAccepted) {
+		// Show modal first
+		$showModal = true;
+	} else {
+		$showModal = false;
+	}
+	?>
+
+	<!-- Data Privacy Act Terms Modal -->
+	<div class="modal fade" id="dataPrivacyModal" tabindex="-1" aria-labelledby="dataPrivacyModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+		<div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+			<div class="modal-content">
+				<div class="modal-header bg-primary text-white">
+					<h5 class="modal-title" id="dataPrivacyModalLabel">
+						<i class="fas fa-shield-alt me-2"></i>Data Privacy Act Terms and Policy
+					</h5>
+				</div>
+				<div class="modal-body" style="max-height: 500px; overflow-y: auto;">
+					<div class="mb-3">
+						<h6 class="fw-bold text-primary">Republic Act No. 10173 - Data Privacy Act of 2012</h6>
+						<p class="text-muted small">Please read the following terms and conditions carefully before proceeding with registration.</p>
+					</div>
+					
+					<h6 class="fw-bold mt-4">1. Collection of Personal Information</h6>
+					<p class="small">We collect personal information including but not limited to your name, contact details, address, date of birth, identification documents, and other relevant data necessary for disaster preparedness and emergency response purposes.</p>
+					
+					<h6 class="fw-bold mt-3">2. Purpose of Data Collection</h6>
+					<p class="small">Your personal information will be used for:</p>
+					<ul class="small">
+						<li>Disaster preparedness and emergency response planning</li>
+						<li>Evacuation center management and coordination</li>
+						<li>Communication during emergencies</li>
+						<li>Government service delivery and assistance programs</li>
+						<li>Statistical and research purposes</li>
+					</ul>
+					
+					<h6 class="fw-bold mt-3">3. Data Protection</h6>
+					<p class="small">We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. Your data will be stored securely and accessed only by authorized personnel.</p>
+					
+					<h6 class="fw-bold mt-3">4. Data Sharing and Disclosure</h6>
+					<p class="small">Your personal information may be shared with:</p>
+					<ul class="small">
+						<li>Government agencies involved in disaster management</li>
+						<li>Emergency response teams and volunteers</li>
+						<li>Authorized service providers assisting in emergency operations</li>
+					</ul>
+					<p class="small">We will not sell, rent, or lease your personal information to third parties for commercial purposes.</p>
+					
+					<h6 class="fw-bold mt-3">5. Your Rights</h6>
+					<p class="small">Under the Data Privacy Act, you have the right to:</p>
+					<ul class="small">
+						<li>Access your personal information</li>
+						<li>Request correction of inaccurate data</li>
+						<li>Request deletion of your data (subject to legal requirements)</li>
+						<li>Object to processing of your personal information</li>
+						<li>File a complaint with the National Privacy Commission</li>
+					</ul>
+					
+					<h6 class="fw-bold mt-3">6. Retention of Data</h6>
+					<p class="small">Your personal information will be retained for as long as necessary to fulfill the purposes stated above, or as required by applicable laws and regulations.</p>
+					
+					<h6 class="fw-bold mt-3">7. Consent</h6>
+					<p class="small">By proceeding with registration, you acknowledge that you have read, understood, and agree to the terms and conditions of this Data Privacy Policy. You consent to the collection, processing, and use of your personal information as described herein.</p>
+					
+					<h6 class="fw-bold mt-3">8. Contact Information</h6>
+					<p class="small">For inquiries, concerns, or requests regarding your personal information, please contact our Data Protection Officer at the City Government of Bago.</p>
+					
+					<div class="form-check mt-4 mb-3">
+						<input class="form-check-input" type="checkbox" id="dataPrivacyConsent" required>
+						<label class="form-check-label" for="dataPrivacyConsent">
+							<strong>I have read, understood, and agree to the Data Privacy Act Terms and Policy</strong>
+							<span class="text-danger">*</span>
+						</label>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" onclick="declineTerms()">Decline</button>
+					<button type="button" class="btn btn-primary" id="acceptTermsBtn" disabled onclick="acceptTerms()">Accept and Proceed</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="container" id="registrationContainer" style="<?php echo $termsAccepted ? '' : 'display: none;'; ?>">
 		<div class="row justify-content-center">
 			<div class="col-12 col-md-12 col-lg-10 p-4 bg-white shadow rounded">
 
@@ -38,6 +124,7 @@
 				<h3 class="text-center text-primary fw-bold">Pre-Registration</h3>
 
 				<form id="registrationForm" method="POST" action="../action/auth_action/user_pre_reg.php" enctype="multipart/form-data">
+					<input type="hidden" name="data_privacy_consent" value="accepted">
 					<div class="row">
 						<div class="col-md-3">
 							<div class="mb-3">
@@ -739,6 +826,38 @@
 	<script src="../scripts/auth_script/user_registration.js"></script>
 	<script src="../scripts/auth_script/required.js"></script>
 	<script src="../scripts/auth_script/address_api.js"></script>
+	
+	<script>
+		// Data Privacy Modal Logic
+		document.addEventListener('DOMContentLoaded', function() {
+			const consentCheckbox = document.getElementById('dataPrivacyConsent');
+			const acceptBtn = document.getElementById('acceptTermsBtn');
+			const dataPrivacyModal = document.getElementById('dataPrivacyModal');
+			
+			<?php if ($showModal): ?>
+			// Show modal on page load if terms not accepted
+			const modal = new bootstrap.Modal(dataPrivacyModal);
+			modal.show();
+			<?php endif; ?>
+			
+			// Enable/disable accept button based on checkbox
+			if (consentCheckbox && acceptBtn) {
+				consentCheckbox.addEventListener('change', function() {
+					acceptBtn.disabled = !this.checked;
+				});
+			}
+		});
+		
+		function acceptTerms() {
+			// Redirect to registration page with terms accepted parameter
+			window.location.href = 'user_registration.php?terms_accepted=1';
+		}
+		
+		function declineTerms() {
+			// Redirect back to landing page
+			window.location.href = '/final_dems/';
+		}
+	</script>
 	
 	<script>
 		// Global variable to store barangay name to ID mapping

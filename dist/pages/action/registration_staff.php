@@ -27,7 +27,7 @@ $stmt->bind_param("isii", $locationId, $preRegId, $room, $disasterId);
 
 // Execute the query
 if ($stmt->execute()) {
-$_SESSION['success'] = "<span style='color: green;'><i class='bi bi-check-circle-fill'></i></span> Registration Successfull!!!";
+$_SESSION['success'] = "<span style='color: green;'><i class='bi bi-check-circle-fill'></i></span> Registration Successfull!!!"; 
 	echo json_encode(['success' => true, 'message' => 'IDP registered successfully!']);
 } else {
 	$_SESSION['error'] = "<span style='color: red;'><i class='bi bi-exclamation-triangle-fill'></i></span> Registration Failed!!!";

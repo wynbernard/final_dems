@@ -17,6 +17,14 @@ let addFencePolyline = null;
 		// Resize map when modal opens
 		modalElement.addEventListener('shown.bs.modal', function() {
 			setTimeout(() => map.invalidateSize(), 100);
+			// Reset disaster-prone type checkboxes
+			document.querySelectorAll('#addLocationModal input[name="disaster_prone_type[]"]').forEach(cb => {
+				cb.checked = false;
+			});
+			const selectAllCheckbox = document.getElementById('add_select_all_prone');
+			if (selectAllCheckbox) {
+				selectAllCheckbox.checked = false;
+			}
 		});
 
 		// Handle map click
@@ -247,10 +255,13 @@ let currentBoundaryBarangay = '';
 	}
 
 	function loadExistingFence(barangayName) {
-		if (window.barangayBoundaries && window.barangayBoundaries[barangayName] && window.barangayBoundaries[barangayName].coordinates) {
-			editFencePoints = window.barangayBoundaries[barangayName].coordinates.map(c => [c.lat, c.lng]);
-			updateFenceLine();
-			updateFenceJSON();
+		if (window.barangayBoundaries && window.barangayBoundaries[barangayName]) {
+			const boundary = window.barangayBoundaries[barangayName];
+			if (boundary.coordinates) {
+				editFencePoints = boundary.coordinates.map(c => [c.lat, c.lng]);
+				updateFenceLine();
+				updateFenceJSON();
+			}
 		}
 	}
 
@@ -317,6 +328,30 @@ let currentBoundaryBarangay = '';
 				document.getElementById('edit_barangay_captain').value = captain;
 				document.getElementById('edit_current_signature').value = signature;
 				document.getElementById('edit_total_population').value = button.getAttribute('data-population');
+				
+				// Load disaster-prone types from JSON file only
+				const disasterProneTypes = [];
+				if (window.barangayBoundaries && window.barangayBoundaries[name] && window.barangayBoundaries[name].disaster_prone_types) {
+					disasterProneTypes.push(...window.barangayBoundaries[name].disaster_prone_types);
+				}
+				
+				// Clear all checkboxes first (only edit modal checkboxes)
+				document.querySelectorAll('#editLocationModal input[name="disaster_prone_type[]"]').forEach(cb => {
+					cb.checked = false;
+				});
+				
+				// Check the appropriate checkboxes
+				disasterProneTypes.forEach(type => {
+					const checkbox = document.querySelector(`#editLocationModal input[name="disaster_prone_type[]"][value="${type}"]`);
+					if (checkbox) {
+						checkbox.checked = true;
+					}
+				});
+				
+				// Update "Select All" checkbox state
+				if (typeof updateSelectAll === 'function') {
+					updateSelectAll('edit');
+				}
 				document.getElementById('edit_signature_preview').src = "../../../uploads/" + signature;
 				document.getElementById('edit_latitude').value = latitude;
 				document.getElementById('edit_longitude').value = longitude;
@@ -401,41 +436,70 @@ let currentBoundaryBarangay = '';
       const lat = parseFloat(button.getAttribute('data-latitude'));
       const lng = parseFloat(button.getAttribute('data-longitude'));
 
+      // Load disaster-prone types from JSON file only
+      let disasterProneTypes = [];
+      if (window.barangayBoundaries && window.barangayBoundaries[name] && window.barangayBoundaries[name].disaster_prone_types) {
+        disasterProneTypes = window.barangayBoundaries[name].disaster_prone_types;
+      }
+      const disasterProneTypeDisplay = disasterProneTypes.length > 0 ? disasterProneTypes.join(', ') : 'Not specified';
+
       // Populate modal fields
       document.getElementById('modalBarangayName').textContent = name;
       document.getElementById('modalCaptainName').textContent = captain;
+      document.getElementById('modalDisasterProneType').textContent = disasterProneTypeDisplay;
       document.getElementById('modalSignature').src = "../../../uploads/" +signature;
+    });
 
+    // Initialize map when modal is fully shown
+    modal.addEventListener('shown.bs.modal', event => {
+      const button = event.relatedTarget;
+
+      // Get data attributes
+      const name = button.getAttribute('data-name1');
+      const lat = parseFloat(button.getAttribute('data-latitude'));
+      const lng = parseFloat(button.getAttribute('data-longitude'));
+
+      if (isNaN(lat) || isNaN(lng)) {
+        console.error('Invalid coordinates:', lat, lng);
+        return;
+      }
+	  
       // Initialize or update map
+      const mapContainer = document.getElementById('modalMap');
+      if (!mapContainer) {
+        console.error('Map container not found');
+        return;
+      }
+
+      // Check if map already exists and remove it
+      if (map1) {
+        map1.remove();
+        map1 = null;
+        marker1 = null;
+      }
+
+      // Small delay to ensure modal is fully rendered
       setTimeout(() => {
-        if (!map1) {
-          map1 = L.map('modalMap').setView([lat, lng], 15);
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-          }).addTo(map1);
-          marker1 = L.marker([lat, lng]).addTo(map1);
-        } else {
-          map1.setView([lat, lng], 15);
-          marker1.setLatLng([lat, lng]);
-          // Clear existing boundary layers
-          map1.eachLayer(function(layer) {
-            if (layer instanceof L.Polygon || layer instanceof L.Polyline) {
-              map1.removeLayer(layer);
-            }
-          });
-        }
+        // Initialize new map
+        map1 = L.map('modalMap').setView([lat, lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap'
+        }).addTo(map1);
+        
+        // Invalidate size to ensure proper rendering
+        setTimeout(() => {
+          map1.invalidateSize();
+        }, 50);
+        
+        marker1 = L.marker([lat, lng]).addTo(map1);
+        marker1.bindPopup(`<strong>${name}</strong><br>Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`).openPopup();
         
         // Display boundary fence if it exists
-        console.log('Looking for boundary data for:', name);
-        console.log('Available boundaries:', window.barangayBoundaries);
-        
         if (window.barangayBoundaries && window.barangayBoundaries[name]) {
           const boundary = window.barangayBoundaries[name];
-          console.log('Found boundary for', name, ':', boundary);
           
-          if (boundary.coordinates && Array.isArray(boundary.coordinates)) {
+          if (boundary.coordinates && Array.isArray(boundary.coordinates) && boundary.coordinates.length > 0) {
             const coords = boundary.coordinates.map(c => [c.lat, c.lng]);
-            console.log('Boundary coordinates:', coords);
             
             let boundaryLayer;
             if (boundary.type === 'polygon' && coords.length >= 3) {
@@ -459,11 +523,24 @@ let currentBoundaryBarangay = '';
             // Fit map to show both marker and boundary
             const group = L.featureGroup([marker1, boundaryLayer]);
             map1.fitBounds(group.getBounds(), { padding: [20, 20] });
+          } else {
+            // No boundary, just center on marker
+            map1.setView([lat, lng], 15);
           }
         } else {
-          console.log('No boundary data found for:', name);
+          // No boundary, just center on marker
+          map1.setView([lat, lng], 15);
         }
-      }, 200); // slight delay ensures modal is shown before loading map
+      }, 100);
+    });
+
+    // Cleanup map when modal is hidden
+    modal.addEventListener('hidden.bs.modal', function() {
+      if (map1) {
+        map1.remove();
+        map1 = null;
+        marker1 = null;
+      }
     });
   });
 
@@ -474,12 +551,13 @@ let currentBoundaryBarangay = '';
 		const btnAddPurok = document.getElementById('btnAddPurok');
 
 		function loadPuroks(barangayId) {
-			purokTableBody.innerHTML = '<tr><td colspan="4">Loading...</td></tr>';
+			if (!purokTableBody) return;
+			purokTableBody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
 			fetch(`../action/brgy_management_action/list_purok.php?barangay_id=${barangayId}`)
 				.then(r => r.json())
 				.then(data => {
 					if (!data.success) {
-						purokTableBody.innerHTML = `<tr><td colspan="4">${data.message || 'Failed to load'}</td></tr>`;
+						purokTableBody.innerHTML = `<tr><td colspan="5">${data.message || 'Failed to load'}</td></tr>`;
 						return;
 					}
 					const rows = data.data.map((p, idx) => {
@@ -495,10 +573,10 @@ let currentBoundaryBarangay = '';
 								</td>
 							</tr>`;
 					}).join('');
-					purokTableBody.innerHTML = rows || '<tr><td colspan="4">No puroks found</td></tr>';
+					purokTableBody.innerHTML = rows || '<tr><td colspan="5">No puroks found</td></tr>';
 					attachPurokHandlers(barangayId);
 				}).catch(err => {
-					purokTableBody.innerHTML = `<tr><td colspan="4">Error loading puroks</td></tr>`;
+					purokTableBody.innerHTML = `<tr><td colspan="5">Error loading puroks</td></tr>`;
 					console.error(err);
 				});
 		}
@@ -510,10 +588,12 @@ let currentBoundaryBarangay = '';
 					const id = tr.getAttribute('data-id');
 					const name = tr.querySelector('.purok-name').textContent.trim();
 					const leader = tr.querySelector('.purok-leader').textContent.trim();
+					const pickupPoint = tr.querySelector('.purok-pick-up-point').textContent.trim();
 					// populate edit modal and show
 					document.getElementById('editPurokId').value = id;
 					document.getElementById('editPurokName').value = name;
 					document.getElementById('editPurokLeader').value = leader;
+					document.getElementById('editPurokPickUpPoint').value = pickupPoint;
 					const editModalEl = document.getElementById('editPurokModal');
 					const editModal = new bootstrap.Modal(editModalEl);
 					editModal.show();
@@ -574,7 +654,12 @@ let currentBoundaryBarangay = '';
 					method: 'POST',
 					headers: { 'X-Requested-With': 'XMLHttpRequest' },
 					body: formData
-				}).then(r=>r.json()).then(res=>{
+				}).then(r => {
+					if (!r.ok) {
+						throw new Error('Network response was not ok');
+					}
+					return r.json();
+				}).then(res => {
 					if (res && res.success) {
 						if (window.Swal) {
 							Swal.fire({
@@ -586,15 +671,26 @@ let currentBoundaryBarangay = '';
 								title: 'Purok added successfully'
 							});
 						}
-						// keep modal open, but clear name field
+						// Close add modal and reload puroks
+						const addModal = bootstrap.Modal.getInstance(document.getElementById('addPurokModal'));
+						if (addModal) addModal.hide();
+						// Clear form
 						document.getElementById('addPurokName').value = '';
+						document.getElementById('addPurokLeader').value = '';
+						document.getElementById('addPurokPickUpPoint').value = '';
+						// Reload puroks list
+						const barangayId = viewModal.dataset.barangayId;
+						if (barangayId) loadPuroks(barangayId);
 					} else {
 						if (window.Swal) {
 							Swal.fire({icon:'error', title:'Error', text: (res && res.message) || 'Add failed'});
-						} else alert('Add failed');
+						} else alert('Add failed: ' + (res && res.message || 'Unknown error'));
 					}
-				}).catch(()=>{
-					if (window.Swal) Swal.fire({icon:'error', title:'Error', text:'Add failed'}); else alert('Add failed');
+				}).catch(err => {
+					console.error('Add purok error:', err);
+					if (window.Swal) {
+						Swal.fire({icon:'error', title:'Error', text:'Failed to add purok. Please try again.'});
+					} else alert('Add failed');
 				});
 			});
 		}
@@ -608,7 +704,12 @@ let currentBoundaryBarangay = '';
 					method: 'POST',
 					headers: { 'X-Requested-With': 'XMLHttpRequest' },
 					body: formData
-				}).then(r=>r.json()).then(res=>{
+				}).then(r => {
+					if (!r.ok) {
+						throw new Error('Network response was not ok');
+					}
+					return r.json();
+				}).then(res => {
 					if (res && res.success) {
 						if (window.Swal) {
 							Swal.fire({
@@ -620,13 +721,22 @@ let currentBoundaryBarangay = '';
 								title: 'Purok updated successfully'
 							});
 						}
+						// Close edit modal and reload puroks
+						const editModal = bootstrap.Modal.getInstance(document.getElementById('editPurokModal'));
+						if (editModal) editModal.hide();
+						// Reload puroks list
+						const barangayId = viewModal.dataset.barangayId;
+						if (barangayId) loadPuroks(barangayId);
 					} else {
 						if (window.Swal) {
 							Swal.fire({icon:'error', title:'Error', text: (res && res.message) || 'Update failed'});
-						} else alert('Update failed');
+						} else alert('Update failed: ' + (res && res.message || 'Unknown error'));
 					}
-				}).catch(()=>{
-					if (window.Swal) Swal.fire({icon:'error', title:'Error', text:'Update failed'}); else alert('Update failed');
+				}).catch(err => {
+					console.error('Edit purok error:', err);
+					if (window.Swal) {
+						Swal.fire({icon:'error', title:'Error', text:'Failed to update purok. Please try again.'});
+					} else alert('Update failed');
 				});
 			});
 		}
@@ -640,10 +750,16 @@ let currentBoundaryBarangay = '';
 					method: 'POST',
 					headers: { 'X-Requested-With': 'XMLHttpRequest' },
 					body: formData
-				}).then(r=>r.json()).then(res=>{
+				}).then(r => {
+					if (!r.ok) {
+						throw new Error('Network response was not ok');
+					}
+					return r.json();
+				}).then(res => {
 					if (res && res.success) {
 						const delModalEl = document.getElementById('deletePurokModal');
-						bootstrap.Modal.getInstance(delModalEl).hide();
+						const delModal = bootstrap.Modal.getInstance(delModalEl);
+						if (delModal) delModal.hide();
 						if (window.Swal) {
 							Swal.fire({
 								toast: true,
@@ -654,13 +770,19 @@ let currentBoundaryBarangay = '';
 								title: 'Purok deleted successfully'
 							});
 						}
+						// Reload puroks list
+						const barangayId = viewModal.dataset.barangayId;
+						if (barangayId) loadPuroks(barangayId);
 					} else {
 						if (window.Swal) {
 							Swal.fire({icon:'error', title:'Error', text: (res && res.message) || 'Delete failed'});
-						} else alert('Delete failed');
+						} else alert('Delete failed: ' + (res && res.message || 'Unknown error'));
 					}
-				}).catch(()=>{
-					if (window.Swal) Swal.fire({icon:'error', title:'Error', text:'Delete failed'}); else alert('Delete failed');
+				}).catch(err => {
+					console.error('Delete purok error:', err);
+					if (window.Swal) {
+						Swal.fire({icon:'error', title:'Error', text:'Failed to delete purok. Please try again.'});
+					} else alert('Delete failed');
 				});
 			});
 		}
