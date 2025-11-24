@@ -4,7 +4,9 @@ action/bgry_management_action/add_purok.php
 action/bgry_management_action/delete_purok.php
 action/bgry_management_action/edit_barangay.php
 action/bgry_management_action/edit_purok.php
-action/registration_staff.php
+action/database_restore.php
+
+action/registration_staff.php   
 admin_page/barangay_management.php
 admin_page/brgy_record.php
 auth/log_in.php

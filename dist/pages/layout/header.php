@@ -399,7 +399,7 @@
 	</div>
 </div>
 
-<style>
+<!-- <style>
 	/* Ensure modal backdrop and modal have proper z-index */
 	.modal-backdrop {
 		z-index: 9998 !important;
@@ -410,4 +410,4 @@
 	#restoreModal .modal-dialog {
 		z-index: 10000 !important;
 	}
-</style>
+</style> -->
