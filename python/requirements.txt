@@ -19,3 +19,6 @@ seaborn>=0.11.0
 
 # Population-based forecasting enhancements
 scipy>=1.9.0
+
+# Environment variable management
+python-dotenv>=1.0.0

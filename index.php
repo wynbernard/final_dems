@@ -200,7 +200,7 @@
 	<section id="home" class="hero d-flex align-items-center">
 		<div class="container text-center d-flex flex-column justify-content-center">
 			<h1 class="display-4 fw-bold" id="title"></h1>
-			<p class="lead mt-3">Real-time alerts. Smart tracking. Efficient evacuation.</p>
+			<p class="lead mt-3">Intelligent Evacuation Management for a Resilient Future</p>
 			<a href="#features" class="btn btn-light btn-sm mt-4 d-block mx-auto" style="width: 100px;">Learn More</a>
 		</div>
 	</section>
@@ -558,7 +558,7 @@ document.getElementById("contact-form").addEventListener("submit", async functio
 
 	<!-- FOR THE TYPING EFFECT -->
 	<script>
-		const text = "Disaster Evacuation Management System";
+		const text = "AI-Powered Disaster Evacuation Management System";
 		const titleElement = document.getElementById("title");
 		let index = 0;
 

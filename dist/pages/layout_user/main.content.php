@@ -104,15 +104,15 @@
   </div>
 
 
-  <div class="row">
+  <div class="row map-container-wrapper">
     <!-- Map Column -->
-    <div class="col-lg-8 col-md-7 col-sm-12 mb-4">
-      <div class="card shadow-lg rounded border-success h-100">
+    <div class="col-lg-8 col-md-7 col-12 mb-4 map-column">
+      <div class="card shadow-lg rounded border-success h-100 map-card-mobile">
         <div class="card-header bg-success text-white">
           <h3 class="card-title mb-0" style="font-size: 1.25rem;">Disaster Map</h3>
         </div>
-        <div class="card-body p-0" style="min-height: 300px;">
-          <div id="map" style="height: 100%; width: 100%; min-height: 300px;"></div>
+        <div class="card-body p-0 map-body">
+          <div id="map" class="full-map"></div>
           <div id="route-directions" class="leaflet-routing-container"></div>
         </div>
         <div class="card-footer text-muted text-center small">
@@ -122,13 +122,25 @@
     </div>
 
     <!-- Evacuation Centers List Column -->
-    <div class="col-lg-4 col-md-5 col-sm-12 mb-4">
+    <div class="col-lg-4 col-md-5 col-12 mb-4 evacuation-list-column">
       <div class="card shadow-sm h-100">
         <div class="card-header bg-light">
           <h5 class="mb-0">Evacuation Centers</h5>
         </div>
         <ul id="evacuation-list" class="list-group list-group-flush"></ul>
       </div>
+    </div>
+  </div>
+
+  <!-- Mobile Route Details Slide-up Panel -->
+  <div id="mobile-route-panel" class="mobile-route-panel">
+    <div class="mobile-route-handle"></div>
+    <div class="mobile-route-content">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Route Details</h5>
+        <button type="button" class="btn-close" id="close-route-panel" aria-label="Close"></button>
+      </div>
+      <div id="mobile-route-info"></div>
     </div>
   </div>
 
@@ -143,6 +155,127 @@
 <!-- Leaflet Routing Machine -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
 <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.min.js"></script>
+
+<style>
+  /* Map container full space on mobile */
+  @media (max-width: 768px) {
+    .map-container-wrapper {
+      margin: 0 !important;
+      height: calc(100vh - 120px);
+      position: relative;
+    }
+
+    .map-column {
+      padding: 0 !important;
+      margin: 0 !important;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+
+    .evacuation-list-column {
+      display: none;
+    }
+
+    .map-card-mobile {
+      border: none !important;
+      box-shadow: none !important;
+      height: 100% !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+    }
+
+    .map-card-mobile .card-header,
+    .map-card-mobile .card-footer {
+      display: none;
+    }
+
+    .map-body {
+      height: 100% !important;
+      padding: 0 !important;
+      border-radius: 0 !important;
+    }
+
+    .full-map {
+      height: 100% !important;
+      width: 100% !important;
+      min-height: 100% !important;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+
+    .app-content {
+      padding: 0 !important;
+    }
+
+    .container-fluid {
+      padding: 0 !important;
+    }
+  }
+
+  /* Desktop styles */
+  @media (min-width: 769px) {
+    .map-body {
+      min-height: 500px;
+    }
+
+    .full-map {
+      min-height: 500px;
+    }
+  }
+
+  /* Mobile Route Details Slide-up Panel */
+  .mobile-route-panel {
+    position: fixed;
+    bottom: -100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    transition: bottom 0.3s ease-in-out;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mobile-route-panel.active {
+    bottom: 0;
+  }
+
+  .mobile-route-handle {
+    width: 40px;
+    height: 4px;
+    background: #ccc;
+    border-radius: 2px;
+    margin: 8px auto;
+    cursor: grab;
+  }
+
+  .mobile-route-handle:active {
+    cursor: grabbing;
+  }
+
+  .mobile-route-content {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  @media (min-width: 769px) {
+    .mobile-route-panel {
+      display: none;
+    }
+  }
+</style>
 
 <script>
   const barangayLat = <?php echo $barangayCoords['latitude']; ?>;
@@ -208,6 +341,8 @@
   let userLng = null;
   let userMarker = null;
   let routingControl = null;
+  let destinationMarker = null; // Marker for the destination when route is clicked
+  let recommendedCenterCoords = null; // Store recommended center coordinates
   // Router provider: 'osrm' (default), 'openrouteservice', 'mapbox'
   const ROUTER_PROVIDER = '<?php echo isset($router_provider) ? $router_provider : 'osrm'; ?>';
   // If using a provider that requires an API key (openrouteservice, mapbox), set it in server-side variable $router_api_key
@@ -232,6 +367,18 @@
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
+
+  // Ensure map resizes properly on mobile
+  setTimeout(() => {
+    map.invalidateSize();
+  }, 100);
+
+  // Resize map on window resize
+  window.addEventListener('resize', () => {
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+  });
 
   const userIcon = L.icon({
     iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
@@ -363,12 +510,24 @@
       bounds.push([center.lat, center.lng]);
     }
 
+    let recommendedCenter = null;
+    
     nearest.forEach((center, idx) => {
       const isRecommended = idx === recommendedIdx;
       const cap = parseInt(center.total_capacity) || 0;
       const rec = parseInt(center.total_registered) || 0;
       const isFull = cap > 0 && rec >= cap;
       addEvacuationMarker(center, isRecommended, isFull);
+      
+      // Store recommended center for centering
+      if (isRecommended) {
+        recommendedCenter = center;
+        // Store coordinates globally for route checking
+        recommendedCenterCoords = {
+          lat: center.lat,
+          lng: center.lng
+        };
+      }
 
       // Build list item
       const listItem = document.createElement("li");
@@ -418,7 +577,25 @@
       }
     });
 
-    if (bounds.length) {
+    // Position map to center on recommended location
+    if (recommendedCenter && userLat && userLng) {
+      // First fit bounds to show all markers
+      if (bounds.length) {
+        bounds.push([userLat, userLng]);
+        map.fitBounds(bounds, {
+          padding: [20, 20]
+        });
+      }
+      
+      // Then center on recommended location
+      setTimeout(() => {
+        map.setView([recommendedCenter.lat, recommendedCenter.lng], map.getZoom(), {
+          animate: true,
+          duration: 0.5
+        });
+      }, 300);
+    } else if (bounds.length) {
+      // Fallback to fitBounds if no recommended center or user location
       bounds.push([userLat, userLng]);
       map.fitBounds(bounds, {
         padding: [20, 20]
@@ -426,11 +603,60 @@
     }
   }
 
+  // Helper function to check if device is mobile
+  function isMobile() {
+    return window.innerWidth <= 768;
+  }
+
+  // Show mobile route panel
+  function showMobileRoutePanel(content) {
+    if (isMobile()) {
+      const panel = document.getElementById('mobile-route-panel');
+      const infoDiv = document.getElementById('mobile-route-info');
+      if (panel && infoDiv) {
+        infoDiv.innerHTML = content;
+        panel.classList.add('active');
+      }
+    }
+  }
+
+  // Hide mobile route panel
+  function hideMobileRoutePanel() {
+    const panel = document.getElementById('mobile-route-panel');
+    if (panel) {
+      panel.classList.remove('active');
+    }
+  }
+
+  // Close button handler for mobile panel
+  document.addEventListener('DOMContentLoaded', function() {
+    const closeBtn = document.getElementById('close-route-panel');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', hideMobileRoutePanel);
+    }
+    
+    // Close panel when clicking outside (on backdrop)
+    const panel = document.getElementById('mobile-route-panel');
+    if (panel) {
+      panel.addEventListener('click', function(e) {
+        if (e.target === panel) {
+          hideMobileRoutePanel();
+        }
+      });
+    }
+  });
+
   // Draw route on map
   function createRoute(destLat, destLng, btn) {
     if (userLat === null || userLng === null) {
       alert("Getting your current location... please try again.");
       return;
+    }
+
+    // Remove existing destination marker
+    if (destinationMarker) {
+      map.removeLayer(destinationMarker);
+      destinationMarker = null;
     }
 
     if (routingControl) {
@@ -445,6 +671,49 @@
       } catch (e) {}
       routeLayer = null;
     }
+
+    // Create destination marker at the clicked location
+    const destinationIcon = L.icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+      iconSize: [30, 46],
+      iconAnchor: [15, 46],
+      popupAnchor: [0, -46]
+    });
+
+    destinationMarker = L.marker([destLat, destLng], {
+      icon: destinationIcon,
+      zIndexOffset: 1000
+    }).addTo(map);
+
+    // Check if this is the recommended location
+    const isRecommendedLocation = recommendedCenterCoords && 
+      Math.abs(destLat - recommendedCenterCoords.lat) < 0.0001 && 
+      Math.abs(destLng - recommendedCenterCoords.lng) < 0.0001;
+    
+    // Position map so destination is at lower part (if recommended) or upper part
+    const mapContainer = map.getContainer();
+    const mapHeight = mapContainer.clientHeight;
+    // Use lower part position (75% from top) for recommended location
+    const offsetY = isRecommendedLocation ? mapHeight * 0.75 : mapHeight * 0.15;
+    
+    // Get current map center
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    
+    // Calculate the pixel offset needed
+    const point = map.latLngToContainerPoint([destLat, destLng]);
+    const centerPoint = map.latLngToContainerPoint(center);
+    const offset = centerPoint.y - point.y + offsetY;
+    
+    // Convert pixel offset to lat/lng offset
+    // For recommended location, keep it centered horizontally
+    const offsetLatLng = map.containerPointToLatLng([centerPoint.x, centerPoint.y + offset]);
+    
+    // Set view with destination at upper center (recommended) or upper part
+    map.setView([offsetLatLng.lat, destLng], zoom, {
+      animate: true,
+      duration: 0.5
+    });
 
     // Find the .route-steps container: in list (li) or in marker popup
     let stepDiv = null;
@@ -466,6 +735,11 @@
     }
     if (stepDiv) {
       stepDiv.innerHTML = "<em>Loading directions...</em>";
+    }
+
+    // Show loading in mobile panel if on mobile
+    if (isMobile()) {
+      showMobileRoutePanel("<em>Loading directions...</em>");
     }
 
     // Choose routing provider
@@ -497,19 +771,85 @@
       routingControl.on('routesfound', e => {
         const route = e.routes[0];
         const summary = route.summary;
-        stepDiv.innerHTML = `<strong>Route found:</strong><br>${ (summary.totalDistance / 1000).toFixed(2) } km, ${ Math.round(summary.totalTime / 60) } min`;
+        const distance = (summary.totalDistance / 1000).toFixed(2);
+        const time = Math.round(summary.totalTime / 60);
+        
+        // Position map so destination marker is at lower part (if recommended) or upper part
+        setTimeout(() => {
+          const isRecommendedLocation = recommendedCenterCoords && 
+            Math.abs(destLat - recommendedCenterCoords.lat) < 0.0001 && 
+            Math.abs(destLng - recommendedCenterCoords.lng) < 0.0001;
+          
+          const mapContainer = map.getContainer();
+          const mapHeight = mapContainer.clientHeight;
+          // Use lower part position (75% from top) for recommended location
+          const offsetY = isRecommendedLocation ? mapHeight * 0.75 : mapHeight * 0.15;
+          
+          const center = map.getCenter();
+          const zoom = map.getZoom();
+          
+          const point = map.latLngToContainerPoint([destLat, destLng]);
+          const centerPoint = map.latLngToContainerPoint(center);
+          const offset = centerPoint.y - point.y + offsetY;
+          
+          const offsetLatLng = map.containerPointToLatLng([centerPoint.x, centerPoint.y + offset]);
+          map.setView([offsetLatLng.lat, destLng], zoom, {
+            animate: true,
+            duration: 0.3
+          });
+        }, 100);
+        
+        // Build detailed route info
+        let routeInfo = `
+          <div class="route-summary mb-3">
+            <h6 class="text-success mb-2">✓ Route Found</h6>
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+              <span><strong>Distance:</strong></span>
+              <span class="badge bg-primary">${distance} km</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+              <span><strong>Estimated Time:</strong></span>
+              <span class="badge bg-info">${time} minutes</span>
+            </div>
+          </div>
+          <div class="alert alert-info mb-0">
+            <small><i class="bi bi-info-circle"></i> Follow the blue route line on the map to reach your destination.</small>
+          </div>
+        `;
+        
+        const simpleRouteInfo = `<strong>Route found:</strong><br>${distance} km, ${time} min`;
+        if (stepDiv) {
+          stepDiv.innerHTML = simpleRouteInfo;
+        }
+        // Show detailed info in mobile panel
+        if (isMobile()) {
+          showMobileRoutePanel(routeInfo);
+        }
       });
 
       routingControl.on('routingerror', err => {
         console.error('Routing error:', err);
-        stepDiv.innerHTML = "<span class='text-danger'>Failed to get route.</span>";
+        const errorMsg = "<span class='text-danger'>Failed to get route.</span>";
+        if (stepDiv) {
+          stepDiv.innerHTML = errorMsg;
+        }
+        // Show error in mobile panel
+        if (isMobile()) {
+          showMobileRoutePanel(errorMsg);
+        }
       });
 
       return;
     }
 
     // For providers other than OSRM we'll call their HTTP APIs and draw a polyline on the map
-    stepDiv.innerHTML = '<em>Loading directions from ' + ROUTER_PROVIDER + '...</em>';
+    const loadingMsg = '<em>Loading directions from ' + ROUTER_PROVIDER + '...</em>';
+    if (stepDiv) {
+      stepDiv.innerHTML = loadingMsg;
+    }
+    if (isMobile()) {
+      showMobileRoutePanel(loadingMsg);
+    }
 
     const start = [userLng, userLat];
     const end = [destLng, destLat];
@@ -521,17 +861,71 @@
         color: 'blue',
         weight: 5
       }).addTo(map);
-      const bounds = L.latLngBounds(latlngs);
-      bounds.extend([userLat, userLng]);
-      map.fitBounds(bounds, {
-        padding: [20, 20]
-      });
-      stepDiv.innerHTML = `<strong>Route found:</strong><br>${ (distanceMeters/1000).toFixed(2) } km, ${ Math.round(durationSec/60) } min`;
+      
+      // Position map so destination marker is at lower part (if recommended) or center top
+      setTimeout(() => {
+        const isRecommendedLocation = recommendedCenterCoords && 
+          Math.abs(destLat - recommendedCenterCoords.lat) < 0.0001 && 
+          Math.abs(destLng - recommendedCenterCoords.lng) < 0.0001;
+        
+        const mapContainer = map.getContainer();
+        const mapHeight = mapContainer.clientHeight;
+        // Use lower part position (75% from top) for recommended location
+        const offsetY = isRecommendedLocation ? mapHeight * 0.75 : mapHeight * 0.25;
+        
+        const center = map.getCenter();
+        const zoom = map.getZoom();
+        
+        const point = map.latLngToContainerPoint([destLat, destLng]);
+        const centerPoint = map.latLngToContainerPoint(center);
+        const offset = centerPoint.y - point.y + offsetY;
+        
+        const offsetLatLng = map.containerPointToLatLng([centerPoint.x, centerPoint.y + offset]);
+        map.setView([offsetLatLng.lat, destLng], zoom, {
+          animate: true,
+          duration: 0.3
+        });
+      }, 100);
+      
+      const distance = (distanceMeters/1000).toFixed(2);
+      const time = Math.round(durationSec/60);
+      
+      const routeInfo = `
+        <div class="route-summary mb-3">
+          <h6 class="text-success mb-2"><i class="bi bi-check-circle"></i> Route Found</h6>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span><strong>Distance:</strong></span>
+            <span class="badge bg-primary">${distance} km</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span><strong>Estimated Time:</strong></span>
+            <span class="badge bg-info">${time} minutes</span>
+          </div>
+        </div>
+        <div class="alert alert-info">
+          <small>Follow the blue route line on the map to reach your destination.</small>
+        </div>
+      `;
+      
+      const simpleRouteInfo = `<strong>Route found:</strong><br>${distance} km, ${time} min`;
+      if (stepDiv) {
+        stepDiv.innerHTML = simpleRouteInfo;
+      }
+      // Show detailed info in mobile panel
+      if (isMobile()) {
+        showMobileRoutePanel(routeInfo);
+      }
     }
 
     if (ROUTER_PROVIDER === 'openrouteservice') {
       if (!ROUTER_API_KEY) {
-        stepDiv.innerHTML = '<span class="text-danger">OpenRouteService API key not configured.</span>';
+        const errorMsg = '<span class="text-danger">OpenRouteService API key not configured.</span>';
+        if (stepDiv) {
+          stepDiv.innerHTML = errorMsg;
+        }
+        if (isMobile()) {
+          showMobileRoutePanel(errorMsg);
+        }
         return;
       }
       // POST to ORS directions (geojson response)
@@ -554,18 +948,36 @@
           const duration = summary.duration || (props.segments && props.segments[0] && props.segments[0].duration) || 0;
           renderRouteFromCoords(coords, distance, duration);
         } else {
-          stepDiv.innerHTML = '<span class="text-danger">No route returned from OpenRouteService.</span>';
+          const errorMsg = '<span class="text-danger">No route returned from OpenRouteService.</span>';
+          if (stepDiv) {
+            stepDiv.innerHTML = errorMsg;
+          }
+          if (isMobile()) {
+            showMobileRoutePanel(errorMsg);
+          }
         }
       }).catch(err => {
         console.error('ORS error', err);
-        stepDiv.innerHTML = '<span class="text-danger">Failed to fetch route from OpenRouteService.</span>';
+        const errorMsg = '<span class="text-danger">Failed to fetch route from OpenRouteService.</span>';
+        if (stepDiv) {
+          stepDiv.innerHTML = errorMsg;
+        }
+        if (isMobile()) {
+          showMobileRoutePanel(errorMsg);
+        }
       });
       return;
     }
 
     if (ROUTER_PROVIDER === 'mapbox') {
       if (!ROUTER_API_KEY) {
-        stepDiv.innerHTML = '<span class="text-danger">Mapbox access token not configured.</span>';
+        const errorMsg = '<span class="text-danger">Mapbox access token not configured.</span>';
+        if (stepDiv) {
+          stepDiv.innerHTML = errorMsg;
+        }
+        if (isMobile()) {
+          showMobileRoutePanel(errorMsg);
+        }
         return;
       }
       const mbUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${userLng},${userLat};${destLng},${destLat}?geometries=geojson&overview=full&access_token=${encodeURIComponent(ROUTER_API_KEY)}`;
@@ -577,17 +989,35 @@
           const duration = route.duration || 0;
           renderRouteFromCoords(coords, distance, duration);
         } else {
-          stepDiv.innerHTML = '<span class="text-danger">No route returned from Mapbox.</span>';
+          const errorMsg = '<span class="text-danger">No route returned from Mapbox.</span>';
+          if (stepDiv) {
+            stepDiv.innerHTML = errorMsg;
+          }
+          if (isMobile()) {
+            showMobileRoutePanel(errorMsg);
+          }
         }
       }).catch(err => {
         console.error('Mapbox error', err);
-        stepDiv.innerHTML = '<span class="text-danger">Failed to fetch route from Mapbox.</span>';
+        const errorMsg = '<span class="text-danger">Failed to fetch route from Mapbox.</span>';
+        if (stepDiv) {
+          stepDiv.innerHTML = errorMsg;
+        }
+        if (isMobile()) {
+          showMobileRoutePanel(errorMsg);
+        }
       });
       return;
     }
 
     // Unknown provider
-    stepDiv.innerHTML = '<span class="text-danger">Unknown routing provider: ' + ROUTER_PROVIDER + '</span>';
+    const errorMsg = '<span class="text-danger">Unknown routing provider: ' + ROUTER_PROVIDER + '</span>';
+    if (stepDiv) {
+      stepDiv.innerHTML = errorMsg;
+    }
+    if (isMobile()) {
+      showMobileRoutePanel(errorMsg);
+    }
   }
 
   // Geolocation

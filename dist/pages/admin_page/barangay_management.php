@@ -70,6 +70,9 @@ if (!$result) {
 							<div class="card-header d-flex align-items-center gap-2">
 								<input type="text" id="searchBox" class="form-control me-2" placeholder="Search..." style="max-width: 300px;">
 								<button type="button" class="btn btn-sm btn-outline-primary" id="showProneBelow">Show Prone Areas Below</button>
+								<button type="button" class="btn btn-sm btn-outline-info" id="showMapBtn" data-bs-toggle="modal" data-bs-target="#barangayMapModal">
+									<i class="fas fa-map"></i> View Map
+								</button>
 								<button type="button" class="btn btn-sm btn-outline-success ms-auto" id="markAllEvac">Mark all evacuation</button>
 								<button type="button" class="btn btn-sm btn-outline-secondary" id="clearAllEvac">Clear all</button>
 								<button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addLocationModal">
@@ -97,8 +100,21 @@ if (!$result) {
 										<tbody>
 											<?php
 											$counter = 1;
+											$barangayMapData = []; // Store barangay data for map
+											mysqli_data_seek($result, 0); // Reset result pointer
 											if (mysqli_num_rows($result) > 0) {
-												while ($barangay = mysqli_fetch_assoc($result)): ?>
+												while ($barangay = mysqli_fetch_assoc($result)): 
+													// Store data for map
+													if (!empty($barangay['latitude']) && !empty($barangay['longitude'])) {
+														$barangayMapData[] = [
+															'name' => $barangay['barangay_name'],
+															'captain' => $barangay['barangay_captain_name'],
+															'population' => (int)$barangay['total_population'],
+															'latitude' => (float)$barangay['latitude'],
+															'longitude' => (float)$barangay['longitude']
+														];
+													}
+												?>
 													<tr>
 														<td class="cell-number"><?php echo $counter++; ?>.</td>
 														<td class="cell-location "><?php echo htmlspecialchars($barangay['barangay_name']); ?></td>
@@ -174,11 +190,84 @@ if (!$result) {
 		<script>
 			// Pass boundary data to JavaScript
 			window.barangayBoundaries = <?php echo json_encode($barangayBoundaries, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+			// Pass barangay map data to JavaScript
+			window.barangayMapData = <?php echo json_encode($barangayMapData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 			console.log('Loaded boundary data:', window.barangayBoundaries);
+			console.log('Loaded barangay map data:', window.barangayMapData);
 		</script>
 	</div>
 
 	<?php include '../modal/evac_location/barangay_management_modal.php'; ?>
+
+	<!-- Barangay Map Modal -->
+	<div class="modal fade" id="barangayMapModal" tabindex="-1" aria-labelledby="barangayMapModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered" style="max-width: 95%; width: 95%;">
+			<div class="modal-content">
+				<div class="modal-header bg-primary text-white">
+					<h5 class="modal-title" id="barangayMapModalLabel">
+						<i class="fas fa-map"></i> Barangay Map & Prone Areas
+					</h5>
+					<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body p-0">
+					<div id="barangayMap" style="height: 600px; width: 100%;"></div>
+					<div class="p-3 bg-light border-top">
+						<div class="row">
+							<div class="col-md-8">
+								<h6 class="mb-2"><i class="fas fa-info-circle"></i> Legend</h6>
+								<div class="row">
+									<div class="col-md-6">
+										<div class="d-flex align-items-center mb-2">
+											<i class="fas fa-map-marker-alt text-primary me-2" style="font-size: 20px;"></i>
+											<span>Barangay Location</span>
+										</div>
+										<div class="d-flex align-items-center mb-2">
+											<div class="me-2" style="width: 20px; height: 20px; background-color: rgba(0, 102, 255, 0.4); border: 2px solid #0066ff;"></div>
+											<span>Flood-prone Area</span>
+										</div>
+										<div class="d-flex align-items-center mb-2">
+											<div class="me-2" style="width: 20px; height: 20px; background-color: rgba(255, 153, 0, 0.4); border: 2px solid #ff9900;"></div>
+											<span>Earthquake-prone Area</span>
+										</div>
+									</div>
+									<div class="col-md-6">
+										<div class="d-flex align-items-center mb-2">
+											<div class="me-2" style="width: 20px; height: 20px; background-color: rgba(139, 69, 19, 0.4); border: 2px solid #8b4513;"></div>
+											<span>Landslide-prone Area</span>
+										</div>
+										<div class="d-flex align-items-center mb-2">
+											<div class="me-2" style="width: 20px; height: 20px; background-color: rgba(255, 0, 255, 0.4); border: 2px solid #ff00ff;"></div>
+											<span>Typhoon-prone Area</span>
+										</div>
+										<div class="d-flex align-items-center mb-2">
+											<div class="me-2" style="width: 20px; height: 20px; background-color: rgba(255, 0, 0, 0.4); border: 2px solid #ff0000;"></div>
+											<span>Other Prone Areas</span>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<h6 class="mb-2"><i class="fas fa-filter"></i> Controls</h6>
+								<button type="button" class="btn btn-sm btn-outline-primary me-2" id="toggleBarangayMarkers">
+									<i class="fas fa-map-marker-alt"></i> Toggle Barangays
+								</button>
+								<button type="button" class="btn btn-sm btn-outline-danger" id="toggleProneAreas">
+									<i class="fas fa-exclamation-triangle"></i> Toggle Prone Areas
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Leaflet CSS and JS -->
+	<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+	<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 	<script>
 		$(document).ready(function() {
@@ -328,6 +417,246 @@ if (!$result) {
 					btn.textContent = originalText;
 				}
 			});
+
+			// Barangay Map Modal
+			let barangayMap = null;
+			let barangayMarkers = [];
+			let proneAreaLayers = [];
+			let showBarangays = true;
+			let showProneAreas = true;
+
+			const mapModal = document.getElementById('barangayMapModal');
+			mapModal.addEventListener('shown.bs.modal', function() {
+				if (!barangayMap) {
+					// Initialize map centered on Philippines (adjust based on your location)
+					barangayMap = L.map('barangayMap').setView([10.5351, 122.8357], 12);
+					
+					L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+						attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+						maxZoom: 19
+					}).addTo(barangayMap);
+
+					// Load barangay data from table
+					loadBarangaysOnMap();
+					loadProneAreasOnMap();
+				} else {
+					// Resize map if already initialized
+					setTimeout(() => {
+						barangayMap.invalidateSize();
+					}, 100);
+				}
+			});
+
+			function loadBarangaysOnMap() {
+				// Clear existing markers
+				barangayMarkers.forEach(marker => barangayMap.removeLayer(marker));
+				barangayMarkers = [];
+
+				// Get barangay data from PHP
+				const barangayData = window.barangayMapData || [];
+
+				barangayData.forEach(barangay => {
+					const lat = barangay.latitude;
+					const lng = barangay.longitude;
+					
+					if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+						// Create custom icon
+						const customIcon = L.icon({
+							iconUrl: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+							iconSize: [32, 32],
+							iconAnchor: [16, 32],
+							popupAnchor: [0, -32]
+						});
+
+						const marker = L.marker([lat, lng], { icon: customIcon })
+							.addTo(barangayMap)
+							.bindPopup(`
+								<div style="min-width: 200px;">
+									<h6 class="mb-2"><strong>${barangay.name}</strong></h6>
+									<p class="mb-1"><i class="fas fa-user"></i> <strong>Captain:</strong> ${barangay.captain || 'N/A'}</p>
+									<p class="mb-1"><i class="fas fa-users"></i> <strong>Population:</strong> ${barangay.population.toLocaleString()}</p>
+									<p class="mb-0"><i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
+								</div>
+							`);
+
+						barangayMarkers.push(marker);
+					}
+				});
+
+			}
+
+			function loadProneAreasOnMap() {
+				// Clear existing prone area layers
+				proneAreaLayers.forEach(layer => {
+					if (barangayMap.hasLayer(layer)) {
+						barangayMap.removeLayer(layer);
+					}
+				});
+				proneAreaLayers = [];
+
+				// Get boundary data from JSON
+				const boundaries = window.barangayBoundaries || {};
+				console.log('Loading prone areas, boundaries data:', boundaries);
+				console.log('Number of boundaries:', Object.keys(boundaries).length);
+
+				let polygonsCreated = 0;
+				Object.keys(boundaries).forEach(barangayName => {
+					const barangayData = boundaries[barangayName];
+					
+					// Check if coordinates exist (from barangay_boundaries.json structure)
+					if (barangayData.coordinates && Array.isArray(barangayData.coordinates) && barangayData.coordinates.length > 0) {
+						// Convert coordinates from {lat, lng} format to [lat, lng] array for Leaflet
+						const latlngs = barangayData.coordinates.map(coord => {
+							// Handle both formats: {lat, lng} or [lat, lng]
+							if (coord.lat !== undefined && coord.lng !== undefined) {
+								return [parseFloat(coord.lat), parseFloat(coord.lng)];
+							} else if (Array.isArray(coord) && coord.length >= 2) {
+								return [parseFloat(coord[0]), parseFloat(coord[1])];
+							}
+							return null;
+						}).filter(coord => coord !== null);
+
+						if (latlngs.length > 0) {
+							// Get disaster prone types
+							const proneTypes = barangayData.disaster_prone_types || [];
+							console.log(`Barangay: ${barangayName}, Prone Types:`, proneTypes);
+							
+							// Determine color based on prone types (prioritize first type, or use combined color for multiple)
+							let fillColor = '#ff0000'; // Default red
+							let borderColor = '#ff0000';
+							
+							if (proneTypes.length > 0) {
+								// If multiple types, use a gradient or the first type's color
+								if (proneTypes.includes('Flood-prone')) {
+									fillColor = '#0066ff'; // Blue for flood
+									borderColor = '#0044cc';
+								} else if (proneTypes.includes('Earthquake-prone')) {
+									fillColor = '#ff9900'; // Orange for earthquake
+									borderColor = '#cc7700';
+								} else if (proneTypes.includes('Landslide-prone')) {
+									fillColor = '#8b4513'; // Brown for landslide
+									borderColor = '#6b3410';
+								} else if (proneTypes.includes('Typhoon-prone')) {
+									fillColor = '#ff00ff'; // Magenta for typhoon
+									borderColor = '#cc00cc';
+								}
+								
+								// If multiple types, make it slightly more transparent
+								const opacity = proneTypes.length > 1 ? 0.35 : 0.4;
+								
+								// Create polygon for prone area boundary
+								const polygon = L.polygon(latlngs, {
+									color: borderColor,
+									fillColor: fillColor,
+									fillOpacity: opacity,
+									weight: 3,
+									opacity: 0.9,
+									interactive: true
+								});
+
+								// Add to map
+								polygon.addTo(barangayMap);
+
+								// Create popup with barangay info and prone types
+								const proneTypesList = proneTypes.length > 0 ? 
+									proneTypes.map(type => `<li><strong>${type}</strong></li>`).join('') : 
+									'<li><em>Not specified</em></li>';
+								
+								polygon.bindPopup(`
+									<div style="min-width: 280px;">
+										<h6 class="mb-2"><strong><i class="fas fa-map-marker-alt text-primary"></i> ${barangayName}</strong></h6>
+										<hr class="my-2">
+										<p class="mb-2"><i class="fas fa-exclamation-triangle text-danger"></i> <strong>Disaster Prone Types:</strong></p>
+										<ul class="mb-0" style="padding-left: 20px; list-style-type: disc;">
+											${proneTypesList}
+										</ul>
+										${proneTypes.length > 1 ? '<p class="mb-0 mt-2 text-info small"><i class="fas fa-info-circle"></i> Multiple disaster types detected</p>' : ''}
+										<p class="mb-0 mt-2 text-muted small"><i class="fas fa-info-circle"></i> Click to view boundary area</p>
+									</div>
+								`);
+
+								// Add tooltip on hover
+								polygon.bindTooltip(`${barangayName} - ${proneTypes.length > 0 ? proneTypes.join(', ') : 'Prone Area'}`, {
+									permanent: false,
+									direction: 'center',
+									className: 'custom-tooltip'
+								});
+
+								proneAreaLayers.push(polygon);
+								polygonsCreated++;
+							} else {
+								// Even if no prone types specified, show the boundary
+								const polygon = L.polygon(latlngs, {
+									color: '#666666',
+									fillColor: '#cccccc',
+									fillOpacity: 0.3,
+									weight: 2,
+									opacity: 0.6,
+									interactive: true
+								}).addTo(barangayMap);
+
+								polygon.bindPopup(`
+									<div style="min-width: 250px;">
+										<h6 class="mb-2"><strong><i class="fas fa-map-marker-alt"></i> ${barangayName}</strong></h6>
+										<p class="mb-0 text-muted"><em>No disaster prone types specified</em></p>
+									</div>
+								`);
+
+								proneAreaLayers.push(polygon);
+								polygonsCreated++;
+							}
+						}
+					} else if (barangayData.disaster_prone_types && barangayData.disaster_prone_types.length > 0) {
+						// Barangay has prone types but no coordinates - log for debugging
+						console.warn(`Barangay "${barangayName}" has prone types but no coordinates:`, barangayData.disaster_prone_types);
+					}
+				});
+
+				console.log(`Created ${polygonsCreated} prone area polygons`);
+				console.log('Prone area layers:', proneAreaLayers.length);
+
+				// Fit map to show all prone areas if any exist
+				if (proneAreaLayers.length > 0) {
+					const proneGroup = new L.featureGroup(proneAreaLayers);
+					// Only adjust bounds if we have markers too, otherwise fit to prone areas
+					if (barangayMarkers.length === 0) {
+						barangayMap.fitBounds(proneGroup.getBounds().pad(0.1));
+					} else {
+						// Fit to both markers and prone areas
+						const allFeatures = new L.featureGroup([...barangayMarkers, ...proneAreaLayers]);
+						barangayMap.fitBounds(allFeatures.getBounds().pad(0.1));
+					}
+				}
+			}
+
+			// Toggle buttons
+			document.getElementById('toggleBarangayMarkers').addEventListener('click', function() {
+				showBarangays = !showBarangays;
+				barangayMarkers.forEach(marker => {
+					if (showBarangays) {
+						barangayMap.addLayer(marker);
+					} else {
+						barangayMap.removeLayer(marker);
+					}
+				});
+				this.textContent = showBarangays ? 
+					'<i class="fas fa-map-marker-alt"></i> Hide Barangays' : 
+					'<i class="fas fa-map-marker-alt"></i> Show Barangays';
+			});
+
+			document.getElementById('toggleProneAreas').addEventListener('click', function() {
+				showProneAreas = !showProneAreas;
+				proneAreaLayers.forEach(layer => {
+					if (showProneAreas) {
+						barangayMap.addLayer(layer);
+					} else {
+						barangayMap.removeLayer(layer);
+					}
+				});
+				this.textContent = showProneAreas ? 
+					'<i class="fas fa-exclamation-triangle"></i> Hide Prone Areas' : 
+					'<i class="fas fa-exclamation-triangle"></i> Show Prone Areas';
+			});
 		});
 	</script>
 	<style>
@@ -341,6 +670,22 @@ if (!$result) {
 			top: 0;
 			z-index: 10;
 			background: #d1e7dd;
+		}
+
+		/* Custom tooltip styling for prone areas */
+		.custom-tooltip {
+			background-color: rgba(0, 0, 0, 0.8);
+			color: white;
+			padding: 5px 10px;
+			border-radius: 4px;
+			font-size: 12px;
+			font-weight: bold;
+			border: 1px solid #fff;
+		}
+
+		/* Ensure polygons are visible */
+		.leaflet-interactive {
+			cursor: pointer;
 		}
 	</style>
 

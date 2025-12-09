@@ -1,19 +1,24 @@
 <?php
 
 include '../../../../database/session.php';
+require_once '../../../../database/csrf.php';
+
+// Validate CSRF token
+csrf_validate_or_die();
 	
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	// Sanitize and validate input
 	$disaster_name = trim($_POST['disaster_name'] ?? '');
 	$date = trim($_POST['date'] ?? '');
 	$level = intval($_POST['level'] ?? 0);
+	$disaster_type = trim($_POST['disaster_type'] ?? '');
 	$status = trim($_POST['status'] ?? '');
 
 	if ($disaster_name !== '' && $date !== '' &&  ($status === 'Ongoing' || $status === 'Resolved')) {
-		$stmt = $conn->prepare("INSERT INTO disaster_table (disaster_name,date,level,status) VALUES (?,?,?,?)");
+		$stmt = $conn->prepare("INSERT INTO disaster_table (disaster_name,date,level,status,kind_of_disaster) VALUES (?,?,?,?,?)");
 
 		if ($stmt) {
-			$stmt->bind_param("ssis", $disaster_name, $date, $level, $status);
+			$stmt->bind_param("ssiss", $disaster_name, $date, $level, $status, $disaster_type);
 
 			if ($stmt->execute()) {
 				$_SESSION['success'] = "<span style='color: green;'><i class='bi bi-check-circle-fill'></i></span> Disaster added successfully!";

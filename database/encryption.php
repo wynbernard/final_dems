@@ -4,8 +4,20 @@
  * Uses AES-256-CBC encryption with a secret key
  */
 
-// Secret key - should be stored in environment variables in production
-define('ENCRYPTION_KEY', 'your-secret-key-here-change-this-to-random-value');
+// Load environment variables if not already loaded
+if (!function_exists('getenv') || !getenv('ENCRYPTION_KEY')) {
+    require_once __DIR__ . '/env_loader.php';
+}
+
+// Get encryption key from environment variable with fallback (for development only)
+$encryption_key = getenv('ENCRYPTION_KEY');
+if (empty($encryption_key)) {
+    // Fallback for development - generate a warning
+    error_log("WARNING: ENCRYPTION_KEY not set in environment. Using default (INSECURE FOR PRODUCTION).");
+    $encryption_key = 'your-secret-key-here-change-this-to-random-value';
+}
+
+define('ENCRYPTION_KEY', $encryption_key);
 define('ENCRYPTION_CIPHER', 'AES-256-CBC');
 
 /**

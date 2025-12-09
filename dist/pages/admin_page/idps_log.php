@@ -6,6 +6,7 @@ include '../layout/head_links.php';
 $role = isset($_SESSION['role']) ? (trim($_SESSION['role'])) : '';
 $assigned_loc = isset($_SESSION['evac_loc_id']) ? $_SESSION['evac_loc_id'] : '';
 
+// Use prepared statements to prevent SQL injection
 if ($role === 'Staff') {
 	// Staff: show only logs for assigned location
 	$query = "SELECT 
@@ -25,8 +26,18 @@ if ($role === 'Staff') {
 			ON evac_reg_table.room_id = room_table.room_id
 			LEFT JOIN evac_loc_table
 			ON evac_reg_table.evac_loc_id = evac_loc_table.evac_loc_id
-			WHERE evac_reg_table.evac_loc_id = '" . mysqli_real_escape_string($conn, $assigned_loc) . "'
+			WHERE evac_reg_table.evac_loc_id = ?
 			ORDER BY logs_table.date_time DESC";
+	
+	$stmt = $conn->prepare($query);
+	if ($stmt) {
+		$stmt->bind_param("i", $assigned_loc);
+		$stmt->execute();
+		$result = $stmt->get_result();
+	} else {
+		error_log("Failed to prepare query: " . $conn->error);
+		$result = false;
+	}
 } else {
 	// Admin: show all logs
 	$query = "SELECT 
@@ -47,11 +58,13 @@ if ($role === 'Staff') {
 			LEFT JOIN evac_loc_table
 			ON evac_reg_table.evac_loc_id = evac_loc_table.evac_loc_id
 			ORDER BY logs_table.date_time DESC";
+	
+	$result = $conn->query($query);
 }
 
-$result = mysqli_query($conn, $query);
 if (!$result) {
-	die("Query failed: " . mysqli_error($conn)); // Debugging for SQL errors
+	error_log("Query failed: " . $conn->error);
+	die("An error occurred. Please contact administrator.");
 }
 
 // Debug: Log the query and role for troubleshooting
@@ -182,8 +195,8 @@ if ($role === 'Staff') {
 										<tbody>
 											<?php
 											$counter = 1;
-											if (mysqli_num_rows($result) > 0) {
-												while ($row = mysqli_fetch_assoc($result)):
+											if ($result && $result->num_rows > 0) {
+												while ($row = $result->fetch_assoc()):
 													$formattedDate = date('F j, Y, g:i A', strtotime($row['date_time']));
 											?>
 													<tr>

@@ -1,1 +1,37 @@
 /vendor/
+
+# Environment variables - NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+php-error.log
+
+# Upload directories
+/uploads/
+/qrcodes/
+
+# Dependencies
+/node_modules/
+/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Database
+*.sql
+*.sqlite
+*.db
+
+# IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db

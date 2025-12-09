@@ -81,7 +81,7 @@ if (!$result) {
 														<td class="cell-number"><?php echo $counter++; ?>.</td>
 														<td class="cell-disaster-name"><?php echo htmlspecialchars($disaster['disaster_name']); ?></td>
 														<td class="cell-date"><?php echo htmlspecialchars($disaster['date']); ?></td>
-														<td class="cell-disaster-type">To Fix</td>
+														<td class="cell-disaster-type"><?php echo htmlspecialchars($disaster['kind_of_disaster']); ?></td>
 														<td class="cell-scale"><?php echo htmlspecialchars($disaster['level']); ?></td>
 														<td class="cell-status">
 															<?php if ($disaster['status'] === 'Ongoing'): ?>
@@ -94,10 +94,11 @@ if (!$result) {
 														<td>
 															<a href="#" class="btn btn-outline-success btn-sm edit-btn"
 																data-id="<?php echo $disaster['disaster_id']; ?>"
-																data-type="<?php echo htmlspecialchars($disaster['disaster_name']); ?>"
+																data-name="<?php echo htmlspecialchars($disaster['disaster_name']); ?>"
 																data-level="<?php echo htmlspecialchars($disaster['level']); ?>"
 																data-date="<?php echo htmlspecialchars($disaster['date']); ?>"
 																data-status="<?php echo htmlspecialchars($disaster['status']); ?>"
+																data-type="<?php echo htmlspecialchars($disaster['kind_of_disaster']); ?>"
 																data-bs-toggle="modal" data-bs-target="#editDisasterModal">
 																<i class="fas fa-edit"></i> Edit
 															</a>

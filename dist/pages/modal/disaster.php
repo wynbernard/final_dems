@@ -3,13 +3,14 @@
 	<div class="modal-dialog">
 		<div class="modal-content">
 			<form action="../action/disaster/add_disaster.php" method="POST">
+				<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 				<div class="modal-header bg-primary text-white">
 					<h5 class="modal-title" id="addDisasterModalLabel">Add Disaster Record</h5>
 					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 				</div>
 				<div class="modal-body">
 					<div class="mb-3">
-						<label for="disaster_name" class="form-label">Disaster Type</label>
+						<label for="disaster_name" class="form-label">Disaster Name</label>
 						<input type="text" class="form-control" id="disaster_name" name="disaster_name" required>
 					</div>
 					<div class="mb-3">
@@ -30,6 +31,15 @@
 							<option value="8">8</option>
 							<option value="9">9</option>
 							<option value="10">10</option>
+						</select>
+					</div>
+					<div>
+						<label for="disaster_type" class="form-label">Disaster Type</label>
+						<select class="form-control" id="disaster_type" name="disaster_type" required>
+							<option value="" disabled selected>Select disaster type</option>
+							<option value="Earthquake">Earthquake</option>
+							<option value="Typhoon">Typhoon</option>
+							<option value="Volcanic Eruption">Volcanic Eruption</option>
 						</select>
 					</div>
 					<div class="mb-3">
@@ -55,6 +65,7 @@
 <div class="modal fade" id="editDisasterModal" tabindex="-1" aria-hidden="true">
 	<div class="modal-dialog">
 		<form method="POST" action="../action/disaster/edit_disaster.php">
+			<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 			<div class="modal-content">
 				<div class="modal-header">
 					<h5 class="modal-title">Edit Disaster</h5>
@@ -64,7 +75,7 @@
 					<input type="hidden" id="edit-disaster-id" name="disaster_id">
 					<div class="mb-3">
 						<label for="edit-disaster-name" class="form-label">Disaster Name</label>
-						<input type="text" class="form-control" id="edit-disaster-type" name="disaster_name">
+						<input type="text" class="form-control" id="edit-disaster-name" name="disaster_name">
 					</div>
 					<div class="mb-3">
 						<label for="edit-disaster-date" class="form-label">Date</label>
@@ -87,6 +98,15 @@
 						</select>
 					</div>
 					<div>
+						<label for="edit-disaster-type" class="form-label">Disaster Type</label>
+						<select class="form-control" id="edit-disaster-type" name="disaster_type" required>
+							<option value="" disabled selected>Select disaster type</option>
+							<option value="Earthquake">Earthquake</option>
+							<option value="Typhoon">Typhoon</option>
+							<option value="Volcanic Eruption">Volcanic Eruption</option>
+						</select>
+					</div>
+					<div>
 						<label for="edit-disaster-status" class="form-label">Status</label>
 						<select class="form-control" id="edit-disaster-status" name="status" required>
 							<option value="" disabled selected>Select status</option>
@@ -106,6 +126,7 @@
 	<div class="modal-dialog">
 		<div class="modal-content">
 			<form action="../action/disaster/delete_disaster.php" method="POST">
+				<?php include '../../../database/csrf.php'; echo csrf_token_field(); ?>
 				<div class="modal-header bg-danger text-white">
 					<h5 class="modal-title" id="deleteDisasterModalLabel">Confirm Deletion</h5>
 					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -133,17 +154,19 @@
 			button.addEventListener('click', function() {
 				// get the data
 				const disasterId = this.getAttribute('data-id');
-				const disasterType = this.getAttribute('data-type');
+				const disasterName = this.getAttribute('data-name');
 				const disasterDate = this.getAttribute('data-date');
 				const disasterLevel = this.getAttribute('data-level');
 				const disasterStatus = this.getAttribute('data-status');
+				const disasterType = this.getAttribute('data-type');
 
 				// Field Modal 
 				document.getElementById('edit-disaster-id').value = disasterId;
-				document.getElementById('edit-disaster-type').value = disasterType;
+				document.getElementById('edit-disaster-name').value = disasterName;
 				document.getElementById('edit-disaster-date').value = disasterDate;
 				document.getElementById('edit-disaster-level').value = disasterLevel;
 				document.getElementById('edit-disaster-status').value = disasterStatus;
+				document.getElementById('edit-disaster-type').value = disasterType;
 			});
 		});
 	});

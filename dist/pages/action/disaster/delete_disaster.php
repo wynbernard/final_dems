@@ -1,6 +1,10 @@
 <?php
 
 include '../../../../database/session.php';
+require_once '../../../../database/csrf.php';
+
+// Validate CSRF token
+csrf_validate_or_die();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$disaster_id = intval($_POST['disaster_id'] ?? 0);

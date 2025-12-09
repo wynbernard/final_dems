@@ -236,10 +236,7 @@
             }
         ],
         "disaster_prone_types": [
-            "Flood-prone",
-            "Earthquake-prone",
-            "Landslide-prone",
-            "Typhoon-prone"
+            "Flood-prone"
         ]
     },
     "qwqwe": {
@@ -432,12 +429,110 @@
                 "lat": 10.512591,
                 "lng": 122.945792
             }
+        ],
+        "disaster_prone_types": [
+            "Earthquake-prone"
         ]
     },
     "Alianza": {
+        "type": "polygon",
+        "coordinates": [
+            {
+                "lat": 10.478608,
+                "lng": 122.926548
+            },
+            {
+                "lat": 10.473586,
+                "lng": 122.92367
+            },
+            {
+                "lat": 10.469746,
+                "lng": 122.927278
+            },
+            {
+                "lat": 10.46886,
+                "lng": 122.931402
+            },
+            {
+                "lat": 10.472109,
+                "lng": 122.93574
+            },
+            {
+                "lat": 10.476667,
+                "lng": 122.93458
+            },
+            {
+                "lat": 10.477427,
+                "lng": 122.931617
+            },
+            {
+                "lat": 10.477807,
+                "lng": 122.927966
+            },
+            {
+                "lat": 10.47844,
+                "lng": 122.926677
+            }
+        ],
         "disaster_prone_types": [
             "Flood-prone",
             "Landslide-prone"
+        ]
+    },
+    "Poblacion": {
+        "type": "polygon",
+        "coordinates": [
+            {
+                "lat": 10.54561,
+                "lng": 122.831216
+            },
+            {
+                "lat": 10.538522,
+                "lng": 122.830787
+            },
+            {
+                "lat": 10.533881,
+                "lng": 122.830958
+            },
+            {
+                "lat": 10.531602,
+                "lng": 122.832333
+            },
+            {
+                "lat": 10.53118,
+                "lng": 122.833622
+            },
+            {
+                "lat": 10.533206,
+                "lng": 122.833536
+            },
+            {
+                "lat": 10.536244,
+                "lng": 122.832333
+            },
+            {
+                "lat": 10.539028,
+                "lng": 122.832848
+            },
+            {
+                "lat": 10.541054,
+                "lng": 122.832848
+            },
+            {
+                "lat": 10.543332,
+                "lng": 122.832505
+            },
+            {
+                "lat": 10.546117,
+                "lng": 122.832505
+            },
+            {
+                "lat": 10.545864,
+                "lng": 122.831044
+            }
+        ],
+        "disaster_prone_types": [
+            "Flood-prone"
         ]
     }
 }

@@ -149,12 +149,6 @@
             <p>Reports</p>
           </a>
         </li>
-        <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'predictive.php' ? 'menu-open' : ''; ?>">
-          <a href="./predictive.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'predictive.php' ? 'active' : ''; ?>">
-            <i class="nav-icon bi bi-boxes"></i>
-            <p>Predictive Analysis</p>
-          </a>
-        </li>
         <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'brgy_record.php' ? 'menu-open' : ''; ?>">
           <a href="./brgy_record.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'brgy_record.php' ? 'active' : ''; ?>">
             <i class="nav-icon bi bi-journal-text"></i>
