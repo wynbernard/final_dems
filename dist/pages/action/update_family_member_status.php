@@ -2,6 +2,27 @@
 header('Content-Type: application/json');
 include '../../../database/session.php';
 
+// CSRF Protection
+require_once '../../../database/csrf.php';
+
+// Check if it's an AJAX request
+$isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+// Validate CSRF token (use AJAX validation for AJAX requests)
+if ($isAjax) {
+    if (!csrf_validate_ajax()) {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'message' => 'CSRF token validation failed. Please refresh the page and try again.'
+        ]);
+        exit();
+    }
+} else {
+    csrf_validate_or_die();
+}
+
+
 try {
     // Validate request
     if (!isset($_POST['pre_reg_id']) || !isset($_POST['action']) || !isset($_POST['evac_reg_id'])) {
@@ -162,7 +183,11 @@ try {
     }
 
 } catch (Exception $e) {
+    error_log("Error in update_family_member_status.php: " . $e->getMessage());
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    echo json_encode([
+        'success' => false, 
+        'message' => 'An error occurred while updating member status. Please try again.'
+    ]);
 }
 ?>

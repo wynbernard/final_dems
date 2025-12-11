@@ -8,6 +8,7 @@
 			</div>
 			<div class="modal-body">
 				<form action="../action/add_room.php" method="POST">
+					<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 					<!-- Display Selected Location -->
 					<div class="mb-3">
 						<h5>Adding Room to: <strong class="text-primary"><?php echo $location_name; ?></strong></h5>
@@ -42,6 +43,7 @@
 			</div>
 			<div class="modal-body">
 				<form action="../action/edit_room.php" method="POST">
+					<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 					<!-- Hidden Field for room_id -->
 					<input type="hidden" id="editRoomId" name="room_id">
 					<input type="hidden" name="evac_loc_id" value="<?php echo $evac_loc_id; ?>">
@@ -96,6 +98,7 @@
 			</div>
 			<div class="modal-footer">
 				<form action="../action/delete_room.php" method="POST">
+					<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 					<input type="hidden" name="evac_loc_id" value="<?php echo $evac_loc_id; ?>">
 					<input type="hidden" name="room_id" id="deleteRoomId">
 					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

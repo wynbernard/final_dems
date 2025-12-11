@@ -2,6 +2,7 @@
 <div class="modal fade" id="addInventoryModal" tabindex="-1" aria-labelledby="addInventoryModalLabel" aria-hidden="true">
 	<div class="modal-dialog">
 		<form action="../action/inventory/add_inventory.php" method="POST" id="addInventoryForm">
+			<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 			<div class="modal-content">
 				<div class="modal-header">
 					<h5 class="modal-title" id="addInventoryModalLabel"><i class="bi bi-plus-circle"></i> Add New Resource</h5>
@@ -55,6 +56,7 @@
 	<div class="modal-dialog">
 		<div class="modal-content">
 			<form id="editInventoryForm" method="POST" action="../action/inventory/edit_inventory.php">
+				<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 				<div class="modal-header bg-primary text-white">
 					<h5 class="modal-title" id="editInventoryModalLabel">Edit Inventory</h5>
 					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -104,6 +106,7 @@
 			<div class="modal-body">
 				<p>Are you sure you want to delete this resource: <strong id="deleteResourceName"></strong>?</p>
 				<form id="deleteInventoryForm" action="../action/inventory/delete_inventory.php" method="POST">
+					<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 					<input type="hidden" name="resource_name" id="deleteResourceInput">
 				</form>
 			</div>

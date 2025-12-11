@@ -1,7 +1,7 @@
 <?php
 // Include the database connection file
 include '../../../database/session.php'; // Adjust the path to your session/database connection file
-
+ 
 try {
 	// Check if all required fields are provided
 	if (

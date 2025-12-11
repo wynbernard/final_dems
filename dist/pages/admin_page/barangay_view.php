@@ -329,6 +329,7 @@ if (file_exists($boundaryFile)) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
                     <input type="hidden" id="addPurokBarangayId" name="barangay_id" value="<?php echo $id; ?>">
                     <div class="mb-3">
                         <label for="addPurokName" class="form-label">Purok Name</label>

@@ -8,6 +8,7 @@
 			</div>
 			<div class="modal-body">
 				<form id="idpRegistrationForm" method="POST" action="../action/registration_backend.php" enctype="multipart/form-data">
+					<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 					<div id="assignedRoomDisplay" class="alert alert-success mb-3" style="display:none; font-weight:bold;"></div>
 					<div class="d-flex align-items-center mb-3">
 						<div class="alert alert-info mb-3 me-3">
@@ -357,9 +358,9 @@
 							<div class="mb-3">
 								<label class="form-label">Monthly Income</label>
 								<!-- Visible input with commas -->
-								<input type="text" id="monthly_income_display" class="form-control" placeholder="₱0.00" oninput="formatWithCommas()" required>
+								<input type="text" id="monthly_income_display" class="form-control" placeholder="₱0.00" oninput="handleMonthlyIncomeInput()" onblur="formatMonthlyIncomeOnBlur()">
 								<!-- Hidden number input for form submission -->
-								<input type="number" name="monthly_income" id="monthly_income" hidden>
+								<input type="number" name="monthly_income" id="monthly_income" hidden tabindex="-1" value="">
 							</div>
 						</div>
 						<div class="col-md-4">
@@ -960,21 +961,69 @@ function toggleEthnicity() {
 	}
 }
 
-// Format monthly income with commas
-function formatWithCommas() {
+// Handle monthly income input while typing (allow free typing)
+function handleMonthlyIncomeInput() {
 	const displayInput = document.getElementById('monthly_income_display');
 	const hiddenInput = document.getElementById('monthly_income');
 	
-	let value = displayInput.value.replace(/[^\d.]/g, ''); // Remove non-numeric characters except decimal
+	if (!displayInput || !hiddenInput) return;
 	
-	if (value) {
-		const numericValue = parseFloat(value);
+	// Get current cursor position
+	const cursorPos = displayInput.selectionStart;
+	
+	// Remove all non-numeric characters except decimal point
+	let rawValue = displayInput.value.replace(/[^\d.]/g, '');
+	
+	// Remove multiple decimal points (keep only the first one)
+	const parts = rawValue.split('.');
+	if (parts.length > 2) {
+		rawValue = parts[0] + '.' + parts.slice(1).join('');
+	}
+	
+	// Update hidden input with numeric value
+	if (rawValue) {
+		const numericValue = parseFloat(rawValue);
 		if (!isNaN(numericValue)) {
+			hiddenInput.value = numericValue;
+		} else {
+			hiddenInput.value = '';
+		}
+	} else {
+		hiddenInput.value = '';
+	}
+	
+	// Show raw value with ₱ prefix while typing (no formatting to allow continuous typing)
+	displayInput.value = rawValue ? '₱' + rawValue : '';
+	
+	// Restore cursor position (adjust for ₱ symbol)
+	const newPos = rawValue ? Math.min(cursorPos, displayInput.value.length) : 1;
+	setTimeout(() => {
+		displayInput.setSelectionRange(newPos, newPos);
+	}, 0);
+}
+
+// Format monthly income with commas when user leaves the field
+function formatMonthlyIncomeOnBlur() {
+	const displayInput = document.getElementById('monthly_income_display');
+	const hiddenInput = document.getElementById('monthly_income');
+	
+	if (!displayInput || !hiddenInput) return;
+	
+	// Get raw numeric value
+	let rawValue = displayInput.value.replace(/[^\d.]/g, '');
+	
+	if (rawValue) {
+		const numericValue = parseFloat(rawValue);
+		if (!isNaN(numericValue) && numericValue > 0) {
+			hiddenInput.value = numericValue;
+			// Format with commas and 2 decimal places
 			displayInput.value = '₱' + numericValue.toLocaleString('en-US', {
 				minimumFractionDigits: 2,
 				maximumFractionDigits: 2
 			});
-			hiddenInput.value = numericValue;
+		} else {
+			displayInput.value = '';
+			hiddenInput.value = '';
 		}
 	} else {
 		displayInput.value = '';
@@ -2348,6 +2397,20 @@ function loadBarangays() {
 		if (form) {
 			form.addEventListener('submit', function(e) {
 				e.preventDefault();
+				
+				// Sync monthly_income hidden field before submission
+				var displayInput = document.getElementById('monthly_income_display');
+				var hiddenInput = document.getElementById('monthly_income');
+				if (displayInput && hiddenInput) {
+					var value = displayInput.value.replace(/[^\d.]/g, '');
+					if (value) {
+						var numericValue = parseFloat(value);
+						hiddenInput.value = !isNaN(numericValue) ? numericValue : '';
+					} else {
+						hiddenInput.value = '';
+					}
+				}
+				
 				var formData = new FormData(form);
 				fetch(form.action, {
 						method: 'POST',

@@ -4,10 +4,11 @@ include '../layout/head_links.php';
 
 $query = "SELECT elt.latitude , elt.longitude , elt.evac_loc_id , elt.city , elt.purok , bmt.barangay_name , elt.name , elt.total_capacity , elt.status FROM evac_loc_table as elt
 LEFT JOIN barangay_manegement_table as bmt ON elt.barangay_id = bmt.barangay_id";
-$result = mysqli_query($conn, $query);
+$result = $conn->query($query);
 
 if (!$result) {
-	die("Query failed: " . mysqli_error($conn)); // Debugging for SQL errors	
+	error_log("Location management query failed: " . $conn->error);
+	die("Query failed. Please contact administrator."); // Secure error message
 }
 ?>
 <!DOCTYPE html>
@@ -77,8 +78,8 @@ if (!$result) {
 										<tbody>
 											<?php
 											$counter = 1;
-											if (mysqli_num_rows($result) > 0) {
-												while ($location = mysqli_fetch_assoc($result)):
+											if ($result->num_rows > 0) {
+												while ($location = $result->fetch_assoc()):
 													$address = $location['city'] . ', ' . $location['barangay_name'] . ' ,' . $location['purok'];
 											?>
 													<tr>

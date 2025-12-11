@@ -56,12 +56,16 @@ if (trim(strtolower($userRole)) === 'staff') {
             LEFT JOIN pre_reg_table AS pr ON evac_reg_table.pre_reg_id = pr.pre_reg_id
             LEFT JOIN age_class_table AS ac ON pr.age_class_id = ac.age_class_id
         ";
-        $result = mysqli_query($conn, $query);
+        $result = $conn->query($query);
+        if (!$result) {
+            error_log("Reports query failed: " . $conn->error);
+            $result = false;
+        }
     }
 }
 
 if ($result) {
-    while ($row = mysqli_fetch_assoc($result)) {
+    while ($row = $result->fetch_assoc()) {
         $evacRegData[] = $row;
     }
 }

@@ -121,28 +121,8 @@
 		</form>
 	</div>
 </div>
-<!-- DELETE DISASTER MODAL -->
-<div class="modal fade" id="deleteDisasterModal" tabindex="-1" aria-labelledby="deleteDisasterModalLabel" aria-hidden="true">
-	<div class="modal-dialog">
-		<div class="modal-content">
-			<form action="../action/disaster/delete_disaster.php" method="POST">
-				<?php include '../../../database/csrf.php'; echo csrf_token_field(); ?>
-				<div class="modal-header bg-danger text-white">
-					<h5 class="modal-title" id="deleteDisasterModalLabel">Confirm Deletion</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-				</div>
-				<div class="modal-body">
-					<p>Are you sure you want to delete this disaster record?</p>
-					<input type="hidden" name="disaster_id" id="delete-disaster-id">
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-					<button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Delete</button>
-				</div>
-			</form>
-		</div>
-	</div>
-</div>
+
+
 
 
 
@@ -174,13 +154,30 @@
 
 <script>
 	document.addEventListener("DOMContentLoaded", function() {
-		const deleteButtons = document.querySelectorAll(".delete-btn");
-
-		deleteButtons.forEach(button => {
-			button.addEventListener("click", function() {
-				const disasterId = this.getAttribute("data-id");
-				document.getElementById("delete-disaster-id").value = disasterId;
+		// Handle modal show event to set the disaster ID
+		const deleteModal = document.getElementById('deleteDisasterModal');
+		if (deleteModal) {
+			deleteModal.addEventListener('show.bs.modal', function(event) {
+				// Get the button that triggered the modal
+				const button = event.relatedTarget;
+				if (button) {
+					const disasterId = button.getAttribute("data-id");
+					const hiddenInput = document.getElementById("delete-disaster-id");
+					if (hiddenInput && disasterId) {
+						hiddenInput.value = disasterId;
+					}
+				}
 			});
-		});
+			
+			// Ensure modal dialog is visible when shown
+			deleteModal.addEventListener('shown.bs.modal', function() {
+				const modalDialog = this.querySelector('.modal-dialog');
+				if (modalDialog) {
+					modalDialog.style.display = 'block';
+					modalDialog.style.visibility = 'visible';
+					modalDialog.style.opacity = '1';
+				}
+			});
+		}
 	});
 </script>

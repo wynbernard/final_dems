@@ -1,8 +1,26 @@
 <?php
 include '../../../../database/session.php';
 
+// CSRF Protection
+require_once '../../../../database/csrf.php';
+
 // Check if it's an AJAX request
 $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+// Validate CSRF token (use AJAX validation for AJAX requests)
+if ($isAjax) {
+    if (!csrf_validate_ajax()) {
+        http_response_code(403);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'message' => 'CSRF token validation failed. Please refresh the page and try again.'
+        ]);
+        exit();
+    }
+} else {
+    csrf_validate_or_die();
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     if ($isAjax) {
@@ -44,9 +62,10 @@ if ($stmt->execute()) {
     }
     $_SESSION['success'] = "<span style='color:green;'><i class='bi bi-check-circle-fill'></i> Purok added successfully!</span>";
 } else {
+    error_log("Failed to add Purok in add_purok.php: " . $stmt->error);
     if ($isAjax) {
         header('Content-Type: application/json');
-        echo json_encode(['success' => false, 'message' => 'Failed to add Purok: ' . $stmt->error]);
+        echo json_encode(['success' => false, 'message' => 'Failed to add Purok. Please try again.']);
         $stmt->close();
         $conn->close();
         exit;

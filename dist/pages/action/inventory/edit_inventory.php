@@ -1,6 +1,10 @@
 <?php
 
 include '../../../../database/session.php';
+require_once '../../../../database/csrf.php';
+
+// Validate CSRF token
+csrf_validate_or_die();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$original_name = trim($_POST['original_resource_name'] ?? '');
@@ -16,11 +20,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			if ($stmt->execute()) {
 				$_SESSION['success'] = "<span style='color: green;'><i class='bi bi-check-circle-fill'></i></span> Inventory updated successfully!";
 			} else {
-				$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-x-circle-fill'></i></span> Failed to update inventory. " . $stmt->error;
+				error_log("Edit inventory failed: " . $stmt->error);
+				$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-x-circle-fill'></i></span> Failed to update inventory. Please try again.";
 			}
 			$stmt->close();
 		} else {
-			$_SESSION['error'] = "Failed to prepare the update statement.";
+			error_log("Failed to prepare update statement: " . $conn->error);
+			$_SESSION['error'] = "Failed to prepare the update statement. Please try again.";
 		}
 	} else {
 		$_SESSION['error'] = "Invalid input. Please check the fields.";

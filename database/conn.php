@@ -8,7 +8,7 @@
 require_once __DIR__ . '/env_loader.php';
 
 // Get database credentials from environment variables with fallback defaults
-$servername = getenv('DB_HOST') ?: 'localhost';
+$servername = getenv('DB_HOST') ?: 'srv1322.hstgr.io';
 $username   = getenv('DB_USER') ?: 'u520834156_userDEMS';
 $password   = getenv('DB_PASS') ?: '5YnY61~U~Hz';
 $dbname     = getenv('DB_NAME') ?: 'u520834156_DBDems';

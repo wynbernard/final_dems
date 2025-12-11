@@ -5,9 +5,13 @@ include '../layout/head_links.php';
 // Fetch activity log entries
 $query = "SELECT *
 FROM activity_log_table
-ORDER BY activity_log_id DESC;
-";
-$result = mysqli_query($conn, $query);
+ORDER BY activity_log_id DESC";
+$result = $conn->query($query);
+
+if (!$result) {
+	error_log("Activity log query failed: " . $conn->error);
+	die("Query failed. Please contact administrator."); // Secure error message
+}
 ?>
 
 <!DOCTYPE html>
@@ -73,7 +77,8 @@ $result = mysqli_query($conn, $query);
 										<tbody>
 											<?php
 											$counter = 1;
-											while ($row = mysqli_fetch_assoc($result)):
+											if ($result->num_rows > 0) {
+												while ($row = $result->fetch_assoc()):
 											?>
 												<tr>
 													<td class="align-middle px-2 py-1" style="font-size: 0.85rem;">
@@ -95,7 +100,12 @@ $result = mysqli_query($conn, $query);
 														<?php echo date('M d, Y h:i A', strtotime($row['created'])); ?>
 													</td>
 												</tr>
-											<?php endwhile; ?>
+											<?php 
+												endwhile;
+											} else {
+												echo '<tr><td colspan="6" class="text-center">No activity log records found.</td></tr>';
+											}
+											?>
 										</tbody>
 									</table>
 								</div>
@@ -111,10 +121,10 @@ $result = mysqli_query($conn, $query);
 
 	<script src="../scripts/scripts.js"></script>
 	<script>
-		// Simple search filter for forecast table
+		// Simple search filter for activity log table
 		document.getElementById("searchBox").addEventListener("keyup", function() {
 			let filter = this.value.toLowerCase();
-			let rows = document.querySelectorAll("#forecastTable tbody tr");
+			let rows = document.querySelectorAll("#activityLogTable tbody tr");
 			rows.forEach(row => {
 				let text = row.textContent.toLowerCase();
 				row.style.display = text.includes(filter) ? "" : "none";
@@ -128,7 +138,7 @@ $result = mysqli_query($conn, $query);
 			overflow-y: auto;
 		}
 
-		#forecastTable thead th {
+		#activityLogTable thead th {
 			position: sticky;
 			top: 0;
 			z-index: 10;

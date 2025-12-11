@@ -1,5 +1,9 @@
 <?php
 require '../../../../database/session.php'; // Include your database connection file
+require_once '../../../../database/csrf.php';
+
+// Validate CSRF token
+csrf_validate_or_die();
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	$admin_id = $_POST['admin_id'];
@@ -26,12 +30,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 			$description = "Edited admin user: {$username} ({$f_name} {$l_name})";
 			log_activity($conn, $action, $description);
 		} else {
-			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Update User Failed!!!" . mysqli_error($conn);
+			error_log("Failed to update admin user: " . mysqli_error($conn));
+			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Update User Failed!!! Please try again.";
 		}
 
 		mysqli_stmt_close($stmt);
 	} else {
-		$_SESSION['error'] = "Failed to prepare statement.";
+		error_log("Failed to prepare update statement: " . mysqli_error($conn));
+		$_SESSION['error'] = "Failed to prepare statement. Please try again.";
 	}
 
 	mysqli_close($conn);

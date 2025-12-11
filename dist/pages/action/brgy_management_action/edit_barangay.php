@@ -1,6 +1,10 @@
 <?php
 include '../../../../database/session.php';
 
+// CSRF Protection
+require_once '../../../../database/csrf.php';
+csrf_validate_or_die();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$barangay_id = $_POST['barangay_id'];
 	$barangay_name = trim($_POST['barangay_name']);
@@ -46,7 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				unlink($old_signature_path);
 			}
 		} else {
-			die("Failed to upload signature.");
+			error_log("Failed to upload signature in edit_barangay.php");
+			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i> Failed to upload signature.</span>";
+			header("Location: ../../admin_page/barangay_management.php");
+			exit();
 		}
 	}
 
@@ -145,5 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	header("Location: ../../admin_page/barangay_management.php");
 	exit();
 } else {
-	echo "Invalid request.";
+	$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i> Invalid request method.</span>";
+	header("Location: ../../admin_page/barangay_management.php");
+	exit();
 }

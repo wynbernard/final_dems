@@ -8,6 +8,7 @@
 			</div>
 			<div class="modal-body">
 				<form action="../action/admin_user_action/add_admin_user.php" method="POST">
+					<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 					<div class="mb-3">
 						<label for="username" class="form-label">Username</label>
 						<input type="text" class="form-control" id="username" name="username" required>
@@ -289,6 +290,7 @@
 			</div>
 			<div class="modal-body">
 				<form action="../action/admin_user_action/edit_admin_user.php" method="POST">
+					<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 					<input type="hidden" name="admin_id" id="edit-admin-id">
 
 					<div class="mb-3">
@@ -426,6 +428,7 @@
 			<div class="modal-body">
 				<p>Are you sure you want to delete this admin?</p>
 				<form id="deleteForm" action="../action/admin_user_action/delete_admin_user.php" method="POST">
+					<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 					<input type="hidden" name="admin_id" id="delete-admin-id">
 				</form>
 			</div>

@@ -8,10 +8,11 @@ $query = "SELECT * ,d.quantity AS quantite, d.status
 		  LEFT JOIN resource_allocation_table r ON d.resource_id = r.resource_id
 		  LEFT JOIN pre_reg_table p ON d.pre_reg_id = p.pre_reg_id
           ORDER BY d.date_time DESC";
-$result = mysqli_query($conn, $query);
+$result = $conn->query($query);
 
 if (!$result) {
-	die("Query failed: " . mysqli_error($conn));
+	error_log("Resource distribution query failed: " . $conn->error);
+	die("Query failed. Please contact administrator."); // Secure error message
 }
 ?>
 <!DOCTYPE html>
@@ -84,8 +85,8 @@ if (!$result) {
 										<tbody>
 											<?php
 											$counter = 1;
-											if (mysqli_num_rows($result) > 0) {
-												while ($row = mysqli_fetch_assoc($result)) {
+											if ($result->num_rows > 0) {
+												while ($row = $result->fetch_assoc()) {
 													$distribution_date = date('M d, Y H:i', strtotime($row['date_time']));
 											?>
 													<tr>

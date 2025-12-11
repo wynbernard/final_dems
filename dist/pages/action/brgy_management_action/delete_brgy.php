@@ -1,6 +1,10 @@
 <?php
 
 include '../../../../database/session.php';
+require_once '../../../../database/csrf.php';
+
+// Validate CSRF token
+csrf_validate_or_die();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	// Sanitize and validate input
@@ -34,15 +38,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			}
 			$_SESSION['success'] = "<span style='color:mint;'><i class='bi bi-check-circle-fill'></i> Delete Barangay Successfully!</span>";
 		} else {
-			$_SESSION['error'] = "<span style='color:mint;'><i class='bi bi-exclamation-circle-fill'></i> Failed to Delete Barangay.</span>";
+			error_log("Failed to delete barangay: " . $stmt->error);
+			$_SESSION['error'] = "<span style='color:mint;'><i class='bi bi-exclamation-circle-fill'></i> Failed to Delete Barangay. Please try again.</span>";
 		}
 
 		$stmt->close();
 	} else {
-		echo "Invalid ID provided.";
+		$_SESSION['error'] = "<span style='color:mint;'><i class='bi bi-exclamation-circle-fill'></i> Invalid ID provided.</span>";
 	}
 } else {
-	echo "Invalid request method.";
+	$_SESSION['error'] = "<span style='color:mint;'><i class='bi bi-exclamation-circle-fill'></i> Invalid request method.</span>";
 }
 
 header("Location: ../../admin_page/barangay_management.php");

@@ -3,6 +3,15 @@
 	<title>DEMS</title>
 	<!--begin::Primary Meta Tags-->
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<?php
+	// CSRF Token Meta Tag for AJAX requests
+	if (session_status() === PHP_SESSION_NONE) {
+		session_start();
+	}
+	require_once '../../../database/csrf.php';
+	$csrfToken = csrf_get_token();
+	echo '<meta name="csrf-token" content="' . htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') . '">';
+	?>
 	<meta name="title" content="AdminLTE v4 | Dashboard" />
 	<meta name="author" content="ColorlibHQ" />
 	<link rel="icon" href="../../../src/images/bagonhon.png" type="image/png" />

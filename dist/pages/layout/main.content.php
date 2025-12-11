@@ -26,25 +26,31 @@
     $analyticsLabels = [];
     // Total evacuations (sum of total_evacuation)
     $analyticsQuery = "SELECT SUM(total_evacuation) AS total FROM evacuation_record_table";
-    $analyticsResult = mysqli_query($conn, $analyticsQuery);
+    $analyticsResult = $conn->query($analyticsQuery);
     if ($analyticsResult) {
-      $analyticsTotal = (int)mysqli_fetch_assoc($analyticsResult)['total'];
+      $analyticsTotal = (int)$analyticsResult->fetch_assoc()['total'];
     }
     // New today (sum of total_evacuation for today)
     $today = date('Y-m-d');
-    $analyticsTodayQuery = "SELECT SUM(total_evacuation) AS today FROM evacuation_record_table WHERE DATE(start_date) = '$today'";
-    $analyticsTodayResult = mysqli_query($conn, $analyticsTodayQuery);
-    if ($analyticsTodayResult) {
-      $analyticsToday = (int)mysqli_fetch_assoc($analyticsTodayResult)['today'];
+    $analyticsTodayQuery = "SELECT SUM(total_evacuation) AS today FROM evacuation_record_table WHERE DATE(start_date) = ?";
+    $stmt_today = $conn->prepare($analyticsTodayQuery);
+    if ($stmt_today) {
+      $stmt_today->bind_param("s", $today);
+      $stmt_today->execute();
+      $analyticsTodayResult = $stmt_today->get_result();
+      if ($analyticsTodayResult) {
+        $analyticsToday = (int)$analyticsTodayResult->fetch_assoc()['today'];
+      }
+      $stmt_today->close();
     }
     // Trend: group by start_date and end_date, sum total_evacuation for each unique pair (last 7 unique pairs)
     $trendQuery = "SELECT start_date, end_date, SUM(total_evacuation) as total_evacuation FROM evacuation_record_table GROUP BY start_date, end_date ORDER BY start_date DESC LIMIT 7";
-    $trendResult = mysqli_query($conn, $trendQuery);
+    $trendResult = $conn->query($trendQuery);
     $analyticsLabels = [];
     $analyticsTrend = [];
     if ($trendResult) {
       $trendRows = [];
-      while ($row = mysqli_fetch_assoc($trendResult)) {
+      while ($row = $trendResult->fetch_assoc()) {
         $trendRows[] = $row;
       }
       // Reverse to show oldest to newest
@@ -108,8 +114,8 @@
           <div class="inner">
             <?php
             $query = "SELECT COUNT(*) AS total_admin FROM admin_table";
-            $result = mysqli_query($conn, $query);
-            $row = mysqli_fetch_assoc($result);
+            $result = $conn->query($query);
+            $row = $result->fetch_assoc();
             $total_admin = $row['total_admin'];
             ?>
             <h3 style="color:#333"><?php echo htmlspecialchars($total_admin) ?></h3>
@@ -149,8 +155,8 @@
           <div class="inner">
             <?php
             $query = "SELECT COUNT(*) AS pre_reg FROM pre_reg_table";
-            $result = mysqli_query($conn, $query);
-            $row = mysqli_fetch_assoc($result);
+            $result = $conn->query($query);
+            $row = $result->fetch_assoc();
             $total_pre_reg = $row['pre_reg'];
             ?>
             <h3 class="text-dark mb-1"><?php echo htmlspecialchars($total_pre_reg); ?><sup class="fs-5"></sup></h3>
@@ -185,16 +191,17 @@
             if ($_SESSION['role'] == 'Staff') {
               $query = "SELECT COUNT(*) AS evac_reg FROM evac_reg_table WHERE status = 'Evacuated' AND evac_loc_id = ?";
               $stmt = $conn->prepare($query);
-              $stmt->bind_param("i", $_SESSION['evac_loc_id']);
+              $staff_loc_id = intval($_SESSION['evac_loc_id'] ?? 0);
+              $stmt->bind_param("i", $staff_loc_id);
               $stmt->execute();
               $result = $stmt->get_result();
-              $row = mysqli_fetch_assoc($result);
+              $row = $result->fetch_assoc();
               $total_evac_reg = $row['evac_reg'];
               $stmt->close();
             } else {
               $query = "SELECT COUNT(*) AS evac_reg FROM evac_reg_table WHERE status = 'Evacuated'";
-              $result = mysqli_query($conn, $query);
-              $row = mysqli_fetch_assoc($result);
+              $result = $conn->query($query);
+              $row = $result->fetch_assoc();
               $total_evac_reg = $row['evac_reg'];
             }
             ?>
@@ -226,20 +233,25 @@
           <div class="inner">
             <?php
             if($_SESSION['role'] == 'Staff'){
-              $assignlocation = $_SESSION['evac_loc_id'];
+              $admin_id = intval($_SESSION['admin_id'] ?? 0);
               $query = "SELECT elt.name AS location_name FROM admin_table 
               LEFT JOIN evac_loc_table elt ON admin_table.evac_loc_id = elt.evac_loc_id
               WHERE admin_table.admin_id = ?";
               $stmt = $conn->prepare($query);
-              $stmt->bind_param("i", $_SESSION['admin_id']);
-              $stmt->execute();
-              $result = $stmt->get_result();
-              $row = mysqli_fetch_assoc($result);
-              $assignlocation = $row['location_name'];
+              if ($stmt) {
+                $stmt->bind_param("i", $admin_id);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                $row = $result->fetch_assoc();
+                $assignlocation = $row['location_name'] ?? 'N/A';
+                $stmt->close();
+              } else {
+                $assignlocation = 'N/A';
+              }
             }else{
             $query = "SELECT COUNT(*) AS total_locations FROM evac_loc_table";
-            $result = mysqli_query($conn, $query);
-            $row = mysqli_fetch_assoc($result);
+            $result = $conn->query($query);
+            $row = $result->fetch_assoc();
             $total_locations = $row['total_locations'];
           }
             ?>
@@ -294,9 +306,9 @@
           LEFT JOIN age_class_table ON pre_reg_table.pre_reg_id = age_class_table.age_class_id
           WHERE age_class_table.classification IS NOT NULL AND evac_reg_table.status = 'Evacuated'
           GROUP BY classification";
-    $genderResult = mysqli_query($conn, $genderQuery);
+    $genderResult = $conn->query($genderQuery);
     if ($genderResult) {
-      while ($row = mysqli_fetch_assoc($genderResult)) {
+      while ($row = $genderResult->fetch_assoc()) {
         if (strtolower($row['gender']) == 'male') {
           $maleCount = $row['count'];
         } elseif (strtolower($row['gender']) == 'female') {
@@ -329,9 +341,9 @@
   ";
     }
 
-    $ageResult = mysqli_query($conn, $ageQuery);
+    $ageResult = $conn->query($ageQuery);
     if ($ageResult) {
-      while ($row = mysqli_fetch_assoc($ageResult)) {
+      while ($row = $ageResult->fetch_assoc()) {
         $age = (int)$row['age'];
 
         if ($age <= 2) {
@@ -350,13 +362,13 @@
 
     // Count solo evacuees with solo_address_id > 0
     $soloQuery = "SELECT COUNT(*) AS solo_count FROM pre_reg_table WHERE registered_as = 'Solo'";
-    $soloResult = mysqli_query($conn, $soloQuery);
-    $soloCount1 = ($soloResult) ? (int)mysqli_fetch_assoc($soloResult)['solo_count'] : 0;
+    $soloResult = $conn->query($soloQuery);
+    $soloCount1 = ($soloResult) ? (int)$soloResult->fetch_assoc()['solo_count'] : 0;
 
     // Count family evacuees with family_id > 0
     $familyQuery = "SELECT COUNT(*) AS family_count FROM pre_reg_table WHERE registered_as = 'Family' AND relation_to_family = 'Head of Family' AND family_id IS NOT NULL";
-    $familyResult = mysqli_query($conn, $familyQuery);
-    $familyCount1 = ($familyResult) ? (int)mysqli_fetch_assoc($familyResult)['family_count'] : 0;
+    $familyResult = $conn->query($familyQuery);
+    $familyCount1 = ($familyResult) ? (int)$familyResult->fetch_assoc()['family_count'] : 0;
     ?>
 
 
@@ -393,29 +405,58 @@
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'Staff' && !empty($_SESSION['evac_loc_id'])) {
       // Try to match by evac_loc_id if the evacuation_record_table stores evac_loc_id; otherwise fall back to name filtering.
       // We assume evacuation_record_table may have an evac_loc_id column. Use it if present.
-      $checkCol = mysqli_query($conn, "SHOW COLUMNS FROM evacuation_record_table LIKE 'evac_loc_id'");
-      if ($checkCol && mysqli_num_rows($checkCol) > 0) {
+      $checkCol = $conn->query("SHOW COLUMNS FROM evacuation_record_table LIKE 'evac_loc_id'");
+      if ($checkCol && $checkCol->num_rows > 0) {
         $assignedId = intval($_SESSION['evac_loc_id']);
-        $query = "SELECT evacuation_location AS evacuation_center, start_date, end_date, total_evacuation AS total_evacuees, CASE WHEN end_date IS NULL OR end_date = '0000-00-00 00:00:00' THEN 'Ongoing' ELSE 'Completed' END AS event_status FROM evacuation_record_table WHERE evac_loc_id = $assignedId ORDER BY start_date ASC LIMIT 100";
+        $query = "SELECT evacuation_location AS evacuation_center, start_date, end_date, total_evacuation AS total_evacuees, CASE WHEN end_date IS NULL OR end_date = '0000-00-00 00:00:00' THEN 'Ongoing' ELSE 'Completed' END AS event_status FROM evacuation_record_table WHERE evac_loc_id = ? ORDER BY start_date ASC LIMIT 100";
+        $stmt = $conn->prepare($query);
+        if ($stmt) {
+          $stmt->bind_param("i", $assignedId);
+          $stmt->execute();
+          $result = $stmt->get_result();
+        } else {
+          error_log("Evacuation record query prepare failed: " . $conn->error);
+          $result = false;
+        }
       } else {
         // Fallback: find the evac location name for the staff's assigned evac_loc_id and filter by name
         $assignedId = intval($_SESSION['evac_loc_id']);
-        $nameRes = mysqli_query($conn, "SELECT name FROM evac_loc_table WHERE evac_loc_id = $assignedId LIMIT 1");
+        $nameStmt = $conn->prepare("SELECT name FROM evac_loc_table WHERE evac_loc_id = ? LIMIT 1");
         $assignedName = '';
-        if ($nameRes && $nr = mysqli_fetch_assoc($nameRes)) {
-          $assignedName = mysqli_real_escape_string($conn, $nr['name']);
+        if ($nameStmt) {
+          $nameStmt->bind_param("i", $assignedId);
+          $nameStmt->execute();
+          $nameRes = $nameStmt->get_result();
+          if ($nameRes && $nr = $nameRes->fetch_assoc()) {
+            $assignedName = $nr['name'];
+          }
+          $nameStmt->close();
         }
-        $query = "SELECT evacuation_location AS evacuation_center, start_date, end_date, total_evacuation AS total_evacuees, CASE WHEN end_date IS NULL OR end_date = '0000-00-00 00:00:00' THEN 'Ongoing' ELSE 'Completed' END AS event_status FROM evacuation_record_table WHERE evacuation_location = '$assignedName' ORDER BY start_date ASC LIMIT 100";
+        
+        if (!empty($assignedName)) {
+          $query = "SELECT evacuation_location AS evacuation_center, start_date, end_date, total_evacuation AS total_evacuees, CASE WHEN end_date IS NULL OR end_date = '0000-00-00 00:00:00' THEN 'Ongoing' ELSE 'Completed' END AS event_status FROM evacuation_record_table WHERE evacuation_location = ? ORDER BY start_date ASC LIMIT 100";
+          $stmt = $conn->prepare($query);
+          if ($stmt) {
+            $stmt->bind_param("s", $assignedName);
+            $stmt->execute();
+            $result = $stmt->get_result();
+          } else {
+            error_log("Evacuation record query prepare failed: " . $conn->error);
+            $result = false;
+          }
+        } else {
+          $result = false;
+        }
       }
     } else {
       $query = "SELECT evacuation_location AS evacuation_center, start_date, end_date, total_evacuation AS total_evacuees, CASE WHEN end_date IS NULL OR end_date = '0000-00-00 00:00:00' THEN 'Ongoing' ELSE 'Completed' END AS event_status FROM evacuation_record_table ORDER BY start_date ASC LIMIT 100";
+      $result = $conn->query($query);
     }
-
-    $result = mysqli_query($conn, $query);
 
     $analyticsByCenter = [];
 
-    while ($row = mysqli_fetch_assoc($result)) {
+    if ($result) {
+      while ($row = $result->fetch_assoc()) {
       $center = $row['evacuation_center'];
       $startDate = date('M d, Y', strtotime($row['start_date']));
       $count = (int) $row['total_evacuees'];
@@ -437,6 +478,7 @@
       } else {
         $analyticsByCenter[$center]['completed'][] = $count;
         $analyticsByCenter[$center]['ongoing'][] = null;
+      }
       }
     }
     ?>
@@ -489,10 +531,10 @@
     include '../../../database/conn.php';
 
     $evacMapLocations = [];
-    $assignedLocations = ($_SESSION['evac_loc_id']);
+    $assignedLocations = isset($_SESSION['evac_loc_id']) ? intval($_SESSION['evac_loc_id']) : 0;
 
     // Query to get evacuation locations with coordinates
-    if ($_SESSION['role'] === 'Staff') {
+    if ($_SESSION['role'] === 'Staff' && $assignedLocations > 0) {
       $locQuery = "
 SELECT
     rm.room_capacity,
@@ -521,10 +563,19 @@ LEFT JOIN evac_reg_table ert
 WHERE evc.latitude IS NOT NULL 
   AND evc.longitude IS NOT NULL
   AND evc.status = 'Active'
-  AND evc.evac_loc_id = $assignedLocations
+  AND evc.evac_loc_id = ?
 GROUP BY rm.room_id
 ORDER BY evc.name, rm.room_name;
 ";
+      $locStmt = $conn->prepare($locQuery);
+      if ($locStmt) {
+        $locStmt->bind_param("i", $assignedLocations);
+        $locStmt->execute();
+        $locResult = $locStmt->get_result();
+      } else {
+        error_log("Location query prepare failed: " . $conn->error);
+        $locResult = false;
+      }
     } else {
 
       $locQuery = "
@@ -558,50 +609,77 @@ WHERE evc.latitude IS NOT NULL
 GROUP BY rm.room_id
 ORDER BY evc.name, rm.room_name;
 ";
+      $locResult = $conn->query($locQuery);
     }
 
-    $locResult = mysqli_query($conn, $locQuery);
+    if ($locResult) {
+      while ($row = $locResult->fetch_assoc()) {
+        $locId = (int)$row['evac_loc_id'];
 
-    while ($row = mysqli_fetch_assoc($locResult)) {
-      $locId = (int)$row['evac_loc_id'];
+        // Get total solo evacuees (registered as Solo or no family)
+        $soloQuery = "
+      SELECT COUNT(*) AS total_solo 
+      FROM evac_reg_table
+      LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
+      WHERE evac_loc_id = ? 
+        AND (registered_as = 'Solo' OR family_id IS NULL OR family_id = 0)
+        AND evac_reg_table.status = 'Evacuated'
+    ";
+        $soloStmt = $conn->prepare($soloQuery);
+        $soloCount = 0;
+        if ($soloStmt) {
+          $soloStmt->bind_param("i", $locId);
+          $soloStmt->execute();
+          $soloResult = $soloStmt->get_result();
+          if ($soloResult && $rowSolo = $soloResult->fetch_assoc()) {
+            $soloCount = intval($rowSolo['total_solo']);
+          }
+          $soloStmt->close();
+        }
 
-      // Get total solo evacuees (registered as Solo or no family)
-      $soloQuery = "
-    SELECT COUNT(*) AS total_solo 
-    FROM evac_reg_table
-    LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
-    WHERE evac_loc_id = $locId 
-      AND (registered_as = 'Solo' OR family_id IS NULL OR family_id = 0)
+        // Get total family members (all evacuees registered as family)
+        $familyMembersQuery = "
+      SELECT COUNT(*) AS total_family_members 
+      FROM evac_reg_table 
+      LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
+      WHERE evac_loc_id = ? 
+        AND registered_as = 'Family'
+        AND family_id IS NOT NULL
+        AND family_id > 0
+        AND evac_reg_table.status = 'Evacuated'
+    ";
+
+        $totalEvacueesQuery = "
+      SELECT COUNT(*) AS total_evacuees 
+      FROM evac_reg_table 
+      LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
+      WHERE evac_loc_id = ?
       AND evac_reg_table.status = 'Evacuated'
-  ";
-      $soloResult = mysqli_query($conn, $soloQuery);
-      $soloCount = ($soloResult && $rowSolo = mysqli_fetch_assoc($soloResult)) ? intval($rowSolo['total_solo']) : 0;
+    ";
 
-      // Get total family members (all evacuees registered as family)
-      $familyMembersQuery = "
-    SELECT COUNT(*) AS total_family_members 
-    FROM evac_reg_table 
-    LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
-    WHERE evac_loc_id = $locId 
-      AND registered_as = 'Family'
-      AND family_id IS NOT NULL
-      AND family_id > 0
-      AND evac_reg_table.status = 'Evacuated'
-  ";
+        $totalEvacueesStmt = $conn->prepare($totalEvacueesQuery);
+        $totalEvacueesCount = 0;
+        if ($totalEvacueesStmt) {
+          $totalEvacueesStmt->bind_param("i", $locId);
+          $totalEvacueesStmt->execute();
+          $totalEvacueesResult = $totalEvacueesStmt->get_result();
+          if ($totalEvacueesResult && $rowTotal = $totalEvacueesResult->fetch_assoc()) {
+            $totalEvacueesCount = intval($rowTotal['total_evacuees']);
+          }
+          $totalEvacueesStmt->close();
+        }
 
-      $totalEvacueesQuery = "
-    SELECT COUNT(*) AS total_evacuees 
-    FROM evac_reg_table 
-    LEFT JOIN pre_reg_table ON evac_reg_table.pre_reg_id = pre_reg_table.pre_reg_id
-    WHERE evac_loc_id = $locId
-    AND evac_reg_table.status = 'Evacuated'
-  ";
-
-      $totalEvacueesResult = mysqli_query($conn, $totalEvacueesQuery);
-      $totalEvacueesCount = ($totalEvacueesResult && $rowTotal = mysqli_fetch_assoc($totalEvacueesResult)) ? intval($rowTotal['total_evacuees']) : 0;
-
-      $familyMembersResult = mysqli_query($conn, $familyMembersQuery);
-      $familyMembersCount = ($familyMembersResult && $rowFamily = mysqli_fetch_assoc($familyMembersResult)) ? intval($rowFamily['total_family_members']) : 0;
+        $familyMembersStmt = $conn->prepare($familyMembersQuery);
+        $familyMembersCount = 0;
+        if ($familyMembersStmt) {
+          $familyMembersStmt->bind_param("i", $locId);
+          $familyMembersStmt->execute();
+          $familyMembersResult = $familyMembersStmt->get_result();
+          if ($familyMembersResult && $rowFamily = $familyMembersResult->fetch_assoc()) {
+            $familyMembersCount = intval($rowFamily['total_family_members']);
+          }
+          $familyMembersStmt->close();
+        }
 
       $evacMapLocations[] = [
         'id' => $locId,
@@ -620,6 +698,7 @@ ORDER BY evc.name, rm.room_name;
         'available_space' => $row['available_space'],
         'room_count' => $row['room_count']
       ];
+      }
     }
 
     // --- PHP: build analyticsByCenter ---
@@ -631,12 +710,13 @@ ORDER BY evc.name, rm.room_name;
   WHERE start_date IS NOT NULL
   ORDER BY start_date ASC
 ";
-    $statsResult = mysqli_query($conn, $statsQuery);
+    $statsResult = $conn->query($statsQuery);
     if (!$statsResult) {
-      error_log("Query failed: " . mysqli_error($conn));
-      $statsResult = [];
+      error_log("Query failed: " . $conn->error);
+      $statsResult = false;
     }
-    while ($row = mysqli_fetch_assoc($statsResult)) {
+    if ($statsResult) {
+      while ($row = $statsResult->fetch_assoc()) {
       $center = $row['evacuation_location'] ?? 'Unknown';
       $startDateFormatted = date('M d, Y', strtotime($row['start_date']));
       $endDateFormatted = (empty($row['end_date']) || $row['end_date'] === '0000-00-00 00:00:00')
@@ -680,6 +760,7 @@ ORDER BY evc.name, rm.room_name;
         $analyticsByCenter[$center]['ongoingFamily'][] = null;
         $analyticsByCenter[$center]['ongoingSolo'][]   = null;
         $analyticsByCenter[$center]['ongoingTotal'][]  = null;
+      }
       }
     }
     ?>

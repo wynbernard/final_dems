@@ -5,10 +5,11 @@ include '../layout/head_links.php';
 // Modified query for inventory
 $query = "SELECT resource_name, quantity , measurement_unit
           FROM resource_allocation_table";
-$result = mysqli_query($conn, $query);
+$result = $conn->query($query);
 
 if (!$result) {
-	die("Query failed: " . mysqli_error($conn));
+	error_log("Resource inventory query failed: " . $conn->error);
+	die("Query failed. Please contact administrator."); // Secure error message
 }
 ?>
 <!DOCTYPE html>
@@ -90,8 +91,8 @@ if (!$result) {
 											<tbody>
 												<?php
 												$counter = 1;
-												if (mysqli_num_rows($result) > 0) {
-													while ($row = mysqli_fetch_assoc($result)) {
+												if ($result->num_rows > 0) {
+													while ($row = $result->fetch_assoc()) {
 														$status_class = '';
 														if ($row['quantity'] >= 50) {
 															$status = 'In Stock';

@@ -1,5 +1,9 @@
 <?php
 include '../../../database/session.php'; // Ensure session and DB connection are included
+require_once '../../../database/csrf.php';
+
+// Validate CSRF token
+csrf_validate_or_die();
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	// Get location ID from the form
@@ -21,7 +25,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		if (mysqli_stmt_execute($delete_stmt)) {
 			$_SESSION['success'] = "<span style='color: white;'><i class='bi bi-check-circle-fill'></i></span> Location deleted successfully!";
 		} else {
-			$_SESSION['error'] = "<span style='color:white;'><i class='bi bi-exclamation-circle-fill'></i></span> Delete failed: " . mysqli_error($conn);
+			error_log("Failed to delete location: " . mysqli_error($conn));
+			$_SESSION['error'] = "<span style='color:white;'><i class='bi bi-exclamation-circle-fill'></i></span> Delete failed. Please try again.";
 		}
 	} else {
 		$_SESSION['error'] = "<span style='color:white;'><i class='bi bi-exclamation-circle-fill'></i></span> Location not found!";

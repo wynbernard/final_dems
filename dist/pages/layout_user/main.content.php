@@ -73,9 +73,13 @@
           <div class="inner">
             <?php
             $query = "SELECT COUNT(*) AS evac_reg FROM evac_reg_table";
-            $result = mysqli_query($conn, $query);
-            $row = mysqli_fetch_assoc($result);
-            $total_evac_reg = $row['evac_reg'];
+            $result = $conn->query($query);
+            if ($result && $result->num_rows > 0) {
+              $row = $result->fetch_assoc();
+              $total_evac_reg = $row['evac_reg'];
+            } else {
+              $total_evac_reg = 0;
+            }
             ?>
             <h3><?php echo htmlspecialchars($total_evac_reg) ?></h3>
             <p>Evacuation Registration</p>

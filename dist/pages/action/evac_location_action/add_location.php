@@ -1,5 +1,9 @@
 <?php
 include '../../../../database/session.php'; // Include session and database connection
+require_once '../../../../database/csrf.php';
+
+// Validate CSRF token
+csrf_validate_or_die();
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	// Get and sanitize input values
@@ -38,7 +42,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		if ($barangay_stmt->execute()) {
 			$barangay_id = $barangay_stmt->insert_id;
 		} else {
-			$_SESSION['error'] = "Failed to insert barangay!";
+			error_log("Failed to insert barangay in add_location.php: " . $barangay_stmt->error);
+			$_SESSION['error'] = "<span style='color:white;'><i class='bi bi-exclamation-circle-fill'></i> Failed to insert barangay. Please try again.</span>";
 			header("Location: ../../admin_page/loc_management.php");
 			exit();
 		}
@@ -71,12 +76,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		if ($execute) {
 			$_SESSION['success'] = "<span style='color:green;'><i class='bi bi-check-circle-fill'></i> Location added successfully!</span>";
 		} else {
-			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i> Failed to add location.</span>";
+			error_log("Failed to add location: " . mysqli_stmt_error($stmt));
+			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i> Failed to add location. Please try again.</span>";
 		}
 
 		mysqli_stmt_close($stmt);
 	} else {
-		$_SESSION['error'] = "<span style='color:black;'><i class='bi bi-exclamation-circle-fill'></i> Database error: " . mysqli_error($conn) . "</span>";
+		error_log("Failed to prepare insert statement in add_location.php: " . mysqli_error($conn));
+		$_SESSION['error'] = "<span style='color:black;'><i class='bi bi-exclamation-circle-fill'></i> Database error. Please try again.</span>";
 	}
 
 	// Redirect back to locations page

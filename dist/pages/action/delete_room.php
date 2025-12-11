@@ -1,5 +1,9 @@
 <?php
 include '../../../database/session.php'; // Include session and database connection
+require_once '../../../database/csrf.php';
+
+// Validate CSRF token
+csrf_validate_or_die();
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	// Get room ID
@@ -43,7 +47,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	if (mysqli_stmt_execute($stmt)) {
 		$_SESSION['success'] = "<span style='color:green;'><i class='bi bi-check-circle-fill'></i></span> Room deleted successfully!";
 	} else {
-		$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Failed to delete room: " . mysqli_error($conn);
+		error_log("Failed to delete room: " . mysqli_error($conn));
+		$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Failed to delete room. Please try again.";
 	}
 
 	// Recalculate total_capacity for the evac location and update evac_loc_table

@@ -7,14 +7,16 @@
 			</div>
 			<div class="modal-body">
 				<form action="../action/update_admin_profile.php" method="POST">
+					<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 					<div class="mb-3">
 						<label class="form-label">Username</label>
 						<input type="text" class="form-control" name="username"
 							value="<?php echo htmlspecialchars($admin['username']); ?>" required>
 					</div>
 					<div class="mb-3">
-						<label class="form-label">New Password</label>
-						<input type="password" class="form-control" name="password" value="<?php echo htmlspecialchars($admin['password']); ?>" required>
+						<label class="form-label">New Password (leave blank to keep current password)</label>
+						<input type="password" class="form-control" name="password" placeholder="Enter new password (optional)">
+						<small class="text-muted">Leave blank if you don't want to change your password.</small>
 					</div>
 					<div class="mb-3">
 						<label class="form-label">First Name</label>

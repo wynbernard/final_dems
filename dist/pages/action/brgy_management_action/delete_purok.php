@@ -1,6 +1,10 @@
 <?php
 include '../../../../database/session.php';
 
+// CSRF Protection
+require_once '../../../../database/csrf.php';
+csrf_validate_or_die();
+
 // Check if it's an AJAX request
 $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 

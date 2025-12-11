@@ -1,27 +1,35 @@
 <?php
 include '../../../database/session.php'; // Adjust the path to your session/database connection file
 
-// Debugging: Check if the connection is successful
+// Check if the connection is successful
 if (!$conn) {
-	die("Database connection failed: " . mysqli_connect_error());
+	error_log("Database connection failed in fetch_location.php");
+	header('Content-Type: application/json');
+	echo json_encode(['error' => 'Database connection failed']);
+	exit();
 }
 
 try {
-	$query = "SELECT evac_loc_id, name FROM evac_loc_table";
-	$result = mysqli_query($conn, $query);
+	$query = "SELECT evac_loc_id, name FROM evac_loc_table ORDER BY name ASC";
+	$result = $conn->query($query);
 
 	if (!$result) {
-		throw new Exception("Query failed: " . mysqli_error($conn));
+		error_log("Database query failed in fetch_location.php: " . $conn->error);
+		throw new Exception("Failed to fetch locations");
 	}
 
 	$locations = [];
-	while ($row = mysqli_fetch_assoc($result)) {
-		$locations[] = $row;
+	while ($row = $result->fetch_assoc()) {
+		$locations[] = [
+			'evac_loc_id' => (int)$row['evac_loc_id'],
+			'name' => $row['name']
+		];
 	}
 
 	header('Content-Type: application/json');
 	echo json_encode($locations);
 } catch (Exception $e) {
+	error_log("Error in fetch_location.php: " . $e->getMessage());
 	header('Content-Type: application/json');
-	echo json_encode(['error' => $e->getMessage()]);
+	echo json_encode(['error' => 'An error occurred while fetching locations']);
 }

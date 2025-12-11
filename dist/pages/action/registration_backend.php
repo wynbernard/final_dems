@@ -2,6 +2,10 @@
 session_start();
 include '../../../database/conn.php';
 require '../../../phpqrcode/qrlib.php';
+require_once '../../../database/csrf.php';
+
+// Validate CSRF token for AJAX requests
+csrf_validate_ajax();
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $f_name = trim($_POST['f_name']);

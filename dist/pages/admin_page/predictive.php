@@ -4,7 +4,12 @@ include '../layout/head_links.php';
 
 // Fetch predictive forecast results from barangay forecasts
 $query = "SELECT `brgy_forecast_id`, `date`, `barangay_name`, `period`, `scale_range`, `forecast`, `lower_bound`, `upper_bound`, `created_at` FROM `brgy_forecasts` ORDER BY `date` DESC, `barangay_name`";
-$result = mysqli_query($conn, $query);
+$result = $conn->query($query);
+
+if (!$result) {
+	error_log("Predictive forecast query failed: " . $conn->error);
+	die("Query failed. Please contact administrator."); // Secure error message
+}
 ?>
 
 <!DOCTYPE html>
@@ -71,7 +76,8 @@ $result = mysqli_query($conn, $query);
 										<tbody>
 											<?php
 											$counter = 1;
-											while ($row = mysqli_fetch_assoc($result)):
+											if ($result->num_rows > 0) {
+												while ($row = $result->fetch_assoc()):
 											?>
 												<tr>
 													<td class="align-middle px-2 py-1" style="font-size: 0.85rem;">
@@ -96,7 +102,12 @@ $result = mysqli_query($conn, $query);
 														<?php echo htmlspecialchars($row['created_at']); ?>
 													</td>
 												</tr>
-											<?php endwhile; ?>
+											<?php 
+												endwhile;
+											} else {
+												echo '<tr><td colspan="7" class="text-center">No forecast records found.</td></tr>';
+											}
+											?>
 										</tbody>
 									</table>
 								</div>

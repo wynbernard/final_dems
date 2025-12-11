@@ -4,14 +4,15 @@ include '../../../database/conn.php';
 
 try {
     $query = "SELECT resource_id, resource_name, quantity, measurement_unit FROM resource_allocation_table ORDER BY resource_name ASC";
-    $result = mysqli_query($conn, $query);
+    $result = $conn->query($query);
     
     if (!$result) {
-        throw new Exception("Database query failed: " . mysqli_error($conn));
+        error_log("Database query failed: " . $conn->error);
+        throw new Exception("Failed to fetch resource data");
     }
     
     $resources = [];
-    while ($row = mysqli_fetch_assoc($result)) {
+    while ($row = $result->fetch_assoc()) {
         $resources[] = [
             'resource_id' => (int)$row['resource_id'],
             'resource_name' => $row['resource_name'],
@@ -26,9 +27,10 @@ try {
     ]);
     
 } catch (Exception $e) {
+    error_log("Error in get_resource_quantities.php: " . $e->getMessage());
     echo json_encode([
         'success' => false,
-        'message' => $e->getMessage()
+        'message' => 'An error occurred while fetching resource data'
     ]);
 }
 ?>

@@ -198,3 +198,5 @@ The severity calculation is in:
 - Method: `_categorize_risk_by_month_historical_scale()`
 - Lines: 743-888
 
+
+

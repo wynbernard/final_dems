@@ -10,7 +10,7 @@
 					<!-- Right side: Form (col-md-5) -->
 					<div class="col-md-5 order-md-last">
 						<form action="../action/evac_location_action/add_location.php" method="POST" class="needs-validation" novalidate>
-
+							<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 							<!-- Location Name -->
 							<div class="mb-3">
 								<label for="locationName" class="form-label fw-medium">📍 Location Name</label>
@@ -86,6 +86,7 @@
 			</div>
 			<div class="modal-body">
 				<form action="../action/evac_location_action/edit_location.php" method="POST">
+					<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 					<input type="hidden" id="editLocationId" name="evac_loc_id">
 
 					<div class="row">
@@ -178,6 +179,7 @@
 			</div>
 			<div class="modal-footer">
 				<form action="../action/delete_location.php" method="POST">
+					<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 					<input type="hidden" id="deleteLocationId" name="evac_loc_id">
 					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
 					<button type="submit" class="btn btn-danger">Delete</button>

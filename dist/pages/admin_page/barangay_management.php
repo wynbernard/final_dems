@@ -25,10 +25,11 @@ $query = "SELECT b.*, IFNULL(b.evacuation_needed, 0) AS evacuation_needed,
 	) AS pre_reg_count
 	FROM barangay_manegement_table b";
 
-$result = mysqli_query($conn, $query);
+$result = $conn->query($query);
 
 if (!$result) {
-	die("Query failed: " . mysqli_error($conn));
+	error_log("Barangay management query failed: " . $conn->error);
+	die("Query failed. Please contact administrator."); // Secure error message
 }
 ?>
 <!DOCTYPE html>
@@ -101,9 +102,9 @@ if (!$result) {
 											<?php
 											$counter = 1;
 											$barangayMapData = []; // Store barangay data for map
-											mysqli_data_seek($result, 0); // Reset result pointer
-											if (mysqli_num_rows($result) > 0) {
-												while ($barangay = mysqli_fetch_assoc($result)): 
+											$result->data_seek(0); // Reset result pointer
+											if ($result->num_rows > 0) {
+												while ($barangay = $result->fetch_assoc()): 
 													// Store data for map
 													if (!empty($barangay['latitude']) && !empty($barangay['longitude'])) {
 														$barangayMapData[] = [

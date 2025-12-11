@@ -199,6 +199,7 @@
 				</div>
 
 				<div class="modal-body">
+				<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 					<input type="hidden" name="barangay_id" id="edit_barangay_id">
 					<input type="hidden" name="current_signature" id="edit_current_signature">
 
@@ -294,6 +295,7 @@
 <div class="modal fade" id="deleteLocationModal" tabindex="-1" aria-labelledby="deleteLocationModalLabel" aria-hidden="true">
 	<div class="modal-dialog">
 		<form id="deleteLocationForm" method="POST" action="../action/brgy_management_action/delete_brgy.php">
+			<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 			<div class="modal-content">
 				<div class="modal-header">
 					<h5 class="modal-title" id="deleteLocationModalLabel">Confirm Deletion</h5>
@@ -391,6 +393,7 @@
 					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 				</div>
 				<div class="modal-body">
+					<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 					<input type="hidden" id="addPurokBarangayId" name="barangay_id">
 					<div class="mb-3">
 						<label for="addPurokName" class="form-label">Purok Name</label>
@@ -424,6 +427,7 @@
 					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 				</div>
 				<div class="modal-body">
+				<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 					<input type="hidden" id="editPurokId" name="purok_id">
 					<div class="mb-3">
 						<label for="editPurokName" class="form-label">Purok Name</label>
@@ -457,6 +461,7 @@
 					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 				</div>
 				<div class="modal-body">
+				<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
 					<input type="hidden" id="deletePurokId" name="purok_id">
 					<p>Are you sure you want to delete this purok?</p>
 					<p class="fw-bold" id="deletePurokName"></p>

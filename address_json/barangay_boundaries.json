@@ -534,5 +534,15 @@
         "disaster_prone_types": [
             "Flood-prone"
         ]
+    },
+    "ewee": {
+        "disaster_prone_types": [
+            "Landslide-prone"
+        ]
+    },
+    "Sampinit": {
+        "disaster_prone_types": [
+            "Landslide-prone"
+        ]
     }
 }

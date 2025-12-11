@@ -3,10 +3,11 @@ include '../../../database/session.php';
 include '../layout/head_links.php';
 
 $query = "SELECT * FROM disaster_table ORDER BY `date` DESC"; // Adjust table name if needed
-$result = mysqli_query($conn, $query);
+$result = $conn->query($query);
 
 if (!$result) {
-	die("Query failed: " . mysqli_error($conn)); // Debugging for SQL errors
+	error_log("Disaster query failed: " . $conn->error);
+	die("Query failed. Please contact administrator."); // Secure error message
 }
 ?>
 <!DOCTYPE html>
@@ -75,8 +76,8 @@ if (!$result) {
 										<tbody>	
 											<?php
 											$counter = 1;
-											if (mysqli_num_rows($result) > 0) {
-												while ($disaster = mysqli_fetch_assoc($result)): ?>
+											if ($result->num_rows > 0) {
+												while ($disaster = $result->fetch_assoc()): ?>
 													<tr>
 														<td class="cell-number"><?php echo $counter++; ?>.</td>
 														<td class="cell-disaster-name"><?php echo htmlspecialchars($disaster['disaster_name']); ?></td>
@@ -93,18 +94,18 @@ if (!$result) {
 														</td>
 														<td>
 															<a href="#" class="btn btn-outline-success btn-sm edit-btn"
-																data-id="<?php echo $disaster['disaster_id']; ?>"
-																data-name="<?php echo htmlspecialchars($disaster['disaster_name']); ?>"
-																data-level="<?php echo htmlspecialchars($disaster['level']); ?>"
-																data-date="<?php echo htmlspecialchars($disaster['date']); ?>"
-																data-status="<?php echo htmlspecialchars($disaster['status']); ?>"
-																data-type="<?php echo htmlspecialchars($disaster['kind_of_disaster']); ?>"
+																data-id="<?php echo htmlspecialchars((string)$disaster['disaster_id'], ENT_QUOTES, 'UTF-8'); ?>"
+																data-name="<?php echo htmlspecialchars($disaster['disaster_name'], ENT_QUOTES, 'UTF-8'); ?>"
+																data-level="<?php echo htmlspecialchars((string)$disaster['level'], ENT_QUOTES, 'UTF-8'); ?>"
+																data-date="<?php echo htmlspecialchars($disaster['date'], ENT_QUOTES, 'UTF-8'); ?>"
+																data-status="<?php echo htmlspecialchars($disaster['status'], ENT_QUOTES, 'UTF-8'); ?>"
+																data-type="<?php echo htmlspecialchars($disaster['kind_of_disaster'], ENT_QUOTES, 'UTF-8'); ?>"
 																data-bs-toggle="modal" data-bs-target="#editDisasterModal">
 																<i class="fas fa-edit"></i> Edit
 															</a>
 
 															<a href="#" class="btn btn-outline-danger btn-sm delete-btn"
-																data-id="<?php echo $disaster['disaster_id']; ?>"
+																data-id="<?php echo htmlspecialchars((string)$disaster['disaster_id'], ENT_QUOTES, 'UTF-8'); ?>"
 																data-bs-toggle="modal" data-bs-target="#deleteDisasterModal">
 																<i class="fas fa-trash"></i> Delete
 															</a>
@@ -124,17 +125,17 @@ if (!$result) {
 									<ul class="pagination pagination-sm m-0 float-end" style="font-size: 12px; line-height: 1; height: 20px;">
 										<?php if ($page > 1) : ?>
 											<li class="page-item">
-												<a class="page-link px-1 py-0" style="padding: 3px 6px;" href="?page=<?php echo ($page - 1); ?>">&laquo;</a>
+												<a class="page-link px-1 py-0" style="padding: 3px 6px;" href="?page=<?php echo htmlspecialchars((string)($page - 1), ENT_QUOTES, 'UTF-8'); ?>">&laquo;</a>
 											</li>
 										<?php endif; ?>
 										<?php for ($i = 1; $i <= $totalPages; $i++) : ?>
-											<li class="page-item <?php echo ($i == $page) ? 'active' : ''; ?>">
-												<a class="page-link px-1 py-0" style="padding: 3px 6px;" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+											<li class="page-item <?php echo htmlspecialchars(($i == $page) ? 'active' : '', ENT_QUOTES, 'UTF-8'); ?>">
+												<a class="page-link px-1 py-0" style="padding: 3px 6px;" href="?page=<?php echo htmlspecialchars((string)$i, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string)$i, ENT_QUOTES, 'UTF-8'); ?></a>
 											</li>
 										<?php endfor; ?>
 										<?php if ($page < $totalPages) : ?>
 											<li class="page-item">
-												<a class="page-link px-1 py-0" style="padding: 3px 6px;" href="?page=<?php echo ($page + 1); ?>">&raquo;</a>
+												<a class="page-link px-1 py-0" style="padding: 3px 6px;" href="?page=<?php echo htmlspecialchars((string)($page + 1), ENT_QUOTES, 'UTF-8'); ?>">&raquo;</a>
 											</li>
 										<?php endif; ?>
 									</ul>
@@ -155,6 +156,32 @@ if (!$result) {
 	// include '../modal/edit_disaster.php';
 	// include '../modal/delete_disaster.php'; 
 	?>
+
+	<!-- DELETE DISASTER MODAL -->
+	<div class="modal fade" id="deleteDisasterModal" tabindex="-1" aria-labelledby="deleteDisasterModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header bg-dark text-white">
+					<h5 class="modal-title" id="deleteDisasterModalLabel">Confirm Deletion</h5>
+					<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body">
+					<p>Are you sure you want to delete this disaster record?</p>
+					<p class="text-danger"><strong>This action cannot be undone.</strong></p>
+					<form id="deleteDisasterForm" action="../action/disaster/delete_disaster.php" method="POST">
+						<?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
+						<input type="hidden" name="disaster_id" id="delete-disaster-id">
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+					<button type="submit" class="btn btn-danger" onclick="document.getElementById('deleteDisasterForm').submit();">
+						<i class="fas fa-trash"></i> Delete
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
 
 	<!-- Visualize Modal: Map, Graph, and Barangay Dropdown -->
 	<div class="modal fade" id="visualizeModal" tabindex="-1" aria-hidden="true">
@@ -306,6 +333,27 @@ if (!$result) {
 					}
 				});
 			});
+		});
+	</script>
+
+	<!-- Delete Modal Script -->
+	<script>
+		document.addEventListener("DOMContentLoaded", function() {
+			// Handle modal show event to set the disaster ID
+			const deleteModal = document.getElementById('deleteDisasterModal');
+			if (deleteModal) {
+				deleteModal.addEventListener('show.bs.modal', function(event) {
+					// Get the button that triggered the modal
+					const button = event.relatedTarget;
+					if (button) {
+						const disasterId = button.getAttribute("data-id");
+						const hiddenInput = document.getElementById("delete-disaster-id");
+						if (hiddenInput && disasterId) {
+							hiddenInput.value = disasterId;
+						}
+					}
+				});
+			}
 		});
 	</script>
 	<style>

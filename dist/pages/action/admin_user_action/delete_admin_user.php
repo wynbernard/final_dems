@@ -1,5 +1,9 @@
 <?php
 include '../../../../database/session.php'; // Database connection
+require_once '../../../../database/csrf.php';
+
+// Validate CSRF token
+csrf_validate_or_die();
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	$admin_id = $_POST['admin_id'];
@@ -45,12 +49,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 			}
 			log_activity($conn, $action, $description);
 		} else {
-			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Delete User Failed!!!" . mysqli_error($conn);
+			error_log("Failed to delete admin user: " . mysqli_error($conn));
+			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Delete User Failed!!! Please try again.";
 		}
 
 		mysqli_stmt_close($stmt);
 	} else {
-		$_SESSION['error'] = "Failed to prepare statement.";
+		error_log("Failed to prepare delete statement: " . mysqli_error($conn));
+		$_SESSION['error'] = "Failed to prepare statement. Please try again.";
 	}
 
 	mysqli_close($conn);

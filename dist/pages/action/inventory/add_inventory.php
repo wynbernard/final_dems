@@ -1,6 +1,10 @@
 <?php
 
 include '../../../../database/session.php';
+require_once '../../../../database/csrf.php';
+
+// Validate CSRF token
+csrf_validate_or_die();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$resource_name = trim($_POST['resource_name'] ?? '');
@@ -17,7 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		if ($stmt->execute()) {
 			$_SESSION['success'] = "<span style='color: green;'><i class='bi bi-check-circle-fill'></i></span> Add inventory Successfull!!!";
 		} else {
-			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Add inventory Failed!!! " . $stmt->error;
+			error_log("Add inventory failed: " . $stmt->error);
+			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Add inventory Failed!!! Please try again.";
 		}
 		$stmt->close();
 	} else {

@@ -1,5 +1,9 @@
 <?php
 include '../../../../database/session.php';
+require_once '../../../../database/csrf.php';
+
+// Validate CSRF token
+csrf_validate_or_die();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	// Sanitize input
@@ -13,8 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$longitude = floatval($_POST['longitude']);
 
 	// Validate required fields
-	if (
-		empty($evac_loc_id) || empty($location_name) || empty($location_city) || empty($location_purok) || empty($total_capacity)
+	if(
+		empty($evac_loc_id) || empty($location_name) || empty($location_city) || empty($location_purok) 
 	) {
 		die("Missing required fields.");
 	}

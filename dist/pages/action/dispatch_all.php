@@ -1,6 +1,10 @@
 <?php
 header('Content-Type: application/json');
 include '../../../database/session.php';
+require_once '../../../database/csrf.php';
+
+// Validate CSRF token for AJAX requests
+csrf_validate_ajax();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 	echo json_encode(['success' => false, 'message' => 'Invalid request method']);
@@ -60,5 +64,6 @@ try {
 	echo json_encode(['success' => true, 'message' => 'Dispatched', 'count' => count($ids)]);
 } catch (Exception $e) {
 	$conn->rollback();
-	echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+	error_log("Dispatch all error: " . $e->getMessage());
+	echo json_encode(['success' => false, 'message' => 'Database error occurred. Please try again.']);
 }

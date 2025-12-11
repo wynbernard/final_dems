@@ -10,6 +10,8 @@
                 <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body details-modal-body" id="idpDetailsBody">
+                <?php require_once '../../../database/csrf.php'; echo csrf_token_field(); ?>
+            <!--  -->
 				<!-- IDP details will be loaded here dynamically -->
 				Loading...
 			</div>
@@ -100,13 +102,26 @@
             const room = $(this).data('room') || '';
             const date = $(this).data('date') || '';
             const registered = ($(this).data('registered') || '').toString();
+            // Preserve CSRF token before loading content
+            const existingToken = $('#idpDetailsModal input[name="csrf_token"]').val();
+            const tokenField = existingToken ? '<input type="hidden" name="csrf_token" value="' + existingToken + '">' : '';
+            
             // Read pre-rendered family content from the corresponding hidden div
             const content = document.getElementById('family-members-' + evacRegId);
             if (content) {
-                // Wrap inside a styled card for consistent appearance
-                $('#idpDetailsBody').html('<div class="details-card">' + content.innerHTML + '</div>');
+                // Wrap inside a styled card for consistent appearance, preserving CSRF token
+                $('#idpDetailsBody').html(tokenField + '<div class="details-card">' + content.innerHTML + '</div>');
             } else {
-                $('#idpDetailsBody').html('<div class="p-3">No details available.</div>');
+                $('#idpDetailsBody').html(tokenField + '<div class="p-3">No details available.</div>');
+            }
+            
+            // If no token exists, get it from session via AJAX or meta tag
+            if (!existingToken) {
+                // Try to get token from meta tag or fetch it
+                const metaToken = $('meta[name="csrf-token"]').attr('content');
+                if (metaToken) {
+                    $('#idpDetailsBody').prepend('<input type="hidden" name="csrf_token" value="' + metaToken + '">');
+                }
             }
 
             // Set friendly, contextual title
@@ -140,14 +155,36 @@
             const originalHtml = btn.html();
             btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Updating...').prop('disabled', true);
 
+            // Get CSRF token from multiple possible locations (meta tag is most reliable)
+            let csrfToken = $('meta[name="csrf-token"]').attr('content');
+            if (!csrfToken) {
+                csrfToken = $('#idpDetailsModal input[name="csrf_token"]').val();
+            }
+            if (!csrfToken) {
+                csrfToken = $('input[name="csrf_token"]').first().val();
+            }
+            
+            if (!csrfToken) {
+                console.error('CSRF token not found');
+                alert('CSRF token not found. Please refresh the page and try again.');
+                btn.html(originalHtml).prop('disabled', false);
+                return;
+            }
+            
+            console.log('CSRF Token found:', csrfToken ? 'Yes' : 'No'); // Debug
+            
             // Send AJAX request
             $.ajax({
                 url: '../action/update_family_member_status.php',
                 method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
                 data: {
                     pre_reg_id: preRegId,
                     evac_reg_id: evacRegId,
-                    action: action
+                    action: action,
+                    csrf_token: csrfToken
                 },
                 dataType: 'json',
                 success: function(response) {

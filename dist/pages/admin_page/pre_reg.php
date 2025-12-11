@@ -26,9 +26,10 @@ WHERE (pre_reg_table.relation_to_family = 'Head of Family' OR pre_reg_table.regi
 ";
 
 
-	$result = mysqli_query($conn, $query);
+	$result = $conn->query($query);
 	if (!$result) {
-		die("Query failed: " . mysqli_error($conn)); // Debugging for SQL errors
+		error_log("Pre-registration query failed: " . $conn->error);
+		die("Query failed. Please contact administrator."); // Secure error message
 	}
 	?>
  <!DOCTYPE html>
@@ -78,17 +79,17 @@ WHERE (pre_reg_table.relation_to_family = 'Head of Family' OR pre_reg_table.regi
  								<?php
 									// Count solo
 									$soloQuery = "SELECT COUNT(*) AS solo_count FROM pre_reg_table WHERE registered_as = 'Solo'";
-									$soloResult = mysqli_query($conn, $soloQuery);
-									$soloCount = ($soloResult && mysqli_num_rows($soloResult) > 0) ? mysqli_fetch_assoc($soloResult)['solo_count'] : 0;
+									$soloResult = $conn->query($soloQuery);
+									$soloCount = ($soloResult && $soloResult->num_rows > 0) ? $soloResult->fetch_assoc()['solo_count'] : 0;
 
-									$totalQuery = "SELECT COUNT(*) AS total_count FROM pre_reg_table;";
-									$totalResult = mysqli_query($conn, $totalQuery);
-									$totalCount = ($totalResult && mysqli_num_rows($totalResult) > 0) ? mysqli_fetch_assoc($totalResult)['total_count'] : 0;
+									$totalQuery = "SELECT COUNT(*) AS total_count FROM pre_reg_table";
+									$totalResult = $conn->query($totalQuery);
+									$totalCount = ($totalResult && $totalResult->num_rows > 0) ? $totalResult->fetch_assoc()['total_count'] : 0;
 
 									// Count family
 									$familyQuery = "SELECT COUNT(*) AS family_count FROM pre_reg_table WHERE registered_as = 'Family' AND relation_to_family = 'Head of Family' AND family_id IS NOT NULL";
-									$familyResult = mysqli_query($conn, $familyQuery);
-									$familyCount = ($familyResult && mysqli_num_rows($familyResult) > 0) ? mysqli_fetch_assoc($familyResult)['family_count'] : 0;
+									$familyResult = $conn->query($familyQuery);
+									$familyCount = ($familyResult && $familyResult->num_rows > 0) ? $familyResult->fetch_assoc()['family_count'] : 0;
 									?>
  								<!-- Display counts and Registration button -->
  								<div class="d-flex align-items-center gap-2">
@@ -118,8 +119,8 @@ WHERE (pre_reg_table.relation_to_family = 'Head of Family' OR pre_reg_table.regi
  											<tbody>
  												<?php
 													$counter = 1;
-													if (mysqli_num_rows($result) > 0) {
-														while ($row = mysqli_fetch_assoc($result)):
+													if ($result->num_rows > 0) {
+														while ($row = $result->fetch_assoc()):
 															$age = date_diff(date_create($row['date_of_birth']), date_create('now'))->y;
 
 															// Use solo address if available, otherwise use family address
@@ -148,11 +149,15 @@ WHERE (pre_reg_table.relation_to_family = 'Head of Family' OR pre_reg_table.regi
 																	$familyId = intval($row['family_id'] ?? 0);
 																	if ($familyId > 0) {
 																		// Head of family
-																		$headSql = "SELECT f_name, m_name, l_name, gender, date_of_birth FROM pre_reg_table WHERE family_id = $familyId AND relation_to_family = 'Head of Family' ORDER BY pre_reg_id DESC LIMIT 1";
-																		$headRes = mysqli_query($conn, $headSql);
+																		$headSql = "SELECT f_name, m_name, l_name, gender, date_of_birth FROM pre_reg_table WHERE family_id = ? AND relation_to_family = 'Head of Family' ORDER BY pre_reg_id DESC LIMIT 1";
+																		$headStmt = $conn->prepare($headSql);
 																		$headHtml = '';
-																		if ($headRes && mysqli_num_rows($headRes) > 0) {
-																			$h = mysqli_fetch_assoc($headRes);
+																		if ($headStmt) {
+																			$headStmt->bind_param("i", $familyId);
+																			$headStmt->execute();
+																			$headRes = $headStmt->get_result();
+																			if ($headRes && $headRes->num_rows > 0) {
+																				$h = $headRes->fetch_assoc();
 																			$hdob = !empty($h['date_of_birth']) ? new DateTime($h['date_of_birth']) : null;
 																			$hage = $hdob ? (new DateTime('today'))->diff($hdob)->y : '';
 																			$hfull = trim(($h['f_name'] ?? '') . ' ' . (!empty($h['m_name']) ? $h['m_name'] . ' ' : '') . ($h['l_name'] ?? ''));
@@ -170,13 +175,19 @@ WHERE (pre_reg_table.relation_to_family = 'Head of Family' OR pre_reg_table.regi
 																					</div>
 																				</div>
 																			</div>';
+																			}
+																			$headStmt->close();
 																		}
 																		// Members excluding head
-																		$membersSql = "SELECT f_name, m_name, l_name, gender, date_of_birth, relation_to_family FROM pre_reg_table WHERE family_id = $familyId AND relation_to_family <> 'Head of Family' ORDER BY relation_to_family, f_name";
-																		$membersRes = mysqli_query($conn, $membersSql);
-																		if ($membersRes && mysqli_num_rows($membersRes) > 0) {
-																			$rowsHtml = '';
-																			while ($m = mysqli_fetch_assoc($membersRes)) {
+																		$membersSql = "SELECT f_name, m_name, l_name, gender, date_of_birth, relation_to_family FROM pre_reg_table WHERE family_id = ? AND relation_to_family <> 'Head of Family' ORDER BY relation_to_family, f_name";
+																		$membersStmt = $conn->prepare($membersSql);
+																		if ($membersStmt) {
+																			$membersStmt->bind_param("i", $familyId);
+																			$membersStmt->execute();
+																			$membersRes = $membersStmt->get_result();
+																			if ($membersRes && $membersRes->num_rows > 0) {
+																				$rowsHtml = '';
+																				while ($m = $membersRes->fetch_assoc()) {
 																				$mdob = !empty($m['date_of_birth']) ? new DateTime($m['date_of_birth']) : null;
 																				$mage = $mdob ? (new DateTime('today'))->diff($mdob)->y : '';
 																				$fullName = trim(($m['f_name'] ?? '') . ' ' . (!empty($m['m_name']) ? $m['m_name'] . ' ' : '') . ($m['l_name'] ?? ''));
@@ -187,10 +198,11 @@ WHERE (pre_reg_table.relation_to_family = 'Head of Family' OR pre_reg_table.regi
 																					. '<td><span class="badge rounded-pill bg-secondary-subtle text-secondary border">' . htmlspecialchars($mage) . '</span></td>'
 																					. '</tr>';
 																			}
-																			$familyMembersHtml = '
+																				$memberCount = $membersRes->num_rows;
+																				$familyMembersHtml = '
 																				<div class="container bg-white p-3">
 																					' . $headHtml . '
-																					<h6 class="fw-bold mb-2 d-flex align-items-center gap-2"><i class="fas fa-users text-primary"></i><span>Family Members</span><span class="badge rounded-pill bg-light text-dark border">' . mysqli_num_rows($membersRes) . '</span></h6>
+																					<h6 class="fw-bold mb-2 d-flex align-items-center gap-2"><i class="fas fa-users text-primary"></i><span>Family Members</span><span class="badge rounded-pill bg-light text-dark border">' . $memberCount . '</span></h6>
 																					<div class="table-responsive">
 																						<table class="table table-sm align-middle">
 																							<thead class="table-light">
@@ -205,8 +217,13 @@ WHERE (pre_reg_table.relation_to_family = 'Head of Family' OR pre_reg_table.regi
 																						</table>
 																					</div>
 																				</div>';
+																				$membersStmt->close();
+																			} else {
+																				$familyMembersHtml = '<div class="container bg-white p-3">' . $headHtml . '<div class="p-2">No other family members found.</div></div>';
+																			}
 																		} else {
-																			$familyMembersHtml = '<div class="container bg-white p-3">' . $headHtml . '<div class="p-2">No other family members found.</div></div>';
+																			error_log("Family members query prepare failed: " . $conn->error);
+																			$familyMembersHtml = '<div class="container bg-white p-3">' . $headHtml . '<div class="p-2 text-danger">Unable to load family members.</div></div>';
 																		}
 																	} else {
 																		// Not a family: show individual's own details
@@ -1063,14 +1080,14 @@ WHERE prt.status = ''
 AND (prt.registered_as = 'Solo' OR prt.relation_to_family = 'Head of Family')
 ORDER BY prt.registered_as, prt.family_id, prt.relation_to_family, prt.l_name, prt.f_name";
 
-	$evacueesResult = mysqli_query($conn, $evacueesQuery);
+	$evacueesResult = $conn->query($evacueesQuery);
 
 	// Additional query to get purok leader details
-	$purokLeaderQuery = "SELECT `purok_id`, `purok_name`, `barangay_id`, `purok_leader`, `pickup_point_name` FROM `purok_table` WHERE purok_id = purok_id";
-	$purokLeaderResult = mysqli_query($conn, $purokLeaderQuery);
+	$purokLeaderQuery = "SELECT `purok_id`, `purok_name`, `barangay_id`, `purok_leader`, `pickup_point_name` FROM `purok_table`";
+	$purokLeaderResult = $conn->query($purokLeaderQuery);
 	$evacuees = [];
-	if ($evacueesResult && mysqli_num_rows($evacueesResult) > 0) {
-		while ($row = mysqli_fetch_assoc($evacueesResult)) {
+	if ($evacueesResult && $evacueesResult->num_rows > 0) {
+		while ($row = $evacueesResult->fetch_assoc()) {
 			$evacuees[] = $row;
 		}
 	}

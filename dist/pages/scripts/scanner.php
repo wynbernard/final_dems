@@ -36,7 +36,9 @@
 				return;
 			}
 
-			qrScannerModal.show();
+			if (qrScannerModal) {
+				qrScannerModal.show();
+			}
 			loadAvailableRooms();
 			fetchExistingFamilyMembers();
 		}
@@ -48,8 +50,20 @@
 				return;
 			}
 
+			// Check if required elements exist
+			if (!startScannerBtn || !stopScannerBtn) {
+				console.error("Scanner buttons not found in DOM");
+				showAlert("Scanner controls not found", "danger");
+				return;
+			}
+
 			try {
 				// Create new scanner instance
+				const qrScannerElement = document.getElementById("qrScanner");
+				if (!qrScannerElement) {
+					showAlert("QR Scanner container not found", "danger");
+					return;
+				}
 				html5QrCode = new Html5Qrcode("qrScanner", /* verbose= */ false);
 
 				// Get available cameras
@@ -57,21 +71,25 @@
 
 				if (availableCameras.length === 0) {
 					showAlert("No cameras found on this device", "warning");
-					startScannerBtn.disabled = true;
+					if (startScannerBtn) startScannerBtn.disabled = true;
 					return;
 				}
 
 				// Setup camera selection if multiple cameras available
 				if (availableCameras.length > 1) {
-					cameraSelection.style.display = "block";
-					cameraSelect.innerHTML = "";
+					if (cameraSelection) {
+						cameraSelection.style.display = "block";
+					}
+					if (cameraSelect) {
+						cameraSelect.innerHTML = "";
 
-					availableCameras.forEach((camera, index) => {
-						const option = document.createElement("option");
-						option.value = camera.id;
-						option.text = camera.label || `Camera ${index + 1}`;
-						cameraSelect.appendChild(option);
-					});
+						availableCameras.forEach((camera, index) => {
+							const option = document.createElement("option");
+							option.value = camera.id;
+							option.text = camera.label || `Camera ${index + 1}`;
+							cameraSelect.appendChild(option);
+						});
+					}
 				}
 
 				// Set initial status
@@ -83,7 +101,7 @@
 			} catch (err) {
 				console.error("Scanner initialization failed:", err);
 				showAlert("Failed to access camera: " + err.message, "danger");
-				startScannerBtn.disabled = true;
+				if (startScannerBtn) startScannerBtn.disabled = true;
 			}
 		}
 
@@ -93,7 +111,7 @@
 				let cameraId;
 
 				// Use selected camera if available, otherwise first camera
-				if (availableCameras.length > 1 && cameraSelect) {
+				if (availableCameras.length > 1 && cameraSelect && cameraSelect.value) {
 					cameraId = cameraSelect.value;
 				} else if (availableCameras.length > 0) {
 					cameraId = availableCameras[0].id;
@@ -312,7 +330,6 @@
 
 			// Reset UI elements
 			updateFamilyDisplay();
-			updateSelectionUI();
 
 			// Reset scanner status
 			updateScannerStatus("Ready to scan");
@@ -326,13 +343,15 @@
 
 		// Update scanner status text
 		function updateScannerStatus(message) {
-			scannerStatus.textContent = message;
+			if (scannerStatus) {
+				scannerStatus.textContent = message;
+			}
 		}
 
 		// Toggle scanner buttons
 		function toggleScannerButtons(isScanning) {
-			startScannerBtn.disabled = isScanning;
-			stopScannerBtn.disabled = !isScanning;
+			if (startScannerBtn) startScannerBtn.disabled = isScanning;
+			if (stopScannerBtn) stopScannerBtn.disabled = !isScanning;
 			if (cameraSelect) cameraSelect.disabled = isScanning;
 		}
 
@@ -429,6 +448,11 @@
 			}
 		}
 		async function loadAvailableRooms() {
+			if (!familyRoomAssignment) {
+				console.error("Family room assignment element not found");
+				return;
+			}
+			
 			try {
 				const response = await fetch(`../qr_code_scanner/get_rooms.php?location_id=${currentLocationId}`);
 
@@ -466,7 +490,9 @@
 
 			} catch (error) {
 				console.error("Room loading error:", error);
-				familyRoomAssignment.innerHTML = '<option value="">Error loading rooms</option>';
+				if (familyRoomAssignment) {
+					familyRoomAssignment.innerHTML = '<option value="">Error loading rooms</option>';
+				}
 				// Optional: Show error to user
 				showAlert(`Failed to load rooms: ${error.message}`, 'danger');
 			}
@@ -643,7 +669,9 @@
 
 			// Enable register button if applicable
 			const canRegister = unregisteredMembers.some(m => m.isPresent);
-			familyRoomAssignment.disabled = !canRegister;
+			if (familyRoomAssignment) {
+				familyRoomAssignment.disabled = !canRegister;
+			}
 
 			setTimeout(() => {
 				updateSelectedMembers();
@@ -781,6 +809,11 @@
 		}
 		// Registration Handler
 		async function registerSelectedMembers() {
+			if (!familyRoomAssignment) {
+				showAlert("Room assignment element not found", "danger");
+				return;
+			}
+			
 			const roomId = familyRoomAssignment.value;
 			const memberIds = Array.from(selectedMembers); // Convert selectedMembers (Set) to array
 			const locationId = currentLocationId; // Assumes currentLocationId is set
@@ -892,9 +925,11 @@
 			scannedMembers = [];
 			selectedMembers = [];
 			updateFamilyDisplay();
-			familyRoomAssignment.disabled = true;
-			registerFamilyBtn.disabled = true;
-			document.getElementById("selectedFamily").innerHTML = "No members selected yet";
+			if (familyRoomAssignment) familyRoomAssignment.disabled = true;
+			const registerFamilyBtn = document.getElementById("registerFamilyBtn");
+			if (registerFamilyBtn) registerFamilyBtn.disabled = true;
+			const selectedFamily = document.getElementById("selectedFamily");
+			if (selectedFamily) selectedFamily.innerHTML = "No members selected yet";
 			updateScannerStatus("Ready to scan");
 		}
 

@@ -1,5 +1,9 @@
 <?php
 include '../../../../database/session.php'; // Ensure this file contains your database connection
+require_once '../../../../database/csrf.php';
+
+// Validate CSRF token
+csrf_validate_or_die();
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	$username = trim($_POST['username']);
@@ -26,13 +30,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 			$description = "Added admin user: {$username} ({$f_name} {$l_name})";
 			log_activity($conn, $action, $description);
 		} else {
-			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Add User Failed!!!" . mysqli_error($conn);
+			error_log("Failed to add admin user: " . mysqli_error($conn));
+			$_SESSION['error'] = "<span style='color:red;'><i class='bi bi-exclamation-circle-fill'></i></span> Add User Failed!!! Please try again.";
 		}
 
 		// Close the statement
 		mysqli_stmt_close($stmt);
 	} else {
-		$_SESSION['error'] = "Database error: Unable to prepare statement.";
+		error_log("Failed to prepare add admin user statement: " . mysqli_error($conn));
+		$_SESSION['error'] = "Database error: Unable to prepare statement. Please try again.";
 	}
 
 	// Redirect back to admin_users.php

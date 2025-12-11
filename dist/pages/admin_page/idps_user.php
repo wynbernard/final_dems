@@ -39,6 +39,12 @@ WHERE evac_reg_table.status = 'Evacuated'
 
 <head>
     <title>Evacuation Registration Data</title>
+    <?php
+    // CSRF Token Meta Tag for AJAX requests
+    require_once '../../../database/csrf.php';
+    $csrfToken = csrf_get_token();
+    echo '<meta name="csrf-token" content="' . htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') . '">';
+    ?>
 </head>
 
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
@@ -77,14 +83,21 @@ WHERE evac_reg_table.status = 'Evacuated'
                                         <?php
                                         // For staff users - show ONLY their assigned location
                                         if ($_SESSION['role'] == 'Staff') {
-                                            $staff_location_id = $_SESSION['evac_loc_id'];
-                                            $query = mysqli_query($conn, "SELECT evac_loc_table.evac_loc_id, evac_loc_table.name 
+                                            $staff_location_id = intval($_SESSION['evac_loc_id'] ?? 0);
+                                            $stmt = $conn->prepare("SELECT evac_loc_table.evac_loc_id, evac_loc_table.name 
 											FROM admin_table
 											JOIN evac_loc_table ON admin_table.evac_loc_id = evac_loc_table.evac_loc_id
-											WHERE admin_table.evac_loc_id = '$staff_location_id'");
+											WHERE admin_table.evac_loc_id = ?");
+                                            if ($stmt) {
+                                                $stmt->bind_param("i", $staff_location_id);
+                                                $stmt->execute();
+                                                $query = $stmt->get_result();
+                                            } else {
+                                                $query = false;
+                                            }
 
-                                            if ($query && mysqli_num_rows($query) > 0) {
-                                                $loc = mysqli_fetch_assoc($query);
+                                            if ($query && $query->num_rows > 0) {
+                                                $loc = $query->fetch_assoc();
                                                 $encryptedLocId = encrypt_for_display($loc['evac_loc_id']);
                                                 echo '<option data-raw-id="' . (int)$loc['evac_loc_id'] . '" value="' . htmlspecialchars($encryptedLocId) . '" selected>' . htmlspecialchars($loc['name']) . '</option>';
                                             } else {
@@ -94,9 +107,9 @@ WHERE evac_reg_table.status = 'Evacuated'
                                         // For admin users - show all locations
                                         else {
                                             echo '<option value="">All Locations</option>';
-                                            $query = mysqli_query($conn, "SELECT evac_loc_id, name FROM evac_loc_table ORDER BY name ASC");
+                                            $query = $conn->query("SELECT evac_loc_id, name FROM evac_loc_table ORDER BY name ASC");
                                             if ($query) {
-                                                while ($loc = mysqli_fetch_assoc($query)) {
+                                                while ($loc = $query->fetch_assoc()) {
                                                     $encryptedLocId = encrypt_for_display($loc['evac_loc_id']);
                                                     $selected = (isset($_GET['location_id']) && decrypt_from_url($_GET['location_id']) == $loc['evac_loc_id']) ? 'selected' : '';
                                                     echo '<option data-raw-id="' . (int)$loc['evac_loc_id'] . '" value="' . htmlspecialchars($encryptedLocId) . '" ' . $selected . '>' . htmlspecialchars($loc['name']) . '</option>';
@@ -112,9 +125,9 @@ WHERE evac_reg_table.status = 'Evacuated'
                                     <select name="disasterId" id="disasterSelect" class="form-select me-2 mb-2" style="max-width: 250px;" required>
                                         <option value="" disabled selected>Select Disaster Event</option>
                                         <?php
-                                        $disasterQuery = mysqli_query($conn, "SELECT disaster_id, disaster_name FROM disaster_table WHERE status = 'Ongoing' ORDER BY disaster_id DESC");
-                                        if ($disasterQuery && mysqli_num_rows($disasterQuery) > 0) {
-                                            while ($disaster = mysqli_fetch_assoc($disasterQuery)) {
+                                        $disasterQuery = $conn->query("SELECT disaster_id, disaster_name FROM disaster_table WHERE status = 'Ongoing' ORDER BY disaster_id DESC");
+                                        if ($disasterQuery && $disasterQuery->num_rows > 0) {
+                                            while ($disaster = $disasterQuery->fetch_assoc()) {
                                                 $encryptedDisasterId = encrypt_for_display($disaster['disaster_id']);
                                                 $selected = (isset($_GET['disasterId']) && decrypt_from_url($_GET['disasterId']) == $disaster['disaster_id']) ? 'selected' : '';
                                                 echo '<option data-raw-id="' . (int)$disaster['disaster_id'] . '" value="' . htmlspecialchars($encryptedDisasterId) . '" ' . $selected . '>' . htmlspecialchars($disaster['disaster_name']) . '</option>';
@@ -152,35 +165,67 @@ WHERE evac_reg_table.status = 'Evacuated'
 												INNER JOIN room_table r ON er.room_id = r.room_id
 											";
 
+                                    // Validate inputs
+                                    $locationIdInt = !empty($locationId) && $locationId != 'other' ? intval($locationId) : 0;
+                                    $selectedDisasterIdInt = !empty($selectedDisasterId) ? intval($selectedDisasterId) : 0;
+                                    
+                                    // Build age query with placeholders
+                                    $ageParams = [];
+                                    $ageTypes = "";
+                                    
                                     if (!empty($locationId)) {
                                         if ($locationId == 'other') {
                                             // For "other" locations, exclude the first 3 main locations
                                             $ageQuery .= " WHERE er.status = 'Evacuated'";
-                                            $mainLocQuery = mysqli_query($conn, "SELECT evac_loc_id FROM evac_loc_table ORDER BY evac_loc_id ASC LIMIT 3");
+                                            $mainLocQuery = $conn->query("SELECT evac_loc_id FROM evac_loc_table ORDER BY evac_loc_id ASC LIMIT 3");
                                             $mainLocationIds = [];
-                                            if ($mainLocQuery && mysqli_num_rows($mainLocQuery) > 0) {
-                                                while ($mainLoc = mysqli_fetch_assoc($mainLocQuery)) {
-                                                    $mainLocationIds[] = $mainLoc['evac_loc_id'];
+                                            if ($mainLocQuery && $mainLocQuery->num_rows > 0) {
+                                                while ($mainLoc = $mainLocQuery->fetch_assoc()) {
+                                                    $mainLocationIds[] = intval($mainLoc['evac_loc_id']);
                                                 }
                                                 if (!empty($mainLocationIds)) {
-                                                    $mainLocationIdsStr = implode(',', $mainLocationIds);
-                                                    $ageQuery .= " AND r.evac_loc_id NOT IN ($mainLocationIdsStr)";
+                                                    $placeholders = implode(',', array_fill(0, count($mainLocationIds), '?'));
+                                                    $ageQuery .= " AND r.evac_loc_id NOT IN ($placeholders)";
+                                                    $ageParams = array_merge($ageParams, $mainLocationIds);
+                                                    $ageTypes .= str_repeat('i', count($mainLocationIds));
                                                 }
                                             }
                                         } else {
-                                            $ageQuery .= " WHERE r.evac_loc_id = '$locationId' AND er.status = 'Evacuated'";
+                                            $ageQuery .= " WHERE r.evac_loc_id = ? AND er.status = 'Evacuated'";
+                                            $ageParams[] = $locationIdInt;
+                                            $ageTypes .= "i";
                                         }
                                     } else {
                                         $ageQuery .= " WHERE er.status = 'Evacuated'";
                                     }
 
                                     // Apply disaster filter to age stats if selected
-                                    if (!empty($selectedDisasterId)) {
-                                        $ageQuery .= " AND er.disaster_id = '" . mysqli_real_escape_string($conn, $selectedDisasterId) . "'";
+                                    if ($selectedDisasterIdInt > 0) {
+                                        $ageQuery .= " AND er.disaster_id = ?";
+                                        $ageParams[] = $selectedDisasterIdInt;
+                                        $ageTypes .= "i";
                                     }
 
-                                    $ageResult = mysqli_query($conn, $ageQuery);
-                                    $ageData = mysqli_fetch_assoc($ageResult);
+                                    // Execute age query with prepared statement
+                                    $ageStmt = $conn->prepare($ageQuery);
+                                    if ($ageStmt && !empty($ageTypes)) {
+                                        $ageStmt->bind_param($ageTypes, ...$ageParams);
+                                        $ageStmt->execute();
+                                        $ageResult = $ageStmt->get_result();
+                                    } elseif ($ageStmt) {
+                                        $ageStmt->execute();
+                                        $ageResult = $ageStmt->get_result();
+                                    } else {
+                                        // Fallback if prepare fails
+                                        error_log("Age query prepare failed: " . $conn->error);
+                                        $ageResult = false;
+                                    }
+                                    
+                                    if ($ageResult) {
+                                        $ageData = $ageResult->fetch_assoc();
+                                    } else {
+                                        $ageData = ['Child' => 0, 'Teen' => 0, 'Adult' => 0, 'Senior' => 0, 'total' => 0];
+                                    }
                                     ?>
                                     <!-- Age Classification Counts -->
                                     <div class="age-classification ms-2 mb-2 d-flex align-items-center">
@@ -224,12 +269,25 @@ WHERE evac_reg_table.status = 'Evacuated'
 									JOIN evac_loc_table l ON r.evac_loc_id = l.evac_loc_id
 								LEFT JOIN room_table rm ON r.room_id = rm.room_id";
 
+                            // Validate inputs
+                            $staff_location_id = isset($_SESSION['evac_loc_id']) ? intval($_SESSION['evac_loc_id']) : 0;
+                            $locationIdInt = !empty($locationId) && $locationId != 'other' ? intval($locationId) : 0;
+                            $selectedDisasterIdInt = !empty($selectedDisasterId) ? intval($selectedDisasterId) : 0;
+                            
+                            // Build query with placeholders
+                            $queryParams = [];
+                            $queryTypes = "";
+                            
                             // For staff users - always filter by their assigned location
                             if ($_SESSION['role'] == 'Staff') {
-                                $staff_location_id = $_SESSION['evac_loc_id'];
-                                $query .= " WHERE r.evac_loc_id = '$staff_location_id' AND r.status = 'Evacuated' ";
-                                if (!empty($selectedDisasterId)) {
-                                    $query .= " AND r.disaster_id = '" . mysqli_real_escape_string($conn, $selectedDisasterId) . "'";
+                                $query .= " WHERE r.evac_loc_id = ? AND r.status = 'Evacuated'";
+                                $queryParams[] = $staff_location_id;
+                                $queryTypes .= "i";
+                                
+                                if ($selectedDisasterIdInt > 0) {
+                                    $query .= " AND r.disaster_id = ?";
+                                    $queryParams[] = $selectedDisasterIdInt;
+                                    $queryTypes .= "i";
                                 }
                                 // Only show family heads
                                 $query .= " AND p.relation_to_family = 'Head of Family'";
@@ -238,39 +296,49 @@ WHERE evac_reg_table.status = 'Evacuated'
                             elseif ($_SESSION['role'] == 'Admin') {
                                 if ($locationId == 'other') {
                                     // Show evacuees from all locations except the first few main locations
-                                    // This gives a practical meaning to "other" locations
                                     $query .= " WHERE r.status = 'Evacuated' ";
 
                                     // Get the first 3 locations as "main" locations and exclude them
-                                    $mainLocQuery = mysqli_query($conn, "SELECT evac_loc_id FROM evac_loc_table ORDER BY evac_loc_id ASC LIMIT 3");
+                                    $mainLocQuery = $conn->query("SELECT evac_loc_id FROM evac_loc_table ORDER BY evac_loc_id ASC LIMIT 3");
                                     $mainLocationIds = [];
-                                    if ($mainLocQuery && mysqli_num_rows($mainLocQuery) > 0) {
-                                        while ($mainLoc = mysqli_fetch_assoc($mainLocQuery)) {
-                                            $mainLocationIds[] = $mainLoc['evac_loc_id'];
+                                    if ($mainLocQuery && $mainLocQuery->num_rows > 0) {
+                                        while ($mainLoc = $mainLocQuery->fetch_assoc()) {
+                                            $mainLocationIds[] = intval($mainLoc['evac_loc_id']);
                                         }
                                         if (!empty($mainLocationIds)) {
-                                            $mainLocationIdsStr = implode(',', $mainLocationIds);
-                                            $query .= " AND r.evac_loc_id NOT IN ($mainLocationIdsStr)";
+                                            $placeholders = implode(',', array_fill(0, count($mainLocationIds), '?'));
+                                            $query .= " AND r.evac_loc_id NOT IN ($placeholders)";
+                                            $queryParams = array_merge($queryParams, $mainLocationIds);
+                                            $queryTypes .= str_repeat('i', count($mainLocationIds));
                                         }
                                     }
-                                    if (!empty($selectedDisasterId)) {
-                                        $query .= " AND r.disaster_id = '" . mysqli_real_escape_string($conn, $selectedDisasterId) . "'";
+                                    if ($selectedDisasterIdInt > 0) {
+                                        $query .= " AND r.disaster_id = ?";
+                                        $queryParams[] = $selectedDisasterIdInt;
+                                        $queryTypes .= "i";
                                     }
                                     // Only show family heads
                                     $query .= " AND p.relation_to_family = 'Head of Family'";
-                                } elseif (!empty($locationId)) {
+                                } elseif ($locationIdInt > 0) {
                                     // Show evacuees from specific selected location
-                                    $query .= " WHERE r.evac_loc_id = '$locationId' AND r.status = 'Evacuated'";
-                                    if (!empty($selectedDisasterId)) {
-                                        $query .= " AND r.disaster_id = '" . mysqli_real_escape_string($conn, $selectedDisasterId) . "'";
+                                    $query .= " WHERE r.evac_loc_id = ? AND r.status = 'Evacuated'";
+                                    $queryParams[] = $locationIdInt;
+                                    $queryTypes .= "i";
+                                    
+                                    if ($selectedDisasterIdInt > 0) {
+                                        $query .= " AND r.disaster_id = ?";
+                                        $queryParams[] = $selectedDisasterIdInt;
+                                        $queryTypes .= "i";
                                     }
                                     // Only show family heads
                                     $query .= " AND p.relation_to_family = 'Head of Family'";
                                 } else {
                                     // Show all evacuees (All Locations option)
                                     $query .= " WHERE r.status = 'Evacuated' ";
-                                    if (!empty($selectedDisasterId)) {
-                                        $query .= " AND r.disaster_id = '" . mysqli_real_escape_string($conn, $selectedDisasterId) . "'";
+                                    if ($selectedDisasterIdInt > 0) {
+                                        $query .= " AND r.disaster_id = ?";
+                                        $queryParams[] = $selectedDisasterIdInt;
+                                        $queryTypes .= "i";
                                     }
                                     // Only show family heads
                                     $query .= " AND p.relation_to_family = 'Head of Family'";
@@ -278,10 +346,23 @@ WHERE evac_reg_table.status = 'Evacuated'
                             }
 
                             $query .= " ORDER BY l.name, rm.room_name, p.l_name";
-                            $result = mysqli_query($conn, $query);
+                            
+                            // Execute query with prepared statement
+                            $stmt = $conn->prepare($query);
+                            if ($stmt) {
+                                if (!empty($queryTypes)) {
+                                    $stmt->bind_param($queryTypes, ...$queryParams);
+                                }
+                                $stmt->execute();
+                                $result = $stmt->get_result();
+                            } else {
+                                error_log("IDP user query prepare failed: " . $conn->error);
+                                $result = false;
+                            }
 
                             if (!$result) {
-                                die('Query failed: ' . mysqli_error($conn));
+                                error_log("IDP user query failed: " . $conn->error);
+                                die('Query failed. Please contact administrator.');
                             }
                             ?>
 
@@ -302,15 +383,15 @@ WHERE evac_reg_table.status = 'Evacuated'
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <?php if (mysqli_num_rows($result) > 0):
+                                                <?php if ($result->num_rows > 0):
                                                     $i = 1;
-                                                    while ($row = mysqli_fetch_assoc($result)): ?>
+                                                    while ($row = $result->fetch_assoc()): ?>
                                                         <tr>
                                                             <td><?= $i++ ?>.</td>
                                                             <td><?= htmlspecialchars($row['f_name'] . " " . $row['m_name'] . " " . $row['l_name']) ?></td>
                                                             <td><?= htmlspecialchars($row['location_name']) ?></td>
                                                             <td><?= htmlspecialchars($row['room_name']) ?></td>
-                                                            <td><?= date("F j, Y g:i A", strtotime($row['date_reg'])) ?></td>
+                                                            <td><?= htmlspecialchars(date("F j, Y g:i A", strtotime($row['date_reg'])), ENT_QUOTES, 'UTF-8') ?></td>
                                                             <td>
                                                                 <?php
                                                                 // Pre-render family members content for fast modal loading
@@ -554,12 +635,16 @@ WHERE evac_reg_table.status = 'Evacuated'
                             });
                         }
 
+                        // Get CSRF token from meta tag
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+                        
                         fetch('../action/dispatch_all.php', {
                             method: 'POST',
                             headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded'
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-CSRF-Token': csrfToken
                             },
-                            body: 'location_id=' + encodeURIComponent(loc)
+                            body: 'location_id=' + encodeURIComponent(loc) + '&csrf_token=' + encodeURIComponent(csrfToken)
                         }).then(r => r.json()).then(data => {
                             if (window.Swal) Swal.close();
                             if (data.success) {
