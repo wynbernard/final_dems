@@ -12,13 +12,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	$password = trim($_POST['password']);
 	$role = $_POST['role'];
 
+	// Hash the password before storing
+	$hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
 	// Prepare the SQL statement
 	$query = "INSERT INTO admin_table (username, f_name, l_name, password, role) 
               VALUES (?, ?, ?, ?, ?)";
 
 	if ($stmt = mysqli_prepare($conn, $query)) {
 		// Bind parameters
-		mysqli_stmt_bind_param($stmt, "sssss", $username, $f_name, $l_name, $password, $role);
+		mysqli_stmt_bind_param($stmt, "sssss", $username, $f_name, $l_name, $hashed_password, $role);
 
 		// Execute the statement
 		if (mysqli_stmt_execute($stmt)) {

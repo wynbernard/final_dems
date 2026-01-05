@@ -39,6 +39,8 @@ WHERE evac_reg_table.status = 'Evacuated'
 
 <head>
     <title>Evacuation Registration Data</title>
+    <!-- Permissions Policy: Allow camera access -->
+ 
     <?php
     // CSRF Token Meta Tag for AJAX requests
     require_once '../../../database/csrf.php';

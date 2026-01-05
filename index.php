@@ -89,7 +89,7 @@
 
 		/* background for features */
 		.features-section {
-			background: white;
+			background: url('src/images/disaster.jpg') no-repeat center center/cover;
 			background-attachment: fixed;
 			background-size: cover;
 			background-position: center;
@@ -101,9 +101,9 @@
 			content: '';
 			position: absolute;
 			inset: 0;
-			background: none;
+			background: rgba(0, 0, 0, 0.4);
 			/* dark overlay for readability */
-			/* z-index: 1; */
+			z-index: 1;
 		}
 
 		.features-section .container {
@@ -206,20 +206,20 @@
 	</section>
 
 	<!-- Features Section -->
-	<section id="features" class="features-section py-5 min-vh-100 bg-light d-flex align-items-center position-relative overflow-hidden">
+	<section id="features" class="features-section py-5 min-vh-100 d-flex align-items-center position-relative overflow-hidden">
 
 		<!-- Flying Plane -->
-		<div class="plane-wrapper">
+		<!-- <div class="plane-wrapper">
 			<img src="src/images/logo/plane.png" alt="Flying Plane" class="flying-plane">
 			<span class="cloud-puff"></span>
 			<span class="cloud-puff delay-1"></span>
 			<span class="cloud-puff delay-2"></span>
 			<span class="cloud-puff delay-3"></span>
-		</div>
+		</div> -->
 
 
 		<div class="container text-center">
-			<div class="row justify-content-center text-black g-4">
+			<div class="row justify-content-center text-white g-4">
 				<div class="col-md-3 mb-3 feature-box border border-light rounded p-3">
 					<div class="feature-icon mb-3">📍</div>
 					<h5>Location Tracking</h5>
@@ -558,7 +558,7 @@ document.getElementById("contact-form").addEventListener("submit", async functio
 
 	<!-- FOR THE TYPING EFFECT -->
 	<script>
-		const text = "AI-Powered Disaster Evacuation Management System";
+		const text = "Disaster Evacuation Management System with Predictive Analytics";
 		const titleElement = document.getElementById("title");
 		let index = 0;
 

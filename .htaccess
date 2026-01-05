@@ -1,0 +1,65 @@
+# HTTPS Enforcement and Security Headers
+# This file enforces HTTPS and adds security headers to all requests
+
+# Force HTTPS redirect (only in production - comment out for local development)
+# Uncomment the following lines when deploying to production
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Redirect HTTP to HTTPS (uncomment for production)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    
+    # Alternative: Check for X-Forwarded-Proto header (for load balancers/proxies)
+    # RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Security Headers
+<IfModule mod_headers.c>
+    # HSTS (HTTP Strict Transport Security) - Force HTTPS for 1 year
+    # Uncomment for production
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    
+    # Prevent clickjacking - X-Frame-Options
+    Header always set X-Frame-Options "SAMEORIGIN"
+    
+    # Prevent MIME type sniffing - X-Content-Type-Options
+    Header always set X-Content-Type-Options "nosniff"
+    
+    # XSS Protection (legacy, but still useful) 
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # Referrer Policy - Control referrer information
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # Content Security Policy (CSP) - Adjust as needed for your application
+    # This is a basic CSP - you may need to adjust based on your CDN and external resources
+    # Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';"
+    
+    # Permissions Policy (formerly Feature Policy)
+    # NOTE: This line is commented out to allow geolocation, camera, and microphone access
+    # Allow camera and microphone for QR scanner functionality, and geolocation for map features
+    # If you need to block geolocation, uncomment the line below and change geolocation=() to geolocation=*
+    # Header always set Permissions-Policy "geolocation=(), microphone=*, camera=*"
+    
+    # Remove server information
+    Header unset Server
+    Header unset X-Powered-By
+</IfModule>
+
+# Prevent access to sensitive files
+<FilesMatch "\.(env|log|sql|md)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Prevent directory listing
+Options -Indexes
+
+# Protect .htaccess file itself
+<Files .htaccess>
+    Order allow,deny
+    Deny from all
+</Files>
+

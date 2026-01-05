@@ -1,5 +1,9 @@
 <?php
 ob_start();  // Start output buffering to prevent "headers already sent" errors
+
+// Include security headers (HTTPS enforcement and security headers)
+require_once __DIR__ . '/security_headers.php';
+
 session_start();
 
 // Include database connection

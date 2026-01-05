@@ -45,6 +45,17 @@ document.addEventListener("DOMContentLoaded", function() {
         const labels = centerData.labels;
         const endDates = centerData.endDates;
 
+        // Calculate font size based on number of data points
+        const dataPointCount = labels.length;
+        let fontSize = 10; // Default size
+        if (dataPointCount > 15) {
+            fontSize = 4;
+        } else if (dataPointCount > 10) {
+            fontSize = 3;
+        } else if (dataPointCount > 5) {
+            fontSize = 6;
+        }
+
         if (evacChart) evacChart.destroy();
 
         evacChart = new Chart(ctx, {
@@ -88,6 +99,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     x: {
                         ticks: {
                             align: 'center',
+                            font: {
+                                size: fontSize
+                            },
                             callback: function(value, index) {
                                 const start = labels[index] || '';
                                 const endRaw = endDates[index];
@@ -242,6 +256,17 @@ document.addEventListener("DOMContentLoaded", function() {
         // To render records right-to-left, reverse labels and each dataset's data arrays
         labels = labels.slice().reverse();
 
+        // Calculate font size based on number of data points
+        const recordsDataPointCount = labels.length;
+        let recordsFontSize = 10; // Default size
+        if (recordsDataPointCount > 15) {
+            recordsFontSize = 4;
+        } else if (recordsDataPointCount > 10) {
+            recordsFontSize = 6;
+        } else if (recordsDataPointCount > 5) {
+            recordsFontSize = 8;
+        }
+
         evacRecordsChartInstance = new Chart(groupedCanvas.getContext('2d'), {
             type: 'bar',
             data: {
@@ -263,7 +288,14 @@ document.addEventListener("DOMContentLoaded", function() {
                     title: { display: true, text: 'Per-Record Age Group Breakdown' }
                 },
                 scales: {
-                    x: { stacked: false },
+                    x: { 
+                        stacked: false,
+                        ticks: {
+                            font: {
+                                size: recordsFontSize
+                            }
+                        }
+                    },
                     y: { beginAtZero: true }
                 }
             }

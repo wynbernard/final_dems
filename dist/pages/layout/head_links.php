@@ -3,6 +3,8 @@
 	<title>DEMS</title>
 	<!--begin::Primary Meta Tags-->
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<!-- Permissions Policy: Allow camera and microphone access for QR scanner -->
+	<!-- <meta http-equiv="Permissions-Policy" content="camera=*, microphone=*"> -->
 	<?php
 	// CSRF Token Meta Tag for AJAX requests
 	if (session_status() === PHP_SESSION_NONE) {

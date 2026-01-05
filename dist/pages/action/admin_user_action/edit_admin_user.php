@@ -13,13 +13,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	$l_name = trim($_POST['l_name']);
 	$role = trim($_POST['role']);
 
+	// Hash the password if provided (only update password if not empty)
+	if (!empty($password)) {
+		$hashed_password = password_hash($password, PASSWORD_DEFAULT);
+		// Prepare SQL update statement with password
+		$query = "UPDATE admin_table SET username = ?, password = ?, f_name = ?, l_name = ?, role = ? WHERE admin_id = ?";
+		$stmt = mysqli_prepare($conn, $query);
 
-	// Prepare SQL update statement to prevent SQL injection
-	$query = "UPDATE admin_table SET username = ?, password = ?, f_name = ?, l_name = ?, role = ? WHERE admin_id = ?";
-	$stmt = mysqli_prepare($conn, $query);
+		if ($stmt) {
+			mysqli_stmt_bind_param($stmt, "sssssi", $username, $hashed_password, $f_name, $l_name, $role, $admin_id);
+		}
+	} else {
+		// Update without password (password field not provided or empty)
+		$query = "UPDATE admin_table SET username = ?, f_name = ?, l_name = ?, role = ? WHERE admin_id = ?";
+		$stmt = mysqli_prepare($conn, $query);
+
+		if ($stmt) {
+			mysqli_stmt_bind_param($stmt, "ssssi", $username, $f_name, $l_name, $role, $admin_id);
+		}
+	}
 
 	if ($stmt) {
-		mysqli_stmt_bind_param($stmt, "sssssi", $username, $password, $f_name, $l_name, $role, $admin_id);
 		$execute = mysqli_stmt_execute($stmt);
 
 		if ($execute) {

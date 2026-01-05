@@ -63,7 +63,7 @@ $result = mysqli_stmt_get_result($stmt);
 							<div class="card-header d-flex align-items-center">
 								<input type="text" id="searchBox" class="form-control me-2" placeholder="Search....." style="max-width: 300px;">
 								<button type="button" class="btn btn-primary btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#addAdminModal">
-									<i class="fas fa-user-plus"></i> Add Admin
+									<i class="fas fa-user-plus"></i> Add Admin/Staff
 								</button>
 							</div>
 

@@ -125,7 +125,7 @@
           <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'loc_management.php' ? 'menu-open' : ''; ?>">
             <a href="./loc_management.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'loc_management.php' ? 'active' : ''; ?>">
               <i class="nav-icon bi bi-map"></i>
-              <p>Location Management</p>
+              <p>Evacuation Center Management</p>
             </a>
           </li>
 
@@ -135,7 +135,7 @@
               <p>Barangay Management</p>
             </a>
           </li>
-        <?php endif; ?>
+       
 
         <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'resource_inventory.php' ? 'menu-open' : ''; ?>">
           <a href="./resource_inventory.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'resource_inventory.php' ? 'active' : ''; ?>">
@@ -143,12 +143,14 @@
             <p>Resources Inventory</p>
           </a>
         </li>
+        <?php endif; ?>
         <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'reports.php' ? 'menu-open' : ''; ?>">
           <a href="./reports.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'reports.php' ? 'active' : ''; ?>">
             <i class="nav-icon bi bi-boxes"></i>
             <p>Reports</p>
           </a>
         </li>
+        <?php if ($_SESSION['role'] === 'Admin'): ?>
         <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'brgy_record.php' ? 'menu-open' : ''; ?>">
           <a href="./brgy_record.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'brgy_record.php' ? 'active' : ''; ?>">
             <i class="nav-icon bi bi-journal-text"></i>
@@ -161,6 +163,7 @@
             <p>Activity Log</p>
           </a>
         </li>
+        <?php endif; ?>
       </ul>
       <!--end::Sidebar Menu-->
     </nav>

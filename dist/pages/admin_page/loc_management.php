@@ -56,7 +56,7 @@ if (!$result) {
 									<button id="deactivateSelectedBtn" class="btn btn-secondary btn-sm">Deactivate selected</button>
 								</div>
 								<button type="button" class="btn btn-primary btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#addLocationModal">
-									<i class="fas fa-plus-circle"></i> Add Location
+									<i class="fas fa-plus-circle"></i> Add Evacuation Center
 								</button>
 							</div>
 
@@ -67,8 +67,8 @@ if (!$result) {
 											<tr class="justify-content-center text-center">
 												<th style="width:32px"><input type="checkbox" id="selectAllCheckbox" /></th>
 												<th> No.</th>
-												<th><i class="bi bi-geo-alt-fill"></i> Location</th>
-												<th><i class="bi bi-house-door-fill"></i> Address</th>
+												<th><i class="bi bi-geo-alt-fill"></i> Evacuation Center</th>
+												<th><i class="bi bi-house-door-fill"></i> Location</th>
 												<th><i class="bi bi-people-fill"></i> Available/Total Capacity</th>
 												<th><i class="bi bi-person-fill"></i>Status</th>
 												<th><i class="bi bi-gear-fill"></i> Actions</th>
@@ -303,9 +303,45 @@ if (!$result) {
 					return;
 				}
 
+				// Filter out locations that already have the target status
+				const idsToUpdate = [];
+				const alreadyInStatus = [];
+				
+				ids.forEach(id => {
+					const badge = document.getElementById('status-badge-' + id);
+					if (badge) {
+						const currentStatus = badge.textContent.trim();
+						if (currentStatus === status) {
+							alreadyInStatus.push(id);
+						} else {
+							idsToUpdate.push(id);
+						}
+					} else {
+						// If badge not found, include it to be safe
+						idsToUpdate.push(id);
+					}
+				});
+
+				// If all selected locations already have the target status
+				if (idsToUpdate.length === 0) {
+					Swal.fire({
+						icon: "info",
+						title: "No Changes Needed",
+						text: `All selected location(s) are already ${status}.`,
+						confirmButtonColor: "#3085d6"
+					});
+					return;
+				}
+
+				// If some locations are already in the target status, show info
+				let confirmText = `Set ${idsToUpdate.length} location(s) to ${status}?`;
+				if (alreadyInStatus.length > 0) {
+					confirmText = `${alreadyInStatus.length} location(s) are already ${status} and will be skipped. ${confirmText}`;
+				}
+
 				const result = await Swal.fire({
 					title: "Are you sure?",
-					text: `Set ${ids.length} location(s) to ${status}?`,
+					text: confirmText,
 					icon: "question",
 					showCancelButton: true,
 					confirmButtonText: "Yes, update",
@@ -322,7 +358,7 @@ if (!$result) {
 				// Show loading modal
 				Swal.fire({
 					title: "Updating...",
-					text: `Please wait while we update ${ids.length} location(s).`,
+					text: `Please wait while we update ${idsToUpdate.length} location(s).`,
 					allowOutsideClick: false,
 					didOpen: () => {
 						Swal.showLoading();
@@ -335,12 +371,12 @@ if (!$result) {
 						headers: {
 							'Content-Type': 'application/x-www-form-urlencoded'
 						},
-						body: 'ids=' + encodeURIComponent(ids.join(',')) + '&status=' + encodeURIComponent(status)
+						body: 'ids=' + encodeURIComponent(idsToUpdate.join(',')) + '&status=' + encodeURIComponent(status)
 					});
 					const text = await res.text();
 					if (text.trim() === 'success') {
-						// update UI badges and buttons
-						ids.forEach(id => {
+						// update UI badges and buttons only for locations that were updated
+						idsToUpdate.forEach(id => {
 							const badge = document.getElementById('status-badge-' + id);
 							const btn = document.querySelector('.status-toggle-btn[data-id="' + id + '"]');
 							if (badge) {
@@ -353,10 +389,16 @@ if (!$result) {
 								btn.setAttribute('data-status', status);
 							}
 						});
+						
+						let successText = `${idsToUpdate.length} location(s) have been updated successfully.`;
+						if (alreadyInStatus.length > 0) {
+							successText = `${successText} ${alreadyInStatus.length} location(s) were already ${status} and were skipped.`;
+						}
+						
 						Swal.fire({
 							icon: "success",
 							title: "Updated!",
-							text: "The locations have been updated successfully.",
+							text: successText,
 							timer: 2000,
 							showConfirmButton: false
 						});

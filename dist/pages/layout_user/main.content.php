@@ -1031,57 +1031,136 @@
   // Require an explicit confirmation in this browser session before saving coordinates.
   window._hasUserConfirmed = false; // only set true when user clicks 'Capture my location'
 
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(pos => {
-      userLat = pos.coords.latitude;
-      userLng = pos.coords.longitude;
+  // Function to get detailed error message
+  function getLocationErrorMessage(error) {
+    let message = "Failed to get your location. ";
+    switch(error.code) {
+      case error.PERMISSION_DENIED:
+        message += "Location permission was denied. Please:\n1) Click the lock icon in your browser's address bar\n2) Set location permission to 'Allow'\n3) Refresh the page (Ctrl+F5) and try again.";
+        break;
+      case error.POSITION_UNAVAILABLE:
+        message += "Location information is unavailable. Please check your device's location settings.";
+        break;
+      case error.TIMEOUT:
+        message += "Location request timed out. Please try again.";
+        break;
+      default:
+        message += error.message || "Unknown error occurred.";
+        break;
+    }
+    return message;
+  }
 
-      if (!userMarker) {
-        userMarker = L.marker([userLat, userLng], {
-            icon: userIcon
-          })
-          .addTo(map)
-          .bindPopup("<strong>You are here</strong>")
-          .openPopup();
+  // Function to check geolocation permission status
+  async function checkGeolocationPermission() {
+    if ('permissions' in navigator) {
+      try {
+        const result = await navigator.permissions.query({ name: 'geolocation' });
+        console.log('Geolocation permission status:', result.state);
+        return result.state;
+      } catch (e) {
+        console.warn('Could not check geolocation permission:', e);
+        return 'unknown';
       }
+    }
+    return 'unknown';
+  }
 
-      // DO NOT automatically save coordinates on reload. Require explicit user confirmation.
-      if (window._allowSaveCoordinates && window._hasUserConfirmed) {
-        (function saveCoords(lat, lng) {
-          fetch('../action_user/save_coordinates.php', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-              },
-              body: `latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}`
-            })
-            .then(r => r.json())
-            .then(data => {
-              if (data.success) {
-                console.log('Coordinates saved after confirmation:', data);
-              } else {
-                console.warn('Failed to save coordinates:', data.error || data);
-              }
-            }).catch(err => {
-              console.error('Network error while saving coordinates', err);
-            });
-        })(userLat, userLng);
-      } else {
-        console.log('Automatic coordinate save is disabled until user explicitly confirms.');
+  // Function to request location
+  function requestUserLocation() {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    // Check permission status first
+    checkGeolocationPermission().then(permissionStatus => {
+      console.log('Permission check result:', permissionStatus);
+      if (permissionStatus === 'denied') {
+        alert("Location permission is denied. Please:\n1) Click the lock icon in your browser's address bar\n2) Set location permission to 'Allow'\n3) Refresh the page (Ctrl+F5) and try again.");
+        return;
       }
+    });
 
-      renderEvacuationCenters();
-    }, err => {
-      console.warn("Location error:", err.message);
-      alert("Failed to get location.");
-    }, {
+    const geoOptions = {
       enableHighAccuracy: true,
       maximumAge: 0,
-      timeout: 10000
-    });
-  } else {
-    alert("Geolocation is not supported.");
+      timeout: 15000 // Increased timeout to 15 seconds
+    };
+
+    console.log('Requesting geolocation...');
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        console.log('Geolocation success:', pos.coords);
+        userLat = pos.coords.latitude;
+        userLng = pos.coords.longitude;
+
+        if (!userMarker) {
+          userMarker = L.marker([userLat, userLng], {
+              icon: userIcon
+            })
+            .addTo(map)
+            .bindPopup("<strong>You are here</strong>")
+            .openPopup();
+        } else {
+          // Update existing marker position
+          userMarker.setLatLng([userLat, userLng]);
+        }
+
+        // DO NOT automatically save coordinates on reload. Require explicit user confirmation.
+        if (window._allowSaveCoordinates && window._hasUserConfirmed) {
+          (function saveCoords(lat, lng) {
+            fetch('../action_user/save_coordinates.php', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}`
+              })
+              .then(r => r.json())
+              .then(data => {
+                if (data.success) {
+                  console.log('Coordinates saved after confirmation:', data);
+                } else {
+                  console.warn('Failed to save coordinates:', data.error || data);
+                }
+              }).catch(err => {
+                console.error('Network error while saving coordinates', err);
+              });
+          })(userLat, userLng);
+        } else {
+          console.log('Automatic coordinate save is disabled until user explicitly confirms.');
+        }
+
+        renderEvacuationCenters();
+      },
+      err => {
+        console.error("Geolocation error:", {
+          code: err.code,
+          message: err.message,
+          PERMISSION_DENIED: err.PERMISSION_DENIED,
+          POSITION_UNAVAILABLE: err.POSITION_UNAVAILABLE,
+          TIMEOUT: err.TIMEOUT
+        });
+        
+        const errorMessage = getLocationErrorMessage(err);
+        console.error("Full error details:", errorMessage);
+        
+        // Show user-friendly error message
+        alert(errorMessage);
+        
+        // Still try to render evacuation centers without user location
+        if (evacuationCenters && evacuationCenters.length > 0) {
+          console.log('Rendering evacuation centers without user location...');
+          renderEvacuationCenters();
+        }
+      },
+      geoOptions
+    );
   }
+
+  // Request location on page load
+  requestUserLocation();
 </script>
 
 <?php if (isset($_SESSION['prompt_save_location']) && $_SESSION['prompt_save_location']): ?>
@@ -1113,48 +1192,93 @@
       document.getElementById('doSaveLocation').addEventListener('click', function() {
         var status = document.getElementById('saveLocationStatus');
         if (!navigator.geolocation) {
-          status.textContent = 'Geolocation not supported';
+          status.innerHTML = '<span class="text-danger">Geolocation not supported by your browser.</span>';
           return;
         }
-        status.textContent = 'Requesting location...';
-        navigator.geolocation.getCurrentPosition(function(pos) {
-          var lat = pos.coords.latitude;
-          var lng = pos.coords.longitude;
-          // Mark that the user explicitly confirmed saving in this session
-          window._hasUserConfirmed = true;
-          window._allowSaveCoordinates = true;
-          status.textContent = 'Saving...';
-          var form = new FormData();
-          form.append('latitude', lat);
-          form.append('longitude', lng);
-          fetch('../action_user/save_coordinates.php', {
-              method: 'POST',
-              body: form
-            })
-            .then(r => r.json())
-            .then(res => {
-              if (res.success) {
-                status.textContent = 'Coordinates saved.';
-                console.log('User accepted saving coordinates:', {
-                  latitude: lat,
-                  longitude: lng
-                });
-                setTimeout(function() {
-                  modal.hide();
-                }, 800);
-              } else {
-                status.textContent = 'Failed to save: ' + (res.error || JSON.stringify(res));
-              }
-            }).catch(err => {
-              status.textContent = 'Network error';
-              console.error(err);
+        status.innerHTML = '<span class="text-info">Requesting location...</span>';
+        
+        // Check permission status first
+        if ('permissions' in navigator) {
+          navigator.permissions.query({ name: 'geolocation' }).then(function(result) {
+            console.log('Modal: Geolocation permission status:', result.state);
+            if (result.state === 'denied') {
+              status.innerHTML = '<span class="text-danger">Location permission is denied. Please:<br>1) Click the lock icon in your browser\'s address bar<br>2) Set location permission to \'Allow\'<br>3) Refresh the page (Ctrl+F5) and try again.</span>';
+              return;
+            }
+            requestLocationInModal();
+          }).catch(function(e) {
+            console.warn('Could not check geolocation permission:', e);
+            requestLocationInModal();
+          });
+        } else {
+          requestLocationInModal();
+        }
+        
+        function requestLocationInModal() {
+          navigator.geolocation.getCurrentPosition(function(pos) {
+            var lat = pos.coords.latitude;
+            var lng = pos.coords.longitude;
+            console.log('Modal: Location obtained:', { lat, lng });
+            // Mark that the user explicitly confirmed saving in this session
+            window._hasUserConfirmed = true;
+            window._allowSaveCoordinates = true;
+            status.innerHTML = '<span class="text-info">Saving coordinates...</span>';
+            var form = new FormData();
+            form.append('latitude', lat);
+            form.append('longitude', lng);
+            fetch('../action_user/save_coordinates.php', {
+                method: 'POST',
+                body: form
+              })
+              .then(r => r.json())
+              .then(res => {
+                if (res.success) {
+                  status.innerHTML = '<span class="text-success">✓ Coordinates saved successfully.</span>';
+                  console.log('User accepted saving coordinates:', {
+                    latitude: lat,
+                    longitude: lng
+                  });
+                  setTimeout(function() {
+                    modal.hide();
+                  }, 800);
+                } else {
+                  status.innerHTML = '<span class="text-danger">Failed to save: ' + (res.error || JSON.stringify(res)) + '</span>';
+                }
+              }).catch(err => {
+                status.innerHTML = '<span class="text-danger">Network error while saving coordinates.</span>';
+                console.error('Modal: Network error:', err);
+              });
+          }, function(err) {
+            console.error('Modal: Geolocation error:', {
+              code: err.code,
+              message: err.message,
+              PERMISSION_DENIED: err.PERMISSION_DENIED,
+              POSITION_UNAVAILABLE: err.POSITION_UNAVAILABLE,
+              TIMEOUT: err.TIMEOUT
             });
-        }, function(err) {
-          status.textContent = 'Unable to fetch location: ' + err.message;
-        }, {
-          enableHighAccuracy: true,
-          timeout: 10000
-        });
+            
+            let errorMsg = 'Unable to fetch location. ';
+            switch(err.code) {
+              case err.PERMISSION_DENIED:
+                errorMsg += 'Location permission was denied. Please:<br>1) Click the lock icon in your browser\'s address bar<br>2) Set location permission to \'Allow\'<br>3) Refresh the page (Ctrl+F5) and try again.';
+                break;
+              case err.POSITION_UNAVAILABLE:
+                errorMsg += 'Location information is unavailable. Please check your device\'s location settings.';
+                break;
+              case err.TIMEOUT:
+                errorMsg += 'Location request timed out. Please try again.';
+                break;
+              default:
+                errorMsg += err.message || 'Unknown error occurred.';
+                break;
+            }
+            status.innerHTML = '<span class="text-danger">' + errorMsg + '</span>';
+          }, {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+          });
+        }
       });
 
       document.getElementById('dontSaveLocation').addEventListener('click', function() {

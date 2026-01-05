@@ -348,6 +348,80 @@ while ($row = mysqli_fetch_assoc($predictionsResult)) {
     }
 }
 
+/**
+ * Calculate resource allocation recommendations based on predictive results
+ * @param float $forecastEvacuees - Forecasted number of evacuees
+ * @param string $scaleRange - Scale range (1-3, 4-7, 8-10)
+ * @param string $disasterType - Type of disaster
+ * @return array - Recommended resources with quantities
+ */
+function calculateResourceAllocation($forecastEvacuees, $scaleRange, $disasterType, $days = 7) {
+    $recommendations = [];
+    
+    // Base resource requirements
+    // Note: Some resources are per day (consumables), others are one-time (reusable)
+    $baseResources = [
+        'Food' => ['per_person_per_day' => 2.5, 'unit' => 'packs', 'is_daily' => true], // 2.5 packs per person per day
+        'Water' => ['per_person_per_day' => 3, 'unit' => 'liters', 'is_daily' => true], // 3 liters per person per day
+        'Medical Supplies' => ['per_person_per_day' => 0.1, 'unit' => 'kits', 'is_daily' => true], // Medical kit per 10 people per day
+        'Blankets' => ['per_person' => 1, 'unit' => 'pieces', 'is_daily' => false], // 1 blanket per person (reusable)
+        'Tents' => ['per_person' => 0.2, 'unit' => 'units', 'is_daily' => false], // 1 tent per 5 people (reusable)
+    ];
+    
+    // Risk level multipliers (higher risk = more resources needed)
+    $riskMultipliers = [
+        '1-3' => 1.0,   // Low risk - base amount
+        '4-7' => 1.5,   // Medium risk - 50% more
+        '8-10' => 2.0   // High risk - double the amount
+    ];
+    
+    // Disaster-specific adjustments
+    $disasterAdjustments = [
+        'Flood' => ['Water' => 0.5, 'Medical Supplies' => 1.5], // Less water needed (flood), more medical
+        'Earthquake' => ['Medical Supplies' => 2.0, 'Tents' => 1.5], // More medical, more shelter
+        'Typhoon' => ['Tents' => 2.0, 'Food' => 1.3], // More shelter, more food
+        'Fire' => ['Water' => 1.5, 'Medical Supplies' => 2.0, 'Blankets' => 0.8], // More water/medical, less blankets
+    ];
+    
+    $multiplier = $riskMultipliers[$scaleRange] ?? 1.0;
+    $adjustments = $disasterAdjustments[$disasterType] ?? [];
+    
+    // Calculate for specified days - only for daily consumables
+    
+    foreach ($baseResources as $resource => $config) {
+        // Check if resource is daily consumable or one-time allocation
+        if (isset($config['is_daily']) && $config['is_daily']) {
+            // Daily consumables: multiply by days
+            $baseAmount = $forecastEvacuees * $config['per_person_per_day'] * $days;
+        } else {
+            // One-time/reusable items: calculate based on number of people only
+            $perPerson = $config['per_person'] ?? $config['per_person_per_day'] ?? 0;
+            $baseAmount = $forecastEvacuees * $perPerson;
+        }
+        
+        $adjustedAmount = $baseAmount * $multiplier;
+        
+        // Apply disaster-specific adjustments
+        if (isset($adjustments[$resource])) {
+            $adjustedAmount *= $adjustments[$resource];
+        }
+        
+        $recommendations[] = [
+            'resource' => $resource,
+            'quantity' => ceil($adjustedAmount), // Round up
+            'unit' => $config['unit']
+        ];
+    }
+    
+    // Add emergency-specific resources based on risk level
+    if ($scaleRange === '8-10') {
+        $recommendations[] = ['resource' => 'Emergency Kits', 'quantity' => ceil($forecastEvacuees * 0.5), 'unit' => 'kits'];
+        $recommendations[] = ['resource' => 'Communication Equipment', 'quantity' => ceil($forecastEvacuees / 50), 'unit' => 'units'];
+    }
+    
+    return $recommendations;
+}
+
 // Process monthly forecasts with severity/risk levels
 $monthlyForecastsByDisasterId = []; // barangay_disasterId => monthly forecasts array
 $monthlyForecastsByBarangay = []; // Also create a lookup by barangay name only (case-insensitive)
@@ -403,6 +477,73 @@ while ($row = mysqli_fetch_assoc($predictionsResult)) {
         // Also store in barangay-only lookup (for fallback, but include disaster_id)
         if (!isset($monthlyForecastsByBarangay[$barangayNormalized][$period])) {
             $monthlyForecastsByBarangay[$barangayNormalized][$period] = $monthlyForecastData;
+        }
+    }
+}
+
+// Get average capacity of evacuation centers to calculate centers needed
+$avgCapacityQuery = "SELECT AVG(total_capacity) as avg_capacity FROM evac_loc_table WHERE total_capacity > 0";
+$avgCapacityResult = $conn->query($avgCapacityQuery);
+$avgCapacity = 500; // Default capacity per center if no data
+if ($avgCapacityResult && $row = $avgCapacityResult->fetch_assoc()) {
+    $avgCapacity = max(100, (int)$row['avg_capacity']); // Minimum 100, use average if available
+}
+
+// Fetch all evacuation centers
+$evacCentersQuery = "
+    SELECT 
+        evac_loc_id, 
+        city, 
+        barangay_id, 
+        purok, 
+        name, 
+        total_capacity, 
+        longitude, 
+        latitude, 
+        status 
+    FROM evac_loc_table
+    ORDER BY barangay_id, name ASC
+";
+$evacCentersResult = $conn->query($evacCentersQuery);
+$allEvacCenters = [];
+$centersByBarangay = []; // barangay_id => [centers]
+
+if ($evacCentersResult) {
+    while ($row = $evacCentersResult->fetch_assoc()) {
+        $center = [
+            'evac_loc_id' => $row['evac_loc_id'],
+            'city' => $row['city'],
+            'barangay_id' => $row['barangay_id'],
+            'purok' => $row['purok'],
+            'name' => $row['name'],
+            'total_capacity' => (int)$row['total_capacity'],
+            'longitude' => $row['longitude'],
+            'latitude' => $row['latitude'],
+            'status' => $row['status']
+        ];
+        $allEvacCenters[$row['evac_loc_id']] = $center;
+        
+        // Group by barangay_id
+        $barangayId = $row['barangay_id'];
+        if ($barangayId) {
+            if (!isset($centersByBarangay[$barangayId])) {
+                $centersByBarangay[$barangayId] = [];
+            }
+            $centersByBarangay[$barangayId][] = $center;
+        }
+    }
+}
+
+// Get barangay names for centers
+$barangayNamesForCenters = [];
+if (!empty($centersByBarangay)) {
+    $barangayIds = array_keys($centersByBarangay);
+    $barangayIdsStr = implode(',', array_map('intval', $barangayIds));
+    $barangayNameQuery = "SELECT barangay_id, barangay_name FROM barangay_manegement_table WHERE barangay_id IN ($barangayIdsStr)";
+    $barangayNameResult = $conn->query($barangayNameQuery);
+    if ($barangayNameResult) {
+        while ($row = $barangayNameResult->fetch_assoc()) {
+            $barangayNamesForCenters[$row['barangay_id']] = $row['barangay_name'];
         }
     }
 }
@@ -805,6 +946,7 @@ while ($row = mysqli_fetch_assoc($predictionsResult)) {
                           <th>Scale Range</th>
                           <th>Forecast (Evacuees)</th>
                           <th>Accuracy</th>
+                          <th>Resource Allocation</th>
                           <th>Generated At</th>
                         </tr>
                       </thead>
@@ -828,6 +970,13 @@ while ($row = mysqli_fetch_assoc($predictionsResult)) {
                                 $ciRange = $pred['upper_bound'] - $pred['lower_bound'];
                                 $color = $scaleColors[$scale];
                                 
+                                // Calculate resource allocation based on forecast
+                                $resourceAllocation = calculateResourceAllocation(
+                                    $pred['forecast'], 
+                                    $scale, 
+                                    $kindOfDisaster
+                                );
+                                
                                 echo '<tr data-barangay="' . htmlspecialchars($barangay) . '" data-disaster-id="' . htmlspecialchars($disasterId ?: '') . '" data-kind-of-disaster="' . htmlspecialchars($kindOfDisaster) . '">';
                                 echo '<td><strong>' . htmlspecialchars($barangay) . '</strong></td>';
                                 echo '<td>' . htmlspecialchars($kindOfDisaster) . '</td>';
@@ -841,6 +990,20 @@ while ($row = mysqli_fetch_assoc($predictionsResult)) {
                                   echo '<span class="badge bg-secondary">N/A</span>';
                                 }
                                 echo '</td>';
+                                echo '<td>';
+                                // Display resource allocation recommendations
+                                if (!empty($resourceAllocation)) {
+                                  echo '<button class="btn btn-sm btn-info view-resources-btn" ';
+                                  echo 'data-barangay="' . htmlspecialchars($barangay) . '" ';
+                                  echo 'data-disaster="' . htmlspecialchars($kindOfDisaster) . '" ';
+                                  echo 'data-forecast="' . number_format($pred['forecast'], 0) . '" ';
+                                  echo 'data-scale="' . htmlspecialchars($scale) . '" ';
+                                  echo 'data-resources=\'' . json_encode($resourceAllocation) . '\'>';
+                                  echo '<i class="bi bi-box-seam"></i> View Resources';
+                                  echo '</button>';
+                                } else {
+                                  echo '<span class="text-muted">N/A</span>';
+                                }
                                 echo '</td>';
                                 echo '<td>';
                                 if ($pred['created_at']) {
@@ -897,6 +1060,84 @@ while ($row = mysqli_fetch_assoc($predictionsResult)) {
             <div id="monthlySeverityContainer" class="row">
               <!-- Monthly severity cards will be inserted here -->
             </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resource Allocation Modal -->
+  <div class="modal fade" id="resourceAllocationModal" tabindex="-1" aria-labelledby="resourceAllocationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-info text-white">
+          <h5 class="modal-title" id="resourceAllocationModalLabel">
+            <i class="bi bi-box-seam"></i> Resource Allocation Recommendations
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <h6 class="text-primary" id="resourceBarangayName"></h6>
+            <p class="mb-1"><strong>Disaster Type:</strong> <span id="resourceDisasterType"></span></p>
+            <p class="mb-1"><strong>Forecasted Evacuees:</strong> <span id="resourceForecast"></span></p>
+            <p class="mb-1"><strong>Risk Level:</strong> <span id="resourceScale"></span></p>
+            <div class="mt-2 mb-2">
+              <label for="supplyDaysSelect" class="form-label"><strong>Supply Days:</strong></label>
+              <select class="form-select form-select-sm" id="supplyDaysSelect" style="max-width: 150px;">
+                <option value="1">1 day</option>
+                <option value="2">2 days</option>
+                <option value="3">3 days</option>
+                <option value="4">4 days</option>
+                <option value="5">5 days</option>
+                <option value="6">6 days</option>
+                <option value="7" selected>7 days</option>
+              </select>
+            </div>
+            <hr>
+          </div>
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> <strong>Recommended Resources (<span id="resourceDaysDisplay">7</span>-day supply):</strong>
+            <p class="mb-0 small">Based on forecasted evacuees and risk assessment</p>
+          </div>
+          <div class="alert alert-warning mb-3">
+            <i class="bi bi-building"></i> <strong>Evacuation Centers Needed:</strong>
+            <span class="badge bg-danger fs-5 ms-2" id="evacuationCentersNeeded">-</span>
+            <small class="d-block mt-1 text-muted">Based on forecasted evacuees (capacity: <span id="avgCapacityDisplay">-</span> per center)</small>
+          </div>
+          <div id="recommendedCentersContainer" class="mb-3" style="display: none;">
+            <h6 class="text-primary mb-2"><i class="bi bi-check-circle"></i> Recommended Evacuation Centers to Open:</h6>
+            <div id="recommendedCentersList" class="list-group">
+              <!-- Recommended centers will be inserted here -->
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-striped table-hover">
+              <thead class="table-primary">
+                <tr>
+                  <th>Resource</th>
+                  <th>Recommended Quantity</th>
+                  <th>Unit</th>
+                </tr>
+              </thead>
+              <tbody id="resourceAllocationTableBody">
+                <!-- Resources will be inserted here -->
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-3 p-3 bg-light rounded">
+            <small class="text-muted">
+              <i class="bi bi-lightbulb"></i> <strong>Note:</strong> These recommendations are calculated based on:
+              <ul class="mb-0 mt-2">
+                <li>Forecasted number of evacuees</li>
+                <li>Risk level (scale range)</li>
+                <li>Disaster type specific requirements</li>
+                <li><span id="resourceDaysNote">7</span>-day evacuation period (adjustable via dropdown above)</li>
+              </ul>
+            </small>
           </div>
         </div>
         <div class="modal-footer">
@@ -1395,6 +1636,315 @@ while ($row = mysqli_fetch_assoc($predictionsResult)) {
       
       // Destroy chart when modal is closed
       graphModalElement.addEventListener('hidden.bs.modal', destroyChart);
+      
+      // Resource Allocation Modal functionality
+      const resourceModal = new bootstrap.Modal(document.getElementById('resourceAllocationModal'));
+      const resourceTableBody = document.getElementById('resourceAllocationTableBody');
+      const supplyDaysSelect = document.getElementById('supplyDaysSelect');
+      
+      // Get average capacity from PHP
+      const avgCapacityPerCenter = <?php echo json_encode($avgCapacity); ?>;
+      
+      // Get evacuation centers data from PHP
+      const allEvacCenters = <?php echo json_encode($allEvacCenters ?? []); ?>;
+      const centersByBarangay = <?php echo json_encode($centersByBarangay ?? []); ?>;
+      const barangayNamesForCenters = <?php echo json_encode($barangayNamesForCenters ?? []); ?>;
+      
+      // Store base calculation data for recalculation
+      let baseCalculationData = {
+        forecastEvacuees: 0,
+        scaleRange: '',
+        disasterType: '',
+        baseResources: null
+      };
+      
+      // Base resource configuration (matches PHP)
+      const baseResources = {
+        'Food': { per_person_per_day: 2.5, unit: 'packs', is_daily: true },
+        'Water': { per_person_per_day: 3, unit: 'liters', is_daily: true },
+        'Medical Supplies': { per_person_per_day: 0.1, unit: 'kits', is_daily: true },
+        'Blankets': { per_person: 1, unit: 'pieces', is_daily: false },
+        'Tents': { per_person: 0.2, unit: 'units', is_daily: false }
+      };
+      
+      // Risk level multipliers
+      const riskMultipliers = {
+        '1-3': 1.0,
+        '4-7': 1.5,
+        '8-10': 2.0
+      };
+      
+      // Disaster-specific adjustments
+      const disasterAdjustments = {
+        'Flood': { 'Water': 0.5, 'Medical Supplies': 1.5 },
+        'Earthquake': { 'Medical Supplies': 2.0, 'Tents': 1.5 },
+        'Typhoon': { 'Tents': 2.0, 'Food': 1.3 },
+        'Fire': { 'Water': 1.5, 'Medical Supplies': 2.0, 'Blankets': 0.8 }
+      };
+      
+      // Function to recalculate resources based on days
+      function recalculateResources(days) {
+        const forecastEvacuees = baseCalculationData.forecastEvacuees;
+        const scaleRange = baseCalculationData.scaleRange;
+        const disasterType = baseCalculationData.disasterType;
+        
+        if (!forecastEvacuees || !scaleRange || !disasterType) return;
+        
+        const multiplier = riskMultipliers[scaleRange] || 1.0;
+        const adjustments = disasterAdjustments[disasterType] || {};
+        const recommendations = [];
+        
+        // Update days display
+        document.getElementById('resourceDaysDisplay').textContent = days;
+        document.getElementById('resourceDaysNote').textContent = days;
+        
+        // Calculate evacuation centers needed
+        if (forecastEvacuees > 0 && avgCapacityPerCenter > 0) {
+          const centersNeeded = Math.max(1, Math.ceil(forecastEvacuees / avgCapacityPerCenter));
+          document.getElementById('evacuationCentersNeeded').textContent = centersNeeded + ' center(s)';
+          document.getElementById('avgCapacityDisplay').textContent = new Intl.NumberFormat('en-US').format(avgCapacityPerCenter);
+          
+          // Recommend specific centers to open
+          const barangayName = baseCalculationData.barangayName || document.getElementById('resourceBarangayName').textContent;
+          recommendEvacuationCenters(barangayName, forecastEvacuees, centersNeeded);
+        } else {
+          document.getElementById('evacuationCentersNeeded').textContent = '-';
+          document.getElementById('avgCapacityDisplay').textContent = '-';
+          document.getElementById('recommendedCentersContainer').style.display = 'none';
+        }
+        
+        // Calculate resources
+        Object.keys(baseResources).forEach(resource => {
+          const config = baseResources[resource];
+          let baseAmount;
+          
+          if (config.is_daily) {
+            // Daily consumables: multiply by days
+            baseAmount = forecastEvacuees * config.per_person_per_day * days;
+          } else {
+            // One-time/reusable items: calculate based on number of people only
+            const perPerson = config.per_person || config.per_person_per_day || 0;
+            baseAmount = forecastEvacuees * perPerson;
+          }
+          
+          let adjustedAmount = baseAmount * multiplier;
+          
+          // Apply disaster-specific adjustments
+          if (adjustments[resource]) {
+            adjustedAmount *= adjustments[resource];
+          }
+          
+          recommendations.push({
+            resource: resource,
+            quantity: Math.ceil(adjustedAmount),
+            unit: config.unit
+          });
+        });
+        
+        // Add emergency-specific resources for high risk
+        if (scaleRange === '8-10') {
+          recommendations.push({
+            resource: 'Emergency Kits',
+            quantity: Math.ceil(forecastEvacuees * 0.5),
+            unit: 'kits'
+          });
+          recommendations.push({
+            resource: 'Communication Equipment',
+            quantity: Math.ceil(forecastEvacuees / 50),
+            unit: 'units'
+          });
+        }
+        
+        // Update table
+        resourceTableBody.innerHTML = '';
+        if (recommendations && recommendations.length > 0) {
+          recommendations.forEach(resource => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td><strong>${resource.resource}</strong></td>
+              <td><span class="badge bg-primary fs-6">${new Intl.NumberFormat('en-US').format(resource.quantity)}</span></td>
+              <td>${resource.unit}</td>
+            `;
+            resourceTableBody.appendChild(row);
+          });
+        } else {
+          resourceTableBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No resource recommendations available</td></tr>';
+        }
+      }
+      
+      // Function to recommend evacuation centers based on barangay and evacuees needed
+      function recommendEvacuationCenters(barangayName, forecastEvacuees, centersNeeded) {
+        const recommendedCentersContainer = document.getElementById('recommendedCentersContainer');
+        const recommendedCentersList = document.getElementById('recommendedCentersList');
+        
+        // Safety check: ensure variables are defined
+        if (!barangayName || typeof allEvacCenters === 'undefined' || !allEvacCenters || Object.keys(allEvacCenters).length === 0) {
+          recommendedCentersContainer.style.display = 'none';
+          return;
+        }
+        
+        // Find barangay_id from barangay name
+        let targetBarangayId = null;
+        const centersByBarangaySafe = centersByBarangay || {};
+        const barangayNamesForCentersSafe = barangayNamesForCenters || {};
+        for (const [barangayId, centers] of Object.entries(centersByBarangaySafe)) {
+          const barangayNameForId = barangayNamesForCentersSafe[barangayId];
+          if (barangayNameForId && barangayNameForId.toLowerCase() === barangayName.toLowerCase()) {
+            targetBarangayId = parseInt(barangayId);
+            break;
+          }
+        }
+        
+        // Collect recommended centers
+        const recommended = [];
+        let remainingCapacity = forecastEvacuees;
+        
+        // Priority 1: Centers in the same barangay
+        if (targetBarangayId && centersByBarangaySafe && centersByBarangaySafe[targetBarangayId]) {
+          const sameBarangayCenters = centersByBarangaySafe[targetBarangayId]
+            .filter(c => {
+              const status = (c.status || '').toString().toLowerCase();
+              return status === 'active' || status === '' || !c.status;
+            })
+            .sort((a, b) => (b.total_capacity || 0) - (a.total_capacity || 0));
+          
+          for (const center of sameBarangayCenters) {
+            if (recommended.length >= centersNeeded) break;
+            recommended.push({
+              ...center,
+              priority: 'Same Barangay',
+              barangayName: barangayNamesForCentersSafe[targetBarangayId] || barangayName
+            });
+            remainingCapacity -= (center.total_capacity || 0);
+          }
+        }
+        
+        // Priority 2: Nearby centers if still need more
+        if (recommended.length < centersNeeded && remainingCapacity > 0) {
+          const otherCenters = Object.values(allEvacCenters)
+            .filter(c => {
+              const alreadyRecommended = recommended.some(r => r.evac_loc_id === c.evac_loc_id);
+              const status = (c.status || '').toString().toLowerCase();
+              const isActive = status === 'active' || status === '' || !c.status;
+              return !alreadyRecommended && isActive && c.barangay_id !== targetBarangayId;
+            })
+            .sort((a, b) => (b.total_capacity || 0) - (a.total_capacity || 0));
+          
+          for (const center of otherCenters) {
+            if (recommended.length >= centersNeeded) break;
+            recommended.push({
+              ...center,
+              priority: 'Nearby',
+              barangayName: barangayNamesForCentersSafe[center.barangay_id] || 'Unknown'
+            });
+            remainingCapacity -= (center.total_capacity || 0);
+          }
+        }
+        
+        // Display recommendations
+        if (recommended.length > 0) {
+          recommendedCentersList.innerHTML = '';
+          recommended.forEach((center, index) => {
+            const status = (center.status || '').toString();
+            const statusBadge = status.toLowerCase() === 'active' 
+              ? '<span class="badge bg-success">Active</span>' 
+              : '<span class="badge bg-secondary">' + (status || 'Available') + '</span>';
+            
+            const priorityBadge = center.priority === 'Same Barangay' 
+              ? '<span class="badge bg-primary">Same Barangay</span>' 
+              : '<span class="badge bg-info">Nearby</span>';
+            
+            const location = [
+              center.barangayName,
+              center.purok ? 'Purok ' + center.purok : '',
+              center.city || ''
+            ].filter(Boolean).join(', ');
+            
+            const listItem = document.createElement('div');
+            listItem.className = 'list-group-item';
+            listItem.innerHTML = `
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                  <h6 class="mb-1">
+                    <i class="bi bi-building"></i> ${center.name || 'Unnamed Center'}
+                    ${priorityBadge}
+                  </h6>
+                  <p class="mb-1 small text-muted">
+                    <i class="bi bi-geo-alt"></i> ${location || 'Location not specified'}
+                  </p>
+                  <p class="mb-0 small">
+                    <strong>Capacity:</strong> ${new Intl.NumberFormat('en-US').format(center.total_capacity || 0)} people | 
+                    ${statusBadge}
+                  </p>
+                </div>
+                <div class="text-end ms-2">
+                  <small class="text-muted">#${index + 1}</small>
+                </div>
+              </div>
+            `;
+            recommendedCentersList.appendChild(listItem);
+          });
+          recommendedCentersContainer.style.display = 'block';
+        } else {
+          recommendedCentersContainer.style.display = 'none';
+        }
+      }
+      
+      // Handle days dropdown change
+      supplyDaysSelect.addEventListener('change', function() {
+        const days = parseInt(this.value);
+        recalculateResources(days);
+      });
+      
+      // Handle resource allocation button clicks
+      document.addEventListener('click', function(e) {
+        if (e.target.closest('.view-resources-btn')) {
+          const button = e.target.closest('.view-resources-btn');
+          const barangay = button.getAttribute('data-barangay');
+          const disaster = button.getAttribute('data-disaster');
+          const forecast = button.getAttribute('data-forecast');
+          const scale = button.getAttribute('data-scale');
+          const resourcesJson = button.getAttribute('data-resources');
+          
+          try {
+            // Parse forecast number (remove commas)
+            const forecastNum = parseFloat(forecast.replace(/,/g, ''));
+            
+            // Store base calculation data
+            baseCalculationData = {
+              forecastEvacuees: forecastNum,
+              scaleRange: scale,
+              disasterType: disaster,
+              barangayName: barangay,
+              baseResources: baseResources
+            };
+            
+            // Update modal title and info
+            document.getElementById('resourceBarangayName').textContent = barangay;
+            document.getElementById('resourceDisasterType').textContent = disaster;
+            document.getElementById('resourceForecast').textContent = forecast + ' evacuees';
+            
+            // Set scale label
+            const scaleLabels = {'1-3': 'Low Risk (1-3)', '4-7': 'Medium Risk (4-7)', '8-10': 'High Risk (8-10)'};
+            const scaleColors = {'1-3': 'success', '4-7': 'warning', '8-10': 'danger'};
+            const scaleElement = document.getElementById('resourceScale');
+            scaleElement.innerHTML = '<span class="badge bg-' + (scaleColors[scale] || 'secondary') + '">' + (scaleLabels[scale] || scale) + '</span>';
+            
+            // Reset dropdown to 7 days
+            supplyDaysSelect.value = '7';
+            
+            // Calculate and display resources for 7 days (default)
+            // This will also calculate evacuation centers needed
+            recalculateResources(7);
+            
+            // Show modal
+            resourceModal.show();
+          } catch (error) {
+            console.error('Error parsing resource data:', error);
+            alert('Error loading resource allocation data');
+          }
+        }
+      });
     });
   </script>
 </body>

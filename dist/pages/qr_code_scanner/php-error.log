@@ -510,3 +510,5 @@ Stack trace:
 [08-Oct-2025 17:19:17 Europe/Berlin] Processing Member ID: 122, Age Class ID: 1, Classification: 'Infant', Mapped to: 'infant'
 [28-Oct-2025 07:40:59 Europe/Berlin] Processing Member ID: 114, Age Class ID: 1, Classification: 'Infant', Mapped to: 'infant'
 [11-Dec-2025 04:52:53 Europe/Berlin] Processing Member ID: 133, Age Class ID: 6, Classification: 'Adult', Mapped to: 'adult'
+[14-Dec-2025 13:51:32 Europe/Berlin] Processing Member ID: 133, Age Class ID: 6, Classification: 'Adult', Mapped to: 'adult'
+[14-Dec-2025 13:51:32 Europe/Berlin] Processing Member ID: 141, Age Class ID: 1, Classification: 'Infant', Mapped to: 'infant'

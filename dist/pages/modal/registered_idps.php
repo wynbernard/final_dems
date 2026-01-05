@@ -1,7 +1,17 @@
 <!-- Register IDP Modal -->
 <div class="modal fade" id="registerIDPModal" tabindex="-1" aria-labelledby="registerIDPModalLabel" aria-hidden="true">
 	<div class="modal-dialog modal-xl">
-		<div class="modal-content">
+		<div class="modal-content" style="position: relative;">
+			<!-- Loading Overlay for Manual Registration -->
+			<div id="manualRegistrationLoadingOverlay" class="manual-registration-loading-overlay" style="display: none;">
+				<div class="manual-registration-loading-spinner">
+					<div class="spinner-border text-white" role="status" style="width: 3rem; height: 3rem;">
+						<span class="visually-hidden">Loading...</span>
+					</div>
+					<p class="mt-3 text-white fw-semibold">Processing registration...</p>
+					<p class="text-white-50 small">Please wait, this may take a moment</p>
+				</div>
+			</div>
 			<div class="modal-header">
 				<h5 class="modal-title" id="registerIDPModalLabel">Register New IDP</h5>
 				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -91,7 +101,7 @@
 								}
 								?>
 							</span>
-                            <input type="hidden" name="disasterId" id="disasterIdHidden" value="<?php echo htmlspecialchars($selectedDisasterId); ?>">
+                            <input type="hidden" name="disasterId" id="disasterIdHidden" value="<?php echo htmlspecialchars($selectedDisasterId); ?>" data-encrypted-value="<?php echo htmlspecialchars(isset($_GET['disasterId']) ? $_GET['disasterId'] : ''); ?>">
 						</div>
 						<div class="ms-3">
 							<label for="room_id" class="form-label"><strong>Room :</strong></label>
@@ -1568,6 +1578,43 @@ function loadBarangays() {
 	#nameSuggestions button:active {
 		background-color: #e2e6ea;
 	}
+
+	/* Loading Overlay Styles for Manual Registration Modal */
+	.manual-registration-loading-overlay {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		width: 100%;
+		height: 100%;
+		background-color: rgba(0, 0, 0, 0.85);
+		display: none;
+		justify-content: center;
+		align-items: center;
+		z-index: 10000;
+		border-radius: 0.5rem;
+		flex-direction: column;
+	}
+
+	.manual-registration-loading-spinner {
+		text-align: center;
+		background: rgba(255, 255, 255, 0.1);
+		padding: 2rem;
+		border-radius: 1rem;
+		backdrop-filter: blur(10px);
+	}
+
+	.manual-registration-loading-spinner .spinner-border {
+		border-width: 0.3em;
+		animation: spinner-border-rotate 0.75s linear infinite;
+	}
+
+	@keyframes spinner-border-rotate {
+		to {
+			transform: rotate(360deg);
+		}
+	}
 </style>
 <!-- for the room dropdown -->
 <script>
@@ -2398,6 +2445,25 @@ function loadBarangays() {
 			form.addEventListener('submit', function(e) {
 				e.preventDefault();
 				
+				// Show loading overlay immediately
+				var loadingOverlay = document.getElementById('manualRegistrationLoadingOverlay');
+				var submitBtn = document.getElementById('submitBtn');
+				var originalBtnText = submitBtn ? submitBtn.innerHTML : '';
+				
+				// Show overlay and disable button
+				if (loadingOverlay) {
+					loadingOverlay.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; z-index: 10000 !important; position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100% !important; height: 100% !important; background-color: rgba(0, 0, 0, 0.85) !important;';
+				}
+				
+				if (submitBtn) {
+					submitBtn.disabled = true;
+					submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
+				}
+				
+				// Preserve disasterId before form submission
+				var disasterIdHidden = document.getElementById('disasterIdHidden');
+				var preservedDisasterId = disasterIdHidden ? disasterIdHidden.value : '';
+				
 				// Sync monthly_income hidden field before submission
 				var displayInput = document.getElementById('monthly_income_display');
 				var hiddenInput = document.getElementById('monthly_income');
@@ -2418,6 +2484,17 @@ function loadBarangays() {
 					})
 					.then(response => response.json())
 					.then(data => {
+						// Hide loading overlay
+						if (loadingOverlay) {
+							loadingOverlay.style.cssText = 'display: none !important;';
+						}
+						
+						// Re-enable button
+						if (submitBtn) {
+							submitBtn.disabled = false;
+							submitBtn.innerHTML = originalBtnText;
+						}
+						
 						if (data.success) {
 							Swal.fire({
 								icon: 'success',
@@ -2425,6 +2502,15 @@ function loadBarangays() {
 								text: data.message
 							}).then(() => {
 								form.reset();
+								
+								// Restore disasterId after form reset (preserve from before submission)
+								if (preservedDisasterId) {
+									var disasterIdHidden = document.getElementById('disasterIdHidden');
+									if (disasterIdHidden) {
+										disasterIdHidden.value = preservedDisasterId;
+									}
+								}
+								
 								// Optionally, reset custom UI fields (e.g., previews, dynamic fields)
 								var assignedRoomDisplay = document.getElementById('assignedRoomDisplay');
 								if (assignedRoomDisplay) {
@@ -2454,15 +2540,6 @@ function loadBarangays() {
 								if (roomDropdown) {
 									roomDropdown.selectedIndex = 0;
 								}
-								// Reset disaster event display
-								var disasterEventName = document.getElementById('disasterEventName');
-								if (disasterEventName) {
-									disasterEventName.textContent = 'No disaster selected';
-								}
-								var disasterIdHidden = document.getElementById('disasterIdHidden');
-								if (disasterIdHidden) {
-									disasterIdHidden.value = '';
-								}
 							});
 						} else {
 							Swal.fire({
@@ -2473,6 +2550,17 @@ function loadBarangays() {
 						}
 					})
 					.catch(error => {
+						// Hide loading overlay on error
+						if (loadingOverlay) {
+							loadingOverlay.style.cssText = 'display: none !important;';
+						}
+						
+						// Re-enable button on error
+						if (submitBtn) {
+							submitBtn.disabled = false;
+							submitBtn.innerHTML = originalBtnText;
+						}
+						
 						Swal.fire({
 							icon: 'error',
 							title: 'Error',

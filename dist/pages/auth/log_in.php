@@ -98,31 +98,72 @@
 </html>
 <?php
 include '../../../database/conn.php';
+require_once '../../../database/rate_limit.php';
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	$username = trim($_POST['username']);
 	$password = trim($_POST['password']);
+	
+	// Rate limiting: Check if user has exceeded login attempts
+	$rate_limit = rate_limit_check('login', $username, 5, 300); // 5 attempts per 5 minutes
+	
+	if (!$rate_limit['allowed']) {
+		$_SESSION['notification'] = "<span style='color:red'><i class='bi bi-exclamation-circle-fill'></i></span> " . $rate_limit['message'];
+		header("Location: log_in.php");
+		exit();
+	}
 
-	// Check admin table first
-	$stmt = $conn->prepare("SELECT * FROM admin_table WHERE username = ? AND password = ?");
-	$stmt->bind_param("ss", $username, $password);
+	// Check admin table first - use password_verify() for secure password checking
+	$stmt = $conn->prepare("SELECT * FROM admin_table WHERE username = ?");
+	$stmt->bind_param("s", $username);
 	$stmt->execute();
 	$result = $stmt->get_result();
 	$admin = $result->fetch_assoc();
 
+	// Verify password using password_verify() (handles both hashed and plaintext during migration)
 	if ($admin) {
-		session_regenerate_id(true);
-		$session_token = bin2hex(random_bytes(32));
+		$password_valid = false;
+		
+		// Check if password is already hashed (starts with $2y$, $2a$, or $2b$ for bcrypt)
+		if (strpos($admin['password'], '$2y$') === 0 || strpos($admin['password'], '$2a$') === 0 || strpos($admin['password'], '$2b$') === 0) {
+			// Password is hashed, use password_verify()
+			$password_valid = password_verify($password, $admin['password']);
+		} else {
+			// Password is plaintext (legacy), compare directly for migration period
+			$password_valid = ($admin['password'] === $password);
+			
+			// Auto-migrate: hash the plaintext password if login succeeds
+			if ($password_valid) {
+				$hashed_password = password_hash($password, PASSWORD_DEFAULT);
+				$updateStmt = $conn->prepare("UPDATE admin_table SET password = ? WHERE admin_id = ?");
+				$updateStmt->bind_param("si", $hashed_password, $admin['admin_id']);
+				$updateStmt->execute();
+				$updateStmt->close();
+			}
+		}
+		
+		if ($password_valid) {
+			// Clear rate limit on successful login
+			rate_limit_clear('login', $username);
+			
+			session_regenerate_id(true);
+			$session_token = bin2hex(random_bytes(32));
 
-		$_SESSION['admin_id'] = $admin['admin_id'];
-		$_SESSION['username'] = $admin['username'];
-		$_SESSION['session_token'] = $session_token;
+			$_SESSION['admin_id'] = $admin['admin_id'];
+			$_SESSION['username'] = $admin['username'];
+			$_SESSION['session_token'] = $session_token;
 
-		$updateToken = $conn->prepare("UPDATE admin_table SET session_token = ? WHERE admin_id = ?");
-		$updateToken->bind_param("si", $session_token, $admin['admin_id']);
-		$updateToken->execute();
+			$updateToken = $conn->prepare("UPDATE admin_table SET session_token = ? WHERE admin_id = ?");
+			$updateToken->bind_param("si", $session_token, $admin['admin_id']);
+			$updateToken->execute();
+			$updateToken->close();
 
-		header("Location: ../admin_page/Dashboard.php");
-		exit();
+			header("Location: ../admin_page/Dashboard.php");
+			exit();
+		} else {
+			// Record failed login attempt for rate limiting
+			rate_limit_record_attempt('login', $username);
+		}
 	}
 
 	// Check pre_reg_table if not found in admin_table
@@ -133,6 +174,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	$preRegUser = $result->fetch_assoc();
 
 	if ($preRegUser && password_verify($password, $preRegUser['password'])) {
+		// Clear rate limit on successful login
+		rate_limit_clear('login', $username);
+		
 		session_regenerate_id(true);
 		$session_token = bin2hex(random_bytes(32));
 
@@ -149,7 +193,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		header("Location: ../user_page/Dashboard.php");
 		exit();
 	}
-	// If login fails for both
+	
+	// If login fails for both, record failed attempt
+	rate_limit_record_attempt('login', $username);
+	
 	$_SESSION['notification'] = "<span style='color:red'><i class='bi bi-exclamation-circle-fill'></i></span> Incorrect username or password!";
 	header("Location: log_in.php");
 	exit();

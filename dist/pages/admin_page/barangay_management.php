@@ -77,7 +77,7 @@ if (!$result) {
 								<button type="button" class="btn btn-sm btn-outline-success ms-auto" id="markAllEvac">Mark all evacuation</button>
 								<button type="button" class="btn btn-sm btn-outline-secondary" id="clearAllEvac">Clear all</button>
 								<button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addLocationModal">
-									<i class="fas fa-plus-circle"></i> Add Location
+									<i class="fas fa-plus-circle"></i> Add Barangay
 								</button>
 							</div>
 
